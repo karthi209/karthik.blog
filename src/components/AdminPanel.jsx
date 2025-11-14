@@ -3,7 +3,7 @@ import { adminCreateBlog, getStoredApiKey, setStoredApiKey } from '../services/a
 import { adminCreateLog } from '../services/logs-admin';
 import { adminCreatePlaylist, adminUpdatePlaylist, adminDeletePlaylist, adminAddSong, adminAddSongsBulk, adminDeleteSong, fetchPlaylists } from '../services/playlists-admin';
 import ReactQuill from 'react-quill';
-import 'react-quill/dist/quill.snow.css';
+import "quill/dist/quill.snow.css";
 
 export default function AdminPanel() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
