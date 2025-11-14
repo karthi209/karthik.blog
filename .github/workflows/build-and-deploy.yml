@@ -23,16 +23,6 @@ on:
         required: true
         default: false
         type: boolean
-      deploy_postgres:
-        description: 'Deploy postgres'
-        required: true
-        default: false
-        type: boolean
-      deploy_nginx:
-        description: 'Deploy nginx'
-        required: true
-        default: false
-        type: boolean
       frontend_version:
         description: 'Frontend version to deploy (optional): eg: v1.0.0'
         required: false
@@ -92,16 +82,16 @@ jobs:
         if: ${{ github.event.inputs.build_frontend == 'true' }}
         id: push_frontend
         run: |
-          docker build -t ghcr.io/${{ github.repository_owner }}/portfolio-site/frontend:${{ env.FRONTEND_NEW_VERSION }} -f Dockerfile .
-          docker push ghcr.io/${{ github.repository_owner }}/portfolio-site/frontend:${{ env.FRONTEND_NEW_VERSION }}
+          docker build -t ghcr.io/${{ github.repository_owner }}/zerosandones/frontend:${{ env.FRONTEND_NEW_VERSION }} -f Dockerfile .
+          docker push ghcr.io/${{ github.repository_owner }}/zerosandones/frontend:${{ env.FRONTEND_NEW_VERSION }}
 
       - name: Build and push backend image
         if: ${{ github.event.inputs.build_backend == 'true' }}
         id: push_backend
         run: |
           cd backend/
-          docker build -t ghcr.io/${{ github.repository_owner }}/portfolio-site/backend:${{ env.BACKEND_NEW_VERSION }} -f Dockerfile .
-          docker push ghcr.io/${{ github.repository_owner }}/portfolio-site/backend:${{ env.BACKEND_NEW_VERSION }}
+          docker build -t ghcr.io/${{ github.repository_owner }}/zerosandones/backend:${{ env.BACKEND_NEW_VERSION }} -f Dockerfile .
+          docker push ghcr.io/${{ github.repository_owner }}/zerosandones/backend:${{ env.BACKEND_NEW_VERSION }}
 
       - name: Update frontend version in VERSION.txt
         if: ${{ github.event.inputs.build_frontend == 'true' && steps.push_frontend.outcome == 'success' }}
@@ -152,16 +142,28 @@ jobs:
           fi
           echo "FRONTEND_VERSION_TO_DEPLOY=$FRONTEND_VERSION_TO_DEPLOY" >> $GITHUB_ENV
 
+      - name: Set up SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+
       - name: Deploy frontend Docker container to production server
         run: |
-          sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_IP }} << 'EOF'
-            docker stop frontend-portfolio || true
-            docker rm frontend-portfolio || true
-            docker rmi $(docker images ghcr.io/${{ github.repository_owner }}/portfolio-site/frontend -q) || true
-            docker network inspect network-onesandzeros > /dev/null 2>&1 || docker network create network-onesandzeros
-            docker pull ghcr.io/${{ github.repository_owner }}/portfolio-site/frontend:${{ env.FRONTEND_VERSION_TO_DEPLOY }}
-            docker run -d --name frontend-portfolio -p 5172:5173 -e VITE_ADMIN_USERNAME="${{ secrets.VITE_ADMIN_USERNAME }}" -e VITE_ADMIN_PASSWORD="${{ secrets.VITE_ADMIN_PASSWORD }}" -e VITE_API_URL="${{ secrets.VITE_API_URL }}" --network network-onesandzeros ghcr.io/${{ github.repository_owner }}/portfolio-site/frontend:${{ env.FRONTEND_VERSION_TO_DEPLOY }}
-            docker update --restart unless-stopped frontend-portfolio
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.SSH_USER }}@${{ secrets.SSH_IP }} << 'EOF'
+            docker stop frontend-zerosandones || true
+            docker rm frontend-zerosandones || true
+            docker rmi $(docker images ghcr.io/${{ github.repository_owner }}/zerosandones/frontend -q) || true
+            docker network inspect network-zerosandones > /dev/null 2>&1 || docker network create network-zerosandones
+            docker pull ghcr.io/${{ github.repository_owner }}/zerosandones/frontend:${{ env.FRONTEND_VERSION_TO_DEPLOY }}
+            docker run -d \
+              --name frontend-zerosandones \
+              -p 5173:5173 \
+              -e VITE_ADMIN_USERNAME="${{ secrets.VITE_ADMIN_USERNAME }}" \
+              -e VITE_ADMIN_PASSWORD="${{ secrets.VITE_ADMIN_PASSWORD }}" \
+              -e VITE_API_URL="${{ secrets.VITE_API_URL }}" \
+              --network network-zerosandones ghcr.io/${{ github.repository_owner }}/zerosandones/frontend:${{ env.FRONTEND_VERSION_TO_DEPLOY }}
+            docker update --restart unless-stopped frontend-zerosandones
           EOF
 
       - name: Check if frontend container is running
@@ -170,7 +172,7 @@ jobs:
           TIMEOUT=120
           START_TIME=$(date +%s)
           
-          until sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_IP }} "docker ps --filter 'name=frontend-portfolio' --filter 'status=running' --format '{{.Names}}' | grep -w 'frontend-portfolio'"; do
+          until ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.SSH_USER }}@${{ secrets.SSH_IP }} "docker ps --filter 'name=frontend-zerosandones' --filter 'status=running' --format '{{.Names}}' | grep -w 'frontend-zerosandones'"; do
             echo "Container not found or not running yet. Retrying in 5 seconds..."
             sleep 5
             
@@ -182,7 +184,7 @@ jobs:
               exit 1
             fi
           done
-          echo "frontend-portfolio container is running!"
+          echo "frontend-zerosandones container is running!"
 
   deploy_backend:
     if: ${{ github.event.inputs.deploy_backend == 'true' }}
@@ -213,25 +215,33 @@ jobs:
           fi
           echo "BACKEND_VERSION_TO_DEPLOY=$BACKEND_VERSION_TO_DEPLOY" >> $GITHUB_ENV
 
+      - name: Set up SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+
       - name: Deploy backend Docker container to production server
         run: |
-          sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_IP }} << 'EOF'
-            docker stop backend-portfolio || true
-            docker rm backend-portfolio  || true
-            docker rmi $(docker images ghcr.io/${{ github.repository_owner }}/portfolio-site/backend -q) || true
-            docker network inspect network-onesandzeros > /dev/null 2>&1 || docker network create network-onesandzeros
-            docker pull ghcr.io/${{ github.repository_owner }}/portfolio-site/backend:${{ env.BACKEND_VERSION_TO_DEPLOY }}
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.SSH_USER }}@${{ secrets.SSH_IP }} << 'EOF'
+            docker stop backend-zerosandones || true
+            docker rm backend-zerosandones  || true
+            docker rmi $(docker images ghcr.io/${{ github.repository_owner }}/zerosandones/backend -q) || true
+            docker network inspect network-zerosandones > /dev/null 2>&1 || docker network create network-zerosandones
+            docker pull ghcr.io/${{ github.repository_owner }}/zerosandones/backend:${{ env.BACKEND_VERSION_TO_DEPLOY }}
             docker run -d \
-              --name backend-portfolio \
-              --network network-onesandzeros \
-              -p 3002:5000 \
+              --name backend-zerosandones \
+              --network network-zerosandones \
+              -p 3000:3000 \
               -e DB_USER="${{ secrets.DB_USER }}" \
               -e DB_PASSWORD="${{ secrets.DB_PASSWORD }}" \
               -e DB_HOST="${{ secrets.DB_HOST }}" \
               -e DB_PORT="${{ secrets.DB_PORT }}" \
               -e DB_NAME="${{ secrets.DB_NAME }}" \
-              ghcr.io/${{ github.repository_owner }}/portfolio-site/backend:${{ env.BACKEND_VERSION_TO_DEPLOY }}
-            docker update --restart unless-stopped backend-portfolio
+              -e ADMIN_PASSWORD="${{ secrets.ADMIN_PASSWORD }}" \
+              -e ALLOWED_ORIGINS="${{ secrets.ALLOWED_ORIGINS }}" \
+              ghcr.io/${{ github.repository_owner }}/zerosandones/backend:${{ env.BACKEND_VERSION_TO_DEPLOY }}
+            docker update --restart unless-stopped backend-zerosandones
           EOF
 
       - name: Check if backend container is running
@@ -240,7 +250,7 @@ jobs:
           TIMEOUT=120
           START_TIME=$(date +%s)
           
-          until sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_IP }} "docker ps --filter 'name=backend-portfolio' --filter 'status=running' --format '{{.Names}}' | grep -w 'backend-portfolio'"; do
+          until ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.SSH_USER }}@${{ secrets.SSH_IP }} "docker ps --filter 'name=backend-zerosandones' --filter 'status=running' --format '{{.Names}}' | grep -w 'backend-zerosandones'"; do
             echo "Container not found or not running yet. Retrying in 5 seconds..."
             sleep 5
             
@@ -254,97 +264,7 @@ jobs:
           done
           echo "Backend container is running!"
 
-  deploy_postgres:
-    if: ${{ github.event.inputs.deploy_postgres == 'true' }}
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          clean: true
-
-      - name: Deploy postgres
+      - name: Clean up keys
         run: |
-          sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_IP }} << 'EOF'
-            docker stop postgres-portfolio || true
-            docker rm postgres-portfolio || true
-            docker network inspect network-onesandzeros > /dev/null 2>&1 || docker network create network-onesandzeros
-            docker pull postgres:latest
-            docker run -d --name postgres-portfolio \
-              -e POSTGRES_USER="${{ secrets.DB_USER }}" \
-              -e POSTGRES_PASSWORD="${{ secrets.DB_PASSWORD }}" \
-              -e POSTGRES_DB="${{ secrets.DB_NAME }}" \
-              -v postgres_portfolio_data:/var/lib/postgresql/data \
-              --network network-portfolio \
-              -p 5432:5432 \
-              postgres:latest
-            docker update --restart unless-stopped postgres-portfolio
-          EOF
-
-      - name: Check if postgres container is running
-        run: |
-          echo "Checking if postgres container is running on remote server..."
-          TIMEOUT=120
-          START_TIME=$(date +%s)
-          
-          until sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_IP }} "docker ps --filter 'name=postgres-portfolio' --filter 'status=running' --format '{{.Names}}' | grep -w 'postgres-portfolio'"; do
-            echo "Container not found or not running yet. Retrying in 5 seconds..."
-            sleep 5
-            
-            CURRENT_TIME=$(date +%s)
-            ELAPSED_TIME=$((CURRENT_TIME - START_TIME))
-            
-            if [ $ELAPSED_TIME -ge $TIMEOUT ]; then
-              echo "Postgres container did not start within 2 minutes. Exiting."
-              exit 1
-            fi
-          done
-          echo "postgres-portfolio container is running!"
-
-  deploy_nginx:
-    if: ${{ github.event.inputs.deploy_nginx == 'true' }}
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          clean: true
-
-      - name: Deploy nginx
-        run: |
-          sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_IP }} << 'EOF'
-            docker stop nginx-portfolio || true
-            docker rm nginx-portfolio || true
-            docker network inspect network-onesandzeros > /dev/null 2>&1 || docker network create network-onesandzeros
-            docker pull nginx:latest
-            docker run -d --name nginx-portfolio \
-              -v ~/nginx_conf/nginx.conf:/etc/nginx/nginx.conf:ro \
-              -v /etc/letsencrypt:/etc/letsencrypt:ro \
-              -p 80:80 \
-              -p 443:443 \
-              --network network-portfolio \
-              nginx:latest
-            docker update --restart unless-stopped nginx-portfolio
-          EOF
-
-      - name: Check if nginx container is running
-        run: |
-          echo "Checking if nginx container is running on remote server..."
-          TIMEOUT=120
-          START_TIME=$(date +%s)
-          
-          until sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_IP }} "docker ps --filter 'name=nginx-portfolio' --filter 'status=running' --format '{{.Names}}' | grep -w 'nginx-portfolio'"; do
-            echo "Container not found or not running yet. Retrying in 5 seconds..."
-            sleep 5
-            
-            CURRENT_TIME=$(date +%s)
-            ELAPSED_TIME=$((CURRENT_TIME - START_TIME))
-            
-            if [ $ELAPSED_TIME -ge $TIMEOUT ]; then
-              echo "Nginx container did not start within 2 minutes. Exiting."
-              exit 1
-            fi
-          done
-          echo "nginx-portfolio container is running!"
+          rm -f ~/.ssh/id_rsa
+          echo "Keys cleaned!"

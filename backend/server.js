@@ -79,5 +79,5 @@ app.use('/api/screens', screenRoutes);
 app.use('/api/reads', readRoutes);
 app.use('/api/travels', travelRoutes);
 
-const PORT = process.env.PORT || 5000;
+const PORT = 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`)); 
