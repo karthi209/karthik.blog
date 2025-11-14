@@ -159,8 +159,6 @@ jobs:
             docker run -d \
               --name frontend-zerosandones \
               -p 5173:5173 \
-              -e VITE_ADMIN_USERNAME="${{ secrets.VITE_ADMIN_USERNAME }}" \
-              -e VITE_ADMIN_PASSWORD="${{ secrets.VITE_ADMIN_PASSWORD }}" \
               --network network-zerosandones ghcr.io/${{ github.repository_owner }}/zerosandones/frontend:${{ env.FRONTEND_VERSION_TO_DEPLOY }}
             docker update --restart unless-stopped frontend-zerosandones
           EOF
