@@ -1,4 +1,4 @@
-# ZerosAndOnes
+# KARTHIK.BLOG
 
 A full-stack monorepo for a personal blog, music library, games, and more. Built with Node.js, React (Vite), Docker, and Nginx.
 
