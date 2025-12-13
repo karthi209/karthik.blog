@@ -1,9 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
 import { adminCreateBlog, getStoredApiKey, setStoredApiKey } from '../services/admin';
-import { adminCreateLog } from '../services/logs-admin';
+import { adminCreateLog, adminCreateGame } from '../services/logs-admin';
 import { adminCreatePlaylist, adminUpdatePlaylist, adminDeletePlaylist, adminAddSong, adminAddSongsBulk, adminDeleteSong, fetchPlaylists } from '../services/playlists-admin';
 import ReactQuill from 'react-quill';
 import "quill/dist/quill.snow.css";
+
+const API = import.meta.env.VITE_API_URL || '/api';
+
+const authHeaders = () => {
+  const key = getStoredApiKey();
+  return key ? { 'x-api-key': key } : {};
+};
 
 export default function AdminPanel() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -26,6 +33,14 @@ export default function AdminPanel() {
   const [logContent, setLogContent] = useState('');
   const [logRating, setLogRating] = useState(5);
   const [logType, setLogType] = useState('games');
+
+  // Game-specific fields
+  const [gamePlatform, setGamePlatform] = useState('');
+  const [gameGenre, setGameGenre] = useState('');
+  const [gameReleaseYear, setGameReleaseYear] = useState('');
+  const [gameCoverImageFile, setGameCoverImageFile] = useState(null);
+  const [gameStatus, setGameStatus] = useState('completed');
+  const [gameHoursPlayed, setGameHoursPlayed] = useState('');
 
   // Playlists management
   const [playlists, setPlaylists] = useState([]);
@@ -123,6 +138,25 @@ export default function AdminPanel() {
     setTimeout(() => setStatus(''), 1500);
   };
 
+  const uploadCoverImage = async (file) => {
+    const formData = new FormData();
+    formData.append('cover', file);
+
+    const res = await fetch(`${API}/upload/cover`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: formData,
+    });
+
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.message || `HTTP ${res.status}`);
+    }
+
+    const data = await res.json();
+    return data.filePath;
+  };
+
   const submitBlog = async (e) => {
     e.preventDefault();
     try {
@@ -141,14 +175,57 @@ export default function AdminPanel() {
     e.preventDefault();
     try {
       setStatus(`Creating ${logType} entry...`);
-      await adminCreateLog({ 
-        title: logTitle, 
-        type: logType, 
-        content: logContent, 
-        rating: logRating ? String(logRating) : null
-      });
+
+      if (logType === 'games') {
+        // Upload cover image first if selected
+        let coverImageUrl = null;
+        if (gameCoverImageFile) {
+          setStatus('Uploading cover image...');
+          try {
+            coverImageUrl = await uploadCoverImage(gameCoverImageFile);
+          } catch (uploadError) {
+            setStatus(`Upload failed: ${uploadError.message}`);
+            return;
+          }
+        }
+
+        setStatus('Creating game entry...');
+        // Use the enhanced game creation function
+        await adminCreateGame({
+          title: logTitle,
+          platform: gamePlatform,
+          genre: gameGenre,
+          release_year: gameReleaseYear,
+          cover_image_url: coverImageUrl,
+          rating: logRating ? String(logRating) : null,
+          hours_played: gameHoursPlayed,
+          status: gameStatus,
+          review: logContent,
+          played_on: new Date().toISOString().split('T')[0]
+        });
+      } else {
+        // Use the regular log creation for movies, series, books
+        await adminCreateLog({ 
+          title: logTitle, 
+          type: logType, 
+          content: logContent, 
+          rating: logRating ? String(logRating) : null
+        });
+      }
+
       setStatus(`${logType.charAt(0).toUpperCase() + logType.slice(1)} entry created successfully!`);
-      setLogTitle(''); setLogContent(''); setLogRating(5);
+      
+      // Reset all form fields
+      setLogTitle(''); 
+      setLogContent(''); 
+      setLogRating(5);
+      setGamePlatform('');
+      setGameGenre('');
+      setGameReleaseYear('');
+      setGameCoverImageFile(null);
+      setGameStatus('completed');
+      setGameHoursPlayed('');
+      
       setTimeout(() => setStatus(''), 2000);
     } catch (err) {
       setStatus(`Error: ${err.message || 'Failed'}`);
@@ -292,10 +369,10 @@ export default function AdminPanel() {
 
   const tabs = [
     { id: 'thoughts', name: 'Thoughts', symbol: '◈' },
-    { id: 'games', name: 'Games', symbol: '⌘' },
+    { id: 'games', name: 'Games', symbol: '🎮' },
     { id: 'movies', name: 'Movies', symbol: '▶' },
-    { id: 'series', name: 'TV Series', symbol: '▶' },
-    { id: 'books', name: 'Books', symbol: '◈' },
+    { id: 'series', name: 'TV Series', symbol: '📺' },
+    { id: 'books', name: 'Books', symbol: '📚' },
     { id: 'music', name: 'Music', symbol: '♫' },
   ];
 
@@ -345,61 +422,22 @@ export default function AdminPanel() {
   }
 
   return (
-    <div className="container">
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center', 
-        marginTop: 'var(--space-md)', 
-        marginBottom: 'var(--space-lg)',
-        gap: '0.75rem',
-        flexWrap: 'wrap'
-      }}>
-        <h2 className="post-title" style={{ 
-          margin: 0, 
-          flex: '1 1 auto', 
-          fontSize: 'clamp(1.1rem, 4vw, 1.75rem)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.5rem'
-        }}>
-          <span className="section-symbol" style={{ fontSize: '0.9em' }}>◉</span> 
+    <div className="container admin-wrapper">
+      <div className="admin-header">
+        <h2 className="post-title admin-title">
+          <span className="section-symbol" style={{ fontSize: '0.9em' }}>◉</span>
           <span>Admin Panel</span>
         </h2>
         <button 
-          className="form-button" 
+          className="form-button admin-logout"
           onClick={handleLogout}
-          style={{ 
-            padding: '0.6rem 1.1rem',
-            fontSize: '0.85rem',
-            borderRadius: '8px',
-            transition: 'all 0.2s ease',
-            flex: '0 0 auto',
-            whiteSpace: 'nowrap',
-            minWidth: '90px',
-            background: 'var(--color-text)',
-            color: 'var(--color-background)',
-            border: 'none',
-            cursor: 'pointer',
-            fontWeight: '600'
-          }}
         >
           Logout
         </button>
       </div>
 
       {/* Tabs */}
-      <div 
-        className="admin-tabs-grid"
-        style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: '0.5rem', 
-          marginBottom: 'var(--space-lg)', 
-          borderBottom: '1px solid var(--color-border)',
-          paddingBottom: '0.75rem'
-        }}
-      >
+      <div className="admin-tabs-grid">
         {tabs.map(tab => (
           <button
             key={tab.id}
@@ -410,27 +448,7 @@ export default function AdminPanel() {
                 setLogType(tab.id);
               }
             }}
-            className="admin-tab-button"
-            style={{
-              padding: '0.65rem 0.5rem',
-              border: activeTab === tab.id ? '2px solid var(--color-accent)' : '1px solid var(--color-border)',
-              background: activeTab === tab.id ? 'var(--color-accent)' : 'transparent',
-              color: activeTab === tab.id ? 'var(--color-background)' : 'var(--color-text)',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontFamily: 'var(--font-body)',
-              fontSize: '0.8rem',
-              fontWeight: activeTab === tab.id ? '600' : '500',
-              transition: 'all 0.2s ease',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '0.2rem',
-              minHeight: '68px',
-              textAlign: 'center',
-              lineHeight: '1.2'
-            }}
+            className={`admin-tab-button ${activeTab === tab.id ? 'is-active' : ''}`}
           >
             <span style={{ opacity: 0.8, fontSize: '1.3em', display: 'block' }}>{tab.symbol}</span>
             <span style={{ fontSize: '0.85rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>
@@ -442,7 +460,7 @@ export default function AdminPanel() {
 
       {/* Thoughts Form */}
       {activeTab === 'thoughts' && (
-        <section className="post" style={{ padding: 'var(--space-lg)' }}>
+        <section className="admin-section">
           <h3 className="twitter-sidebar-title" style={{ marginBottom: 'var(--space-md)', fontSize: 'clamp(1rem, 3vw, 1.25rem)' }}>
             Create Thought
           </h3>
@@ -516,9 +534,183 @@ export default function AdminPanel() {
         </section>
       )}
 
-      {/* Games, Movies, Series, Books Form */}
-      {['games', 'movies', 'series', 'books'].includes(activeTab) && (
-        <section className="post" style={{ padding: 'var(--space-lg)' }}>
+      {/* Games Form */}
+      {activeTab === 'games' && (
+        <section className="admin-section">
+          <h3 className="twitter-sidebar-title" style={{ marginBottom: 'var(--space-md)', fontSize: 'clamp(1rem, 3vw, 1.25rem)' }}>
+            Add Game Entry
+          </h3>
+          <form onSubmit={submitLog} className="add-content-form">
+            <div className="form-group">
+              <label className="form-label">Game Title</label>
+              <input 
+                className="form-input" 
+                value={logTitle} 
+                onChange={(e) => setLogTitle(e.target.value)} 
+                placeholder="The Legend of Zelda: Breath of the Wild"
+                required 
+              />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+              <div className="form-group">
+                <label className="form-label">Platform</label>
+                <select 
+                  className="form-input" 
+                  value={gamePlatform} 
+                  onChange={(e) => setGamePlatform(e.target.value)}
+                >
+                  <option value="">Select Platform</option>
+                  <option value="PC">PC</option>
+                  <option value="PlayStation 5">PlayStation 5</option>
+                  <option value="PlayStation 4">PlayStation 4</option>
+                  <option value="Xbox Series X/S">Xbox Series X/S</option>
+                  <option value="Xbox One">Xbox One</option>
+                  <option value="Nintendo Switch">Nintendo Switch</option>
+                  <option value="Nintendo 3DS">Nintendo 3DS</option>
+                  <option value="Mobile">Mobile</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Genre</label>
+                <select 
+                  className="form-input" 
+                  value={gameGenre} 
+                  onChange={(e) => setGameGenre(e.target.value)}
+                >
+                  <option value="">Select Genre</option>
+                  <option value="Action">Action</option>
+                  <option value="Adventure">Adventure</option>
+                  <option value="RPG">RPG</option>
+                  <option value="Strategy">Strategy</option>
+                  <option value="Simulation">Simulation</option>
+                  <option value="Sports">Sports</option>
+                  <option value="Racing">Racing</option>
+                  <option value="Puzzle">Puzzle</option>
+                  <option value="Horror">Horror</option>
+                  <option value="Platformer">Platformer</option>
+                  <option value="Fighting">Fighting</option>
+                  <option value="Shooter">Shooter</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+              <div className="form-group">
+                <label className="form-label">Release Year</label>
+                <input 
+                  className="form-input" 
+                  type="number"
+                  value={gameReleaseYear} 
+                  onChange={(e) => setGameReleaseYear(e.target.value)} 
+                  placeholder="2023"
+                  min="1950"
+                  max={new Date().getFullYear() + 2}
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Status</label>
+                <select 
+                  className="form-input" 
+                  value={gameStatus} 
+                  onChange={(e) => setGameStatus(e.target.value)}
+                >
+                  <option value="completed">Completed</option>
+                  <option value="playing">Playing</option>
+                  <option value="dropped">Dropped</option>
+                  <option value="on-hold">On Hold</option>
+                  <option value="wishlist">Wishlist</option>
+                </select>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+              <div className="form-group">
+                <label className="form-label">Rating (1-5)</label>
+                <input 
+                  className="form-input" 
+                  type="number" 
+                  min="1" 
+                  max="5" 
+                  value={logRating} 
+                  onChange={(e) => setLogRating(e.target.value)} 
+                  required 
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Hours Played</label>
+                <input 
+                  className="form-input" 
+                  type="number"
+                  step="0.5"
+                  value={gameHoursPlayed} 
+                  onChange={(e) => setGameHoursPlayed(e.target.value)} 
+                  placeholder="25.5"
+                  min="0"
+                />
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Cover Image</label>
+              <input 
+                className="form-input" 
+                type="file"
+                accept="image/*"
+                onChange={(e) => setGameCoverImageFile(e.target.files[0])}
+              />
+              <p style={{ 
+                fontSize: '0.875rem', 
+                color: 'var(--color-text-light)', 
+                marginTop: '0.25rem' 
+              }}>
+                Upload a cover image (optional, max 5MB)
+              </p>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Review / Notes</label>
+              <textarea 
+                className="form-textarea" 
+                value={logContent} 
+                onChange={(e) => setLogContent(e.target.value)}
+                placeholder="Your thoughts, review, or notes about this game..."
+                rows="6"
+                style={{ minHeight: '120px' }}
+              />
+            </div>
+
+            <div className="form-actions">
+              <button className="form-button form-button-primary" type="submit">
+                Add Game
+              </button>
+            </div>
+            {status && (
+              <div style={{ 
+                marginTop: '1rem', 
+                padding: '1rem', 
+                background: status.includes('Error') ? 'rgba(255, 0, 0, 0.1)' : 'rgba(0, 255, 0, 0.1)',
+                border: `1px solid ${status.includes('Error') ? 'rgba(255, 0, 0, 0.3)' : 'rgba(0, 255, 0, 0.3)'}`,
+                borderRadius: '8px',
+                color: 'var(--color-text)',
+                fontSize: '0.95rem',
+                textAlign: 'center'
+              }}>
+                {status}
+              </div>
+            )}
+          </form>
+        </section>
+      )}
+
+      {/* Movies, Series, Books Form */}
+      {['movies', 'series', 'books'].includes(activeTab) && (
+        <section className="admin-section">
           <h3 className="twitter-sidebar-title" style={{ marginBottom: 'var(--space-md)', fontSize: 'clamp(1rem, 3vw, 1.25rem)' }}>
             Add {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} Entry
           </h3>
@@ -582,7 +774,7 @@ export default function AdminPanel() {
       {/* Playlists Management */}
       {activeTab === 'music' && (
         <>
-          <section className="post" style={{ padding: 'var(--space-lg)' }}>
+          <section className="admin-section">
             <h3 className="twitter-sidebar-title" style={{ marginBottom: 'var(--space-md)', fontSize: 'clamp(1rem, 3vw, 1.25rem)' }}>
               Create Playlist
             </h3>
@@ -636,7 +828,7 @@ export default function AdminPanel() {
             </form>
           </section>
 
-          <section className="post" style={{ padding: 'var(--space-lg)' }}>
+          <section className="admin-section">
             <h3 className="twitter-sidebar-title" style={{ marginBottom: 'var(--space-md)', fontSize: 'clamp(1rem, 3vw, 1.25rem)' }}>
               Manage Playlists
             </h3>

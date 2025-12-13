@@ -9,9 +9,9 @@ export const GameLog = {
         game_id INTEGER NOT NULL REFERENCES games(id) ON DELETE CASCADE,
         rating INTEGER CHECK (rating >= 1 AND rating <= 5),
         hours_played DECIMAL(10,2),
-        status VARCHAR(50),
+        status VARCHAR(50) DEFAULT 'completed',
         review TEXT,
-        played_on DATE,
+        played_on DATE DEFAULT CURRENT_DATE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
@@ -20,6 +20,9 @@ export const GameLog = {
     await pool.query(`
       CREATE INDEX IF NOT EXISTS idx_game_logs_game_id ON game_logs(game_id);
       CREATE INDEX IF NOT EXISTS idx_game_logs_played_on ON game_logs(played_on DESC);
+      CREATE INDEX IF NOT EXISTS idx_game_logs_status ON game_logs(status);
+      CREATE INDEX IF NOT EXISTS idx_game_logs_rating ON game_logs(rating);
+      CREATE INDEX IF NOT EXISTS idx_game_logs_created_at ON game_logs(created_at DESC);
     `);
   },
 

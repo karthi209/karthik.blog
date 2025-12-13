@@ -2,8 +2,10 @@ import { Router } from 'express';
 import pool from '../db.js';
 import fs from 'fs/promises';
 import path from 'path';
+import NodeCache from 'node-cache';
 
 const router = Router();
+const cache = new NodeCache({ stdTTL: 300 }); // Same cache instance as logs.js
 
 // Create blog from markdown file upload
 router.post('/from-file', async (req, res) => {
@@ -29,6 +31,10 @@ router.post('/from-file', async (req, res) => {
     );
 
     const blog = { ...result.rows[0], _id: result.rows[0].id };
+    
+    // Invalidate homepage cache
+    cache.del('homepage-data');
+    
     res.status(201).json(blog);
   } catch (error) {
     console.error('Error creating blog from file:', error);
@@ -60,6 +66,10 @@ router.post('/create', async (req, res) => {
     );
 
     const blog = { ...result.rows[0], _id: result.rows[0].id };
+    
+    // Invalidate homepage cache
+    cache.del('homepage-data');
+    
     res.status(201).json({
       success: true,
       message: 'Blog created successfully',
@@ -102,6 +112,9 @@ router.post('/bulk-create', async (req, res) => {
 
       results.push({ ...result.rows[0], _id: result.rows[0].id });
     }
+
+    // Invalidate homepage cache
+    cache.del('homepage-data');
 
     res.status(201).json({
       success: true,

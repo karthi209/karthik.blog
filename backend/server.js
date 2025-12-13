@@ -2,7 +2,11 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import compression from 'compression';
 import rateLimit from 'express-rate-limit';
+import multer from 'multer';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { initDatabase } from './db.js';
 import blogRoutes from './routes/blogs.js';
 import blogApiRoutes from './routes/blogs-api.js';
@@ -13,10 +17,16 @@ import screenRoutes from './routes/screens.js';
 import readRoutes from './routes/reads.js';
 import travelRoutes from './routes/travels.js';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const app = express();
 
 // Security headers
 app.use(helmet());
+
+// Enable response compression
+app.use(compression());
 
 // CORS configuration - restrict to allowed origins
 const allowedOrigins = process.env.ALLOWED_ORIGINS 
@@ -58,6 +68,56 @@ const apiLimiter = rateLimit({
 // app.use('/api/', apiLimiter); // Uncomment for production
 
 app.use(express.json({ limit: '10mb' })); // Allow larger payloads for markdown files
+
+// Serve uploaded files statically
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, path.join(__dirname, 'uploads/covers'));
+  },
+  filename: function (req, file, cb) {
+    // Generate unique filename with timestamp
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, 'cover-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({
+  storage: storage,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+  },
+  fileFilter: function (req, file, cb) {
+    // Check if file is an image
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed!'), false);
+    }
+  }
+});
+
+// File upload route
+app.post('/api/upload/cover', upload.single('cover'), (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    // Return the relative path that can be stored in the database
+    const filePath = `/uploads/covers/${req.file.filename}`;
+    res.json({
+      success: true,
+      filePath: filePath,
+      filename: req.file.filename
+    });
+  } catch (error) {
+    console.error('Upload error:', error);
+    res.status(500).json({ error: 'File upload failed' });
+  }
+});
 
 // Initialize PostgreSQL database
 initDatabase()

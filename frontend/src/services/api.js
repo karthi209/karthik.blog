@@ -27,6 +27,11 @@ export const fetchBlogArchives = async () => {
   return response.json();
 };
 
+export const fetchHomepageData = async () => {
+  const response = await fetch(`${API_URL}/logs/combined/homepage`);
+  return response.json();
+};
+
 export const fetchLogs = async (type) => {
   const response = await fetch(`${API_URL}/logs/${type}`);
   return response.json();

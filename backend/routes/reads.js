@@ -1,6 +1,7 @@
 import express from 'express';
 import { Read } from '../models/Read.js';
 import { ReadLog } from '../models/ReadLog.js';
+import { authenticateApiKey } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -62,6 +63,40 @@ router.get('/logs/:id', async (req, res) => {
   } catch (error) {
     console.error('Error fetching read log:', error);
     res.status(500).json({ error: 'Failed to fetch read log' });
+  }
+});
+
+// Admin routes for creating reads and logs
+router.post('/admin/create-with-log', authenticateApiKey, async (req, res) => {
+  try {
+    const { title, rating, content } = req.body;
+
+    if (!title) {
+      return res.status(400).json({ error: 'Title is required' });
+    }
+
+    // Create the read entry
+    const read = await Read.create({
+      title,
+      author: null // Books don't have author in the current schema
+    });
+
+    // Create the log entry
+    const log = await ReadLog.create({
+      read_id: read.id,
+      rating: rating ? parseInt(rating) : null,
+      status: 'completed',
+      review: content || null
+    });
+
+    res.status(201).json({
+      read,
+      log,
+      message: 'Read and log created successfully'
+    });
+  } catch (error) {
+    console.error('Error creating read with log:', error);
+    res.status(500).json({ error: 'Failed to create read and log' });
   }
 });
 

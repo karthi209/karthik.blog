@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import './MusicLibrary.css';
+import { Link, useNavigate } from 'react-router-dom';
+
+import '../styles/modern.css';
 
 export default function PlaylistPage({ id }) {
   const [playlist, setPlaylist] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchPlaylist = async () => {
@@ -13,16 +15,10 @@ export default function PlaylistPage({ id }) {
         setLoading(true);
         const apiUrl = import.meta.env.VITE_API_URL || '/api';
         const url = `${apiUrl}/playlists`;
-        console.log('Fetching from:', url);
-        console.log('Looking for playlist ID:', id, 'type:', typeof id);
         const response = await fetch(url);
         if (!response.ok) throw new Error('Failed to fetch playlists');
         const data = await response.json();
-        console.log('Fetched playlists:', data);
-        console.log('Playlist IDs in response:', data.map(p => ({ id: p.id, type: typeof p.id })));
         const found = data.find(p => p.id === parseInt(id));
-        console.log('Found playlist:', found);
-        console.log('Playlist songs:', found?.songs);
         
         if (!found) {
           setError('Playlist not found');
@@ -40,12 +36,42 @@ export default function PlaylistPage({ id }) {
     fetchPlaylist();
   }, [id]);
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.05
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { x: -20, opacity: 0 },
+    visible: {
+      x: 0,
+      opacity: 1,
+      transition: {
+        type: "spring",
+        stiffness: 100,
+        damping: 15
+      }
+    }
+  };
+
   if (loading) {
     return (
-      <div className="container">
-        <div className="post">
-          <h2 className="post-title">Loading...</h2>
-          <div className="post-content"><p>Fetching playlist...</p></div>
+      <div className="container" style={{ marginTop: '3rem' }}>
+        <div className="loading-state">
+          <div className="loading-spinner">
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+          <p>Loading playlist...</p>
         </div>
       </div>
     );
@@ -53,10 +79,12 @@ export default function PlaylistPage({ id }) {
 
   if (error || !playlist) {
     return (
-      <div className="container">
+      <div className="container" style={{ marginTop: '3rem' }}>
         <div className="post">
-          <Link to="/library/music" className="back-link">← Back to Playlists</Link>
-          <h2 className="post-title">{error || 'Playlist not found'}</h2>
+          <button onClick={() => navigate('/library/music')} className="back-link">
+            ← Back to Playlists
+          </button>
+          <h2 className="post-title" style={{ marginTop: '1rem' }}>{error || 'Playlist not found'}</h2>
         </div>
       </div>
     );
@@ -83,55 +111,95 @@ export default function PlaylistPage({ id }) {
   };
 
   return (
-    <div className="container">
-      <article className="post">
-        <header className="post-header">
-          <Link to="/library/music" className="back-link">← Back to Playlists</Link>
-          <h1 className="post-title">{playlist.name}</h1>
-          <div className="post-meta">
-            <span className="playlist-count">{songCount} {songCount === 1 ? 'song' : 'songs'}</span>
+    <div className="container" style={{ marginTop: '3rem', maxWidth: '1200px' }}>
+      <div 
+        className="blog-post-container"
+        style={{ padding: '0' }}
+      >
+        <button onClick={() => navigate('/library/music')} className="back-link" style={{ marginBottom: '1.5rem' }}>
+          ← Back to Playlists
+        </button>
+
+        <div>
+          <div className="playlist-info">
+            <h1 className="post-title" style={{ margin: '0 0 0.75rem 0', fontSize: '2.25rem' }}>{playlist.name}</h1>
+            <div className="meta-row" style={{ marginTop: '0', marginBottom: '1rem', display: 'flex', gap: '1rem', alignItems: 'center', fontFamily: 'var(--font-mono)', fontSize: '0.75rem', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+              <span className="meta-item" style={{ color: 'var(--color-text-muted)' }}>
+                {songCount} {songCount === 1 ? 'TRACK' : 'TRACKS'}
+              </span>
+              {playlist.created_at && (
+                <>
+                  <span style={{ color: 'var(--color-text-muted)' }}>·</span>
+                  <span className="meta-item" style={{ color: 'var(--color-text-muted)' }}>
+                    {new Date(playlist.created_at).getFullYear()}
+                  </span>
+                </>
+              )}
+            </div>
+            {playlist.description && (
+              <p className="playlist-description-full" style={{ marginTop: '0', marginBottom: '1.5rem', color: 'var(--color-text-light)', lineHeight: '1.6' }}>
+                {playlist.description}
+              </p>
+            )}
+            
+            <div className="playlist-actions" style={{ marginTop: '0', marginBottom: '2rem', display: 'flex', gap: '0.75rem' }}>
+              <button onClick={openInSpotify} className="back-link" style={{ margin: 0 }}>
+                Spotify →
+              </button>
+              <button onClick={openInYouTubeMusic} className="back-link" style={{ margin: 0 }}>
+                YouTube Music →
+              </button>
+            </div>
           </div>
-        </header>
-        
-        {playlist.description && (
-          <div className="post-content">
-            <p className="playlist-description-full">{playlist.description}</p>
-          </div>
-        )}
-        
-        <div className="playlist-actions">
-          <button onClick={openInSpotify} className="playlist-action-btn" title="Open in Spotify">
-            <span className="action-icon">♫</span>
-            <span>Spotify</span>
-          </button>
-          <button onClick={openInYouTubeMusic} className="playlist-action-btn" title="Open in YouTube Music">
-            <span className="action-icon">▶</span>
-            <span>YouTube Music</span>
-          </button>
         </div>
 
-        <div className="post-content">
+        <div className="post-content" style={{ marginTop: '1.5rem' }}>
           {songCount === 0 ? (
-            <p>No songs in this playlist yet.</p>
+            <p style={{ color: 'var(--color-text-muted)' }}>No songs in this playlist yet.</p>
           ) : (
-            <div className="songs-list">
+            <div className="songs-list-modern">
               {playlist.songs.map((s, idx) => (
-                <div className="song-item" key={s.id}>
-                  <div className="song-number">{idx + 1}</div>
-                  <div className="song-info">
-                    <div className="song-title">{s.title}</div>
-                    <div className="song-meta">
-                      {s.artist}
-                      {s.album && ` — ${s.album}`}
-                      {s.year && ` (${s.year})`}
+                <div 
+                  className="song-item-modern" 
+                  key={s.id}
+                  style={{
+                    padding: '0.875rem 0',
+                    borderBottom: '1px solid var(--color-border)',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    gap: '1rem'
+                  }}
+                >
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.7rem', color: 'var(--color-text-muted)', minWidth: '1.5rem' }}>
+                    {idx + 1}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: '1rem', fontWeight: '500', marginBottom: '0.25rem' }}>{s.title}</div>
+                    <div style={{ display: 'flex', gap: '0.5rem', fontSize: '0.7rem', color: 'var(--color-text-muted)', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                      {s.artist && <span>{s.artist}</span>}
+                      {s.album && <span>·</span>}
+                      {s.album && <span>{s.album}</span>}
+                      {s.year && <span>·</span>}
+                      {s.year && <span>{s.year}</span>}
                     </div>
+                    {s.preview_url && (
+                      <audio 
+                        style={{ marginTop: '0.5rem', width: '100%', height: '28px' }} 
+                        controls 
+                        controlsList="nodownload"
+                      >
+                        <source src={s.preview_url} type="audio/mpeg" />
+                        Your browser does not support the audio element.
+                      </audio>
+                    )}
                   </div>
                 </div>
               ))}
             </div>
           )}
         </div>
-      </article>
+      </div>
     </div>
   );
 }

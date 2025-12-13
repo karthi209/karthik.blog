@@ -11,6 +11,7 @@ export const PlaylistSong = {
         artist VARCHAR(255),
         album VARCHAR(255),
         year INTEGER,
+        preview_url TEXT,
         position INTEGER NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -25,12 +26,12 @@ export const PlaylistSong = {
 
   // Add song to playlist
   async create(songData) {
-    const { playlist_id, title, artist, album, year, position } = songData;
+    const { playlist_id, title, artist, album, year, preview_url, position } = songData;
     const result = await pool.query(
       `INSERT INTO playlist_songs (playlist_id, title, artist, album, year, position) 
-       VALUES ($1, $2, $3, $4, $5, $6) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7) 
        RETURNING *`,
-      [playlist_id, title, artist, album, year, position]
+      [playlist_id, title, artist, album, year, preview_url, position]
     );
     return result.rows[0];
   },
@@ -46,7 +47,7 @@ export const PlaylistSong = {
 
   // Update song
   async update(id, songData) {
-    const { title, artist, album, year, position } = songData;
+    const { title, artist, album, year, preview_url, position } = songData;
     const result = await pool.query(
       `UPDATE playlist_songs 
        SET title = $1, artist = $2, album = $3, year = $4, position = $5, 

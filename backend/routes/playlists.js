@@ -103,7 +103,7 @@ router.delete('/:id', authenticateApiKey, async (req, res) => {
 
 // Add song to playlist (authenticated)
 router.post('/:id/songs', authenticateApiKey, async (req, res) => {
-  const { title, album, artist, year } = req.body;
+  const { title, album, artist, year, preview_url } = req.body;
   
   if (!title || !title.trim() || !artist || !artist.trim()) {
     return res.status(400).json({ error: 'Song title and artist are required' });
@@ -117,6 +117,7 @@ router.post('/:id/songs', authenticateApiKey, async (req, res) => {
       : 0;
 
     const song = await PlaylistSong.create({
+      preview_url: preview_url || null,
       playlist_id: req.params.id,
       title: title.trim(),
       album: (album || '').trim(),

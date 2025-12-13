@@ -21,6 +21,9 @@ export const Blog = {
     await pool.query(`
       CREATE INDEX IF NOT EXISTS idx_blogs_category ON blogs(category);
       CREATE INDEX IF NOT EXISTS idx_blogs_date ON blogs(date DESC);
+      CREATE INDEX IF NOT EXISTS idx_blogs_category_date ON blogs(category, date DESC);
+      CREATE INDEX IF NOT EXISTS idx_blogs_tags ON blogs USING GIN (tags);
+      CREATE INDEX IF NOT EXISTS idx_blogs_is_draft ON blogs(is_draft);
     `);
   },
 

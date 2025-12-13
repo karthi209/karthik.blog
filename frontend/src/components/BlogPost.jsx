@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { fetchBlogs } from '../services/api';
+
+import { ArrowLeft, Calendar, Tag, Share2 } from 'lucide-react';
 import './BlogPost.css';
 import DOMPurify from 'dompurify';
 
@@ -64,12 +66,17 @@ export default function BlogPost() {
 
   if (loading) {
     return (
-      <div className="container">
-        <div className="post">
-          <h2 className="post-title">Loading...</h2>
-          <div className="post-content">
-            <p>Fetching blog post...</p>
+      <div className="blog-post-container">
+        <div className="loading-state">
+          <div className="loading-spinner">
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
           </div>
+          <p>Loading thought...</p>
         </div>
       </div>
     );
@@ -77,78 +84,64 @@ export default function BlogPost() {
 
   if (error) {
     return (
-      <div className="container">
-        <div className="post">
-          <h2 className="post-title">Error</h2>
-          <div className="post-content">
-            <p>{error}</p>
-            <p>
-              The blog post you're looking for might have been removed or doesn't exist.
-            </p>
-            <p>
-              <a 
-                href="/blogs"
-                onClick={(e) => {
-                  e.preventDefault();
-                  navigate('/blogs');
-                }}
-                className="read-more-link"
-              >
-                ← Back to blogs
-              </a>
-            </p>
-          </div>
+      <div className="blog-post-container">
+        <div className="error-state">
+          <h2>Error</h2>
+          <p>{error}</p>
+          <button onClick={() => navigate('/blogs')} className="back-button">
+            <ArrowLeft size={16} /> Back to blogs
+          </button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="container">
-      <article className="post blog-post-article">
-        <div className="blog-post-header">
-          <a 
-            href="/blogs"
-            onClick={(e) => {
-              e.preventDefault();
-              navigate('/blogs');
-            }}
-            className="back-link"
-            title="Back to blogs"
-            aria-label="Back to blogs"
-          >
-            ◀
-          </a>
-          <div className="blog-post-header-main">
-            <div className="blog-post-symbol-top">{postSymbol}</div>
-            <h1 className="post-title">{post.title}</h1>
-            <div className="post-metadata-group">
-              <span className="post-date">
-                {new Date(post.date).toLocaleDateString()}
-              </span>
-              <span className="post-category-badge">{post.category}</span>
+    <div 
+      className="blog-post-container"
+    >
+      <button onClick={() => navigate('/blogs')} className="back-link">
+        <ArrowLeft size={16} /> Back to blogs
+      </button>
+
+      <article className="blog-post-content">
+        <header className="blog-post-header">
+          <h1 className="blog-post-title">{post.title}</h1>
+          
+          <div className="blog-post-meta">
+            <div className="meta-item">
+              <span>{new Date(post.date).toLocaleDateString(undefined, { dateStyle: 'long' }).toUpperCase()}</span>
             </div>
+            {post.category && (
+              <div className="meta-item">
+                <span>{post.category.toUpperCase()}</span>
+              </div>
+            )}
           </div>
-        </div>
-        <div className="post-content">
-          <div 
-            dangerouslySetInnerHTML={{ 
-              __html: DOMPurify.sanitize(post.content || '', {
-                ADD_TAGS: ['iframe'],
-                ADD_ATTR: ['allow', 'allowfullscreen', 'frameborder', 'scrolling']
-              })
-            }}
-          />
-        </div>
-        <footer className="post-footer">
-          {post.tags && post.tags.length > 0 && (
-            <div className="post-footer-tags">
-              <span className="section-symbol-small">⊙</span>
-              <span>Tags: {post.tags.join(', ')}</span>
-            </div>
-          )}
+        </header>
+
+        <div 
+          className="blog-post-body"
+          dangerouslySetInnerHTML={{ 
+            __html: DOMPurify.sanitize(post.content) 
+          }} 
+        />
+
+        <footer className="blog-post-footer">
+          <div className="share-section">
+            <span>Share this thought:</span>
+            <button 
+              className="share-button"
+              onClick={() => {
+                navigator.clipboard.writeText(window.location.href);
+                alert('Link copied to clipboard!');
+              }}
+            >
+              <Share2 size={16} /> Copy Link
+            </button>
+          </div>
         </footer>
       </article>
     </div>
   );
-} 
+}

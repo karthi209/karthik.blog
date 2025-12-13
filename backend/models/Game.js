@@ -15,6 +15,15 @@ export const Game = {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+
+    // Add indexes for better performance
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_games_title ON games(title);
+      CREATE INDEX IF NOT EXISTS idx_games_platform ON games(platform);
+      CREATE INDEX IF NOT EXISTS idx_games_genre ON games(genre);
+      CREATE INDEX IF NOT EXISTS idx_games_release_year ON games(release_year);
+      CREATE INDEX IF NOT EXISTS idx_games_created_at ON games(created_at DESC);
+    `);
   },
 
   async create(gameData) {
