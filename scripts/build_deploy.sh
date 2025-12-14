@@ -103,8 +103,13 @@ if [ "$DEPLOY_BACKEND" = "true" ]; then
     docker network inspect network-zerosandones > /dev/null 2>&1 || docker network create network-zerosandones
     echo "[REMOTE] Loading new backend image..."
     docker load -i /tmp/zerosandones-backend-${BACKEND_VERSION_TO_DEPLOY}.tar
+    echo "[REMOTE] Creating uploads directory on host if it doesn't exist..."
+    mkdir -p ~/zerosandones-data/uploads/covers ~/zerosandones-data/uploads/images
+    echo "[REMOTE] Setting ownership for container user (UID 1001) using Docker..."
+    docker run --rm -v ~/zerosandones-data/uploads:/uploads alpine chown -R 1001:1001 /uploads
     echo "[REMOTE] Running new backend container..."
     docker run -d --name backend-zerosandones --network network-zerosandones -p 3000:3000 \
+      -v ~/zerosandones-data/uploads:/app/uploads \
       -e DB_USER="$DB_USER" \
       -e DB_PASSWORD="$DB_PASSWORD" \
       -e DB_HOST="$DB_HOST" \
@@ -114,7 +119,17 @@ if [ "$DEPLOY_BACKEND" = "true" ]; then
       -e ALLOWED_ORIGINS="$ALLOWED_ORIGINS" \
       zerosandones-backend:${BACKEND_VERSION_TO_DEPLOY}
     docker update --restart unless-stopped backend-zerosandones
+    
+    echo "[REMOTE] Cleaning up old Docker images (keeping last 2 versions)..."
+    # Remove all frontend images except the 2 most recent
+    docker images zerosandones-frontend:* --format "{{.Repository}}:{{.Tag}}" | sort -V | head -n -2 | xargs -r docker rmi -f || true
+    # Remove all backend images except the 2 most recent
+    docker images zerosandones-backend:* --format "{{.Repository}}:{{.Tag}}" | sort -V | head -n -2 | xargs -r docker rmi -f || true
+    
+    echo "[REMOTE] Listing remaining images..."
+    docker images | grep zerosandones
 EOF
 fi
 
 echo "[INFO] Build and deployment script completed."
+echo "[INFO] Note: Old Docker images cleaned up (kept last 2 versions of each)."

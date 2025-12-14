@@ -698,12 +698,11 @@ img {
   font-family: 'IBM Plex Mono', monospace;
   margin: 0;
   letter-spacing: -0.02em;
-  transition: color 0.2s ease, transform 0.2s ease;
+  transition: none;
 }
 
 .sidebar-brand:hover .brand-name {
-  color: var(--color-accent);
-  transform: translateX(2px);
+  color: var(--color-text);
 }
 
 .widget-title {
@@ -795,7 +794,7 @@ img {
 
 /* Latest Section */
 .latest-section {
-  margin-top: 1rem;
+  margin-top: 0.5rem;
 }
 
 .section-header {
@@ -907,7 +906,7 @@ img {
 
 /* Hero Section */
 .hero-section {
-  margin-bottom: 2rem;
+  margin-bottom: 0.5rem;
   padding-bottom: 0;
   border-bottom: none;
 }
@@ -931,6 +930,7 @@ img {
   color: var(--color-text);
   margin-bottom: 1.25rem;
   line-height: 1.2;
+  min-height: 2.5rem;
 }
 
 .hero-intro-text {
@@ -940,6 +940,7 @@ img {
   line-height: var(--line-height-body);
   color: var(--color-text-light);
   margin-bottom: 1rem;
+  min-height: calc(var(--line-height-body) * var(--size-body));
 }
 
 .hero-intro-text a {
@@ -1004,6 +1005,12 @@ img {
   height: 100%;
   object-fit: cover;
   display: block;
+  vertical-align: top;
+  line-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  font-size: 0;
 }
 
 .ascii-art {
@@ -2111,17 +2118,19 @@ img {
 }
 
 .admin-logout {
-  padding: 0.65rem 1.1rem;
-  font-size: 0.9rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
   border-radius: 0;
   background: var(--color-text);
   color: var(--color-background);
   border: 2px solid var(--color-text);
   cursor: pointer;
   transition: all 0.2s ease;
-  min-width: 100px;
   font-weight: 600;
   box-shadow: 3px 3px 0 0 rgba(240, 238, 248, 0.3);
+  white-space: nowrap;
+  height: fit-content;
+  align-self: flex-start;
 }
 
 .admin-logout:hover {

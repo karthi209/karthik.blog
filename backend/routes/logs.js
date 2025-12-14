@@ -24,10 +24,10 @@ router.get('/combined/homepage', async (req, res) => {
     const [blogs, playlists, games, movies, series, books] = await Promise.all([
       // Get recent blogs
       pool.query(`
-        SELECT id, title, content, category, date, tags
+        SELECT id, title, content, category, created_at, tags
         FROM blogs
         WHERE is_draft = false
-        ORDER BY date DESC
+        ORDER BY created_at DESC
         LIMIT 6
       `),
 

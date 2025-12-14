@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { fetchBlogs, fetchCategories, fetchBlogArchives } from '../services/api';
-import { Filter, Calendar, Tag, Search } from 'lucide-react';
+import { Filter, Calendar, Tag } from 'lucide-react';
 import './BlogsPage.css';
 
 export default function BlogsPage() {
@@ -45,7 +45,7 @@ export default function BlogsPage() {
     try {
       const filters = {
         category: selectedCategory,
-        sortBy: 'date',
+        sortBy: 'created_at',
         order: sortOrder
       };
       if (selectedDate) {
@@ -82,7 +82,7 @@ export default function BlogsPage() {
   ];
 
   // Filter blogs based on active tab and search query
-  const filteredBlogs = blogs.filter(blog => {
+  const filteredBlogs = (Array.isArray(blogs) ? blogs : []).filter(blog => {
     const matchesCategory = activeTab === 'all' || blog.category === activeTab;
     const matchesSearch = !searchQuery || 
       blog.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -91,7 +91,7 @@ export default function BlogsPage() {
   });
 
   const groupedBlogs = filteredBlogs.reduce((acc, blog) => {
-    const year = blog?.date ? new Date(blog.date).getFullYear() : 'Other';
+    const year = blog?.created_at ? new Date(blog.created_at).getFullYear() : 'Other';
     if (!acc[year]) acc[year] = [];
     acc[year].push(blog);
     return acc;
@@ -112,7 +112,6 @@ export default function BlogsPage() {
       
       <div className="blog-search-bar">
         <div className="search-input-wrapper">
-          <Search size={18} className="search-icon" />
           <input
             type="text"
             placeholder="Search articles..."
@@ -204,7 +203,7 @@ export default function BlogsPage() {
                 </div>
                 <div className="list-rows">
                   {groupedBlogs[year].map((blog) => {
-                    const dateLabel = blog?.date ? new Date(blog.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '—';
+                    const dateLabel = blog?.created_at ? new Date(blog.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '—';
                     const readingTime = blog?.content ? Math.ceil(blog.content.replace(/<[^>]*>/g, '').split(/\s+/).length / 200) : 1;
                     const wordCount = blog?.content ? blog.content.replace(/<[^>]*>/g, '').split(/\s+/).length : 0;
                     return (

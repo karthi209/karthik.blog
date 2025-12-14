@@ -1,24 +1,31 @@
-# Use a Node.js base image
-FROM node:22-alpine
+# Multi-stage build for minimal production image
 
-# Set working directory
+# Stage 1: Build the application
+FROM node:22-alpine AS builder
+
 WORKDIR /app
 
-# Copy package.json and package-lock.json (or yarn.lock) and install dependencies
+# Copy package files and install dependencies
 COPY package*.json ./
-RUN npm install
+RUN npm ci --only=production=false
 
-# Copy the rest of the app
+# Copy source code and build
 COPY . .
-
-# Build the Vite app (this will create the dist/ folder)
 RUN npm run build
 
-# Install a lightweight web server to serve the build
-RUN npm install -g serve
+# Stage 2: Serve with lightweight HTTP server
+FROM node:22-alpine
 
-# Expose the port the app will run on
+WORKDIR /app
+
+# Install only serve (much smaller than full Node.js with all deps)
+RUN npm install -g serve@14.2.1
+
+# Copy only the built dist folder from builder stage
+COPY --from=builder /app/dist ./dist
+
+# Expose port
 EXPOSE 5173
 
-# Start the app using serve
-CMD ["serve", "-s", "dist", "-l", "5173"]
+# Start serve
+CMD ["serve", "-s", "dist", "-l", "5173", "--no-port-switching"]

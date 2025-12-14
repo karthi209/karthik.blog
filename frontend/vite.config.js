@@ -43,11 +43,19 @@ export default defineConfig(() => {
           manualChunks: {
             vendor: ['react', 'react-dom'],
             router: ['react-router-dom'],
-            ui: ['@mui/material', '@emotion/react', '@emotion/styled'],
+            editor: ['react-quill', 'quill'],
+            icons: ['lucide-react'],
           },
         },
       },
       chunkSizeWarningLimit: 1000,
+      minify: 'terser',
+      terserOptions: {
+        compress: {
+          drop_console: true,
+          drop_debugger: true,
+        },
+      },
     },
     base: '/',
     server: {

@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { fetchBlogs } from '../services/api';
-
 import { ArrowLeft, Calendar, Tag, Share2 } from 'lucide-react';
 import './BlogPost.css';
 import DOMPurify from 'dompurify';
@@ -99,6 +98,7 @@ export default function BlogPost() {
   return (
     <div 
       className="blog-post-container"
+      style={{ minHeight: '60vh' }}
     >
       <button onClick={() => navigate('/blogs')} className="back-link">
         <ArrowLeft size={16} /> Back to blogs
@@ -110,7 +110,7 @@ export default function BlogPost() {
           
           <div className="blog-post-meta">
             <div className="meta-item">
-              <span>{new Date(post.date).toLocaleDateString(undefined, { dateStyle: 'long' }).toUpperCase()}</span>
+              <span>{new Date(post.created_at).toLocaleDateString(undefined, { dateStyle: 'long' }).toUpperCase()}</span>
             </div>
             {post.category && (
               <div className="meta-item">
@@ -125,6 +125,17 @@ export default function BlogPost() {
           dangerouslySetInnerHTML={{ 
             __html: DOMPurify.sanitize(post.content) 
           }} 
+          onLoad={() => {
+            const container = document.querySelector('.blog-post-body');
+            if (!container) return;
+            container.querySelectorAll('img').forEach(img => {
+              img.setAttribute('loading', 'lazy');
+              img.setAttribute('decoding', 'async');
+              img.style.display = 'block';
+              img.style.maxWidth = '100%';
+              img.style.height = 'auto';
+            });
+          }}
         />
 
         <footer className="blog-post-footer">

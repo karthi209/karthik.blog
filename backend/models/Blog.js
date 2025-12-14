@@ -9,10 +9,8 @@ export const Blog = {
         title VARCHAR(255) NOT NULL,
         content TEXT NOT NULL,
         category VARCHAR(100) NOT NULL,
-        date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         tags TEXT[],
         is_draft BOOLEAN DEFAULT FALSE,
-        published_at TIMESTAMP,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
@@ -20,8 +18,8 @@ export const Blog = {
     
     await pool.query(`
       CREATE INDEX IF NOT EXISTS idx_blogs_category ON blogs(category);
-      CREATE INDEX IF NOT EXISTS idx_blogs_date ON blogs(date DESC);
-      CREATE INDEX IF NOT EXISTS idx_blogs_category_date ON blogs(category, date DESC);
+      CREATE INDEX IF NOT EXISTS idx_blogs_created_at ON blogs(created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_blogs_category_created_at ON blogs(category, created_at DESC);
       CREATE INDEX IF NOT EXISTS idx_blogs_tags ON blogs USING GIN (tags);
       CREATE INDEX IF NOT EXISTS idx_blogs_is_draft ON blogs(is_draft);
     `);
@@ -29,12 +27,12 @@ export const Blog = {
 
   // Create a new blog
   async create(blogData) {
-    const { title, content, category, tags = [], is_draft = false, published_at = null } = blogData;
+    const { title, content, category, tags = [], is_draft = false } = blogData;
     const result = await pool.query(
-      `INSERT INTO blogs (title, content, category, tags, is_draft, published_at) 
-       VALUES ($1, $2, $3, $4, $5, $6) 
+      `INSERT INTO blogs (title, content, category, tags, is_draft) 
+       VALUES ($1, $2, $3, $4, $5) 
        RETURNING *`,
-      [title, content, category, tags, is_draft, published_at]
+      [title, content, category, tags, is_draft]
     );
     return result.rows[0];
   },
@@ -64,7 +62,7 @@ export const Blog = {
     }
 
     // Sorting
-    const sortBy = filters.sortBy || 'date';
+    const sortBy = filters.sortBy || 'created_at';
     const order = filters.order || 'DESC';
     query += ` ORDER BY ${sortBy} ${order}`;
 
@@ -80,19 +78,17 @@ export const Blog = {
 
   // Update blog
   async update(id, blogData) {
-    const { title, content, category, tags, is_draft, published_at } = blogData;
+    const { title, content, category, tags, is_draft } = blogData;
     const result = await pool.query(
       `UPDATE blogs 
-       SET title = $1, content = $2, category = $3, tags = $4, is_draft = $5, 
-           published_at = $6, updated_at = CURRENT_TIMESTAMP 
-       WHERE id = $7 
+       SET title = $1, content = $2, category = $3, tags = $4, is_draft = $5,
+           updated_at = CURRENT_TIMESTAMP 
+       WHERE id = $6 
        RETURNING *`,
-      [title, content, category, tags, is_draft, published_at, id]
+      [title, content, category, tags, is_draft, id]
     );
     return result.rows[0];
-  },
-
-  // Delete blog
+  },  // Delete blog
   async delete(id) {
     const result = await pool.query('DELETE FROM blogs WHERE id = $1 RETURNING *', [id]);
     return result.rows[0];
@@ -108,8 +104,8 @@ export const Blog = {
   async getArchives() {
     const result = await pool.query(`
       SELECT 
-        EXTRACT(YEAR FROM date) as year,
-        EXTRACT(MONTH FROM date) as month,
+        EXTRACT(YEAR FROM created_at) as year,
+        EXTRACT(MONTH FROM created_at) as month,
         COUNT(*) as count
       FROM blogs
       WHERE is_draft = false

@@ -11,6 +11,11 @@
 /* Header */
 .blog-header {
   margin-bottom: 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: nowrap;
 }
 
 .page-title {
@@ -19,6 +24,8 @@
   font-weight: 700;
   margin: 0;
   color: var(--color-text);
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .page-meta {
@@ -29,6 +36,18 @@
   margin: 0.5rem 0 2rem 0;
   padding-bottom: 1rem;
   border-bottom: 2px solid var(--color-border);
+}
+
+@media (max-width: 768px) {
+  .blog-header {
+    flex-wrap: nowrap;
+  }
+  
+  .admin-logout {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.8rem;
+    flex-shrink: 0;
+  }
 }
 
 /* Search Bar */
@@ -44,18 +63,9 @@
   flex: 1;
 }
 
-.search-icon {
-  position: absolute;
-  left: 1rem;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--color-text-muted);
-  pointer-events: none;
-}
-
 .search-input {
   width: 100%;
-  padding: 0.75rem 1rem 0.75rem 2.75rem;
+  padding: 0.75rem 1rem;
   background: var(--color-surface);
   border: 2px solid var(--color-text);
   border-radius: 0;

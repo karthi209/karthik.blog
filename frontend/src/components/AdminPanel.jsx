@@ -1,11 +1,25 @@
-import { useEffect, useMemo, useState } from 'react';
-import { adminCreateBlog, getStoredApiKey, setStoredApiKey } from '../services/admin';
+import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
+import { adminCreateBlog, getStoredApiKey, setStoredApiKey, adminUploadImage, adminListBlogs, adminUpdateBlog, adminDeleteBlog } from '../services/admin';
 import { adminCreateLog, adminCreateGame } from '../services/logs-admin';
 import { adminCreatePlaylist, adminUpdatePlaylist, adminDeletePlaylist, adminAddSong, adminAddSongsBulk, adminDeleteSong, fetchPlaylists } from '../services/playlists-admin';
 import ReactQuill from 'react-quill';
 import "quill/dist/quill.snow.css";
+import './BlogsPage.css';
+import Sidebar from './Sidebar';
 
 const API = import.meta.env.VITE_API_URL || '/api';
+
+// Suppress React.findDOMNode deprecation warning from react-quill
+const originalError = console.error;
+console.error = function(...args) {
+  if (
+    args[0]?.includes?.('findDOMNode') ||
+    args[0]?.includes?.('DOMNodeInserted')
+  ) {
+    return;
+  }
+  originalError.call(console, ...args);
+};
 
 const authHeaders = () => {
   const key = getStoredApiKey();
@@ -22,11 +36,19 @@ export default function AdminPanel() {
   const [apiKey, setApiKey] = useState('');
   const [status, setStatus] = useState('');
 
+  const quillRef = useRef(null);
+
   // Blog/Thought form
   const [title, setTitle] = useState('');
-  const [category, setCategory] = useState('tech');
+  const [category, setCategory] = useState('');
   const [tags, setTags] = useState('');
   const [content, setContent] = useState('');
+  const [isDraft, setIsDraft] = useState(false);
+
+  // Blog management
+  const [blogs, setBlogs] = useState([]);
+  const [editingBlog, setEditingBlog] = useState(null);
+  const [showManageBlogs, setShowManageBlogs] = useState(false);
 
   // Log form (games, movies, series, books)
   const [logTitle, setLogTitle] = useState('');
@@ -58,20 +80,65 @@ export default function AdminPanel() {
   const [showBulkInput, setShowBulkInput] = useState(false);
 
   // Quill modules configuration - simplified for mobile
+  const handleImageUpload = useCallback(() => {
+    const input = document.createElement('input');
+    input.setAttribute('type', 'file');
+    input.setAttribute('accept', 'image/*');
+    input.click();
+
+    input.onchange = async () => {
+      const file = input.files && input.files[0];
+      if (!file) return;
+      try {
+        setStatus('Uploading image...');
+        const { filePath } = await adminUploadImage(file);
+        const apiBase = import.meta.env.VITE_API_URL || '';
+        // If API ends with /api, strip it to get the asset host; fallback to same-origin
+        const assetBase = apiBase.startsWith('http')
+          ? apiBase.replace(/\/?api$/, '')
+          : '';
+        const publicUrl = `${assetBase}${filePath}`;
+        const editor = quillRef.current?.getEditor();
+        const range = editor?.getSelection(true);
+        if (editor && range) {
+          editor.insertEmbed(range.index, 'image', publicUrl);
+          editor.setSelection(range.index + 1);
+        }
+        setStatus('Image uploaded');
+        setTimeout(() => setStatus(''), 1500);
+      } catch (error) {
+        console.error('Image upload failed', error);
+        setStatus('Image upload failed');
+        setTimeout(() => setStatus(''), 2000);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (isAuthenticated && activeTab === 'thoughts' && showManageBlogs) {
+      loadBlogs();
+    }
+  }, [isAuthenticated, activeTab, showManageBlogs]);
+
   const modules = useMemo(() => ({
-    toolbar: [
-      [{ 'header': [1, 2, 3, false] }],
-      ['bold', 'italic', 'underline', 'strike'],
-      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-      [{ 'align': [] }],
-      ['blockquote', 'code-block'],
-      ['link', 'image'],
-      ['clean']
-    ],
+    toolbar: {
+      container: [
+        [{ 'header': [1, 2, 3, false] }],
+        ['bold', 'italic', 'underline', 'strike'],
+        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+        [{ 'align': [] }],
+        ['blockquote', 'code-block'],
+        ['link', 'image'],
+        ['clean']
+      ],
+      handlers: {
+        image: handleImageUpload
+      }
+    },
     clipboard: {
       matchVisual: false,
     }
-  }), []);
+  }), [handleImageUpload]);
 
   const formats = [
     'header',
@@ -109,16 +176,18 @@ export default function AdminPanel() {
 
   const handleLogin = (e) => {
     e.preventDefault();
-    // Get credentials from environment variables
-    const validUsername = import.meta.env.VITE_ADMIN_USERNAME || 'admin';
-    const validPassword = import.meta.env.VITE_ADMIN_PASSWORD || 'password';
     
-    if (username === validUsername && password === validPassword) {
+    // Store the password for API authentication
+    setStoredApiKey(password);
+    
+    // Simple client-side validation - just check if password is provided
+    // The real validation happens on the backend when making API calls
+    if (password && password.length > 0) {
       setIsAuthenticated(true);
       sessionStorage.setItem('adminAuth', 'true');
       setLoginError('');
     } else {
-      setLoginError('Invalid username or password');
+      setLoginError('Please enter a password');
       setPassword('');
     }
   };
@@ -126,6 +195,7 @@ export default function AdminPanel() {
   const handleLogout = () => {
     setIsAuthenticated(false);
     sessionStorage.removeItem('adminAuth');
+    localStorage.removeItem('admin_api_key'); // Clear stored password
     setUsername('');
     setPassword('');
   };
@@ -157,18 +227,95 @@ export default function AdminPanel() {
     return data.filePath;
   };
 
-  const submitBlog = async (e) => {
+  const submitBlog = async (e, saveAsDraft = false) => {
     e.preventDefault();
     try {
-      setStatus('Creating blog...');
+      const isDraftValue = saveAsDraft || isDraft;
       const tagsArray = tags ? tags.split(',').map((t) => t.trim()).filter(Boolean) : null;
-      await adminCreateBlog({ title, content, category, tags: tagsArray });
-      setStatus('Blog created successfully!');
-      setTitle(''); setCategory('tech'); setTags(''); setContent('');
+      
+      if (editingBlog) {
+        setStatus('Updating blog...');
+        await adminUpdateBlog(editingBlog.id, { 
+          title, 
+          content, 
+          category: category?.toUpperCase(), 
+          tags: tagsArray,
+          is_draft: isDraftValue
+        });
+        setStatus('Blog updated successfully!');
+        setEditingBlog(null);
+      } else {
+        setStatus(isDraftValue ? 'Saving draft...' : 'Publishing blog...');
+        await adminCreateBlog({ 
+          title, 
+          content, 
+          category: category?.toUpperCase(), 
+          tags: tagsArray,
+          is_draft: isDraftValue
+        });
+        setStatus(isDraftValue ? 'Draft saved!' : 'Blog published!');
+      }
+      
+      setTitle(''); 
+      setCategory(''); 
+      setTags(''); 
+      setContent('');
+      setIsDraft(false);
+      if (showManageBlogs) loadBlogs();
       setTimeout(() => setStatus(''), 2000);
     } catch (err) {
       setStatus(`Error: ${err.message || 'Failed'}`);
     }
+  };
+
+  const loadBlogs = async () => {
+    try {
+      const data = await adminListBlogs();
+      setBlogs(data);
+    } catch (error) {
+      console.error('Error loading blogs:', error);
+      setStatus('Failed to load blogs');
+    }
+  };
+
+  const handleEditBlog = async (blog) => {
+    try {
+      const response = await fetch(`${API}/blogs/${blog.id}`);
+      const fullBlog = await response.json();
+      setTitle(fullBlog.title);
+      setCategory(fullBlog.category);
+      setTags(fullBlog.tags ? fullBlog.tags.join(', ') : '');
+      setContent(fullBlog.content);
+      setIsDraft(fullBlog.is_draft || false);
+      setEditingBlog(blog);
+      setShowManageBlogs(false);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (error) {
+      console.error('Error loading blog:', error);
+      setStatus('Failed to load blog');
+    }
+  };
+
+  const handleDeleteBlog = async (id) => {
+    if (!confirm('Are you sure you want to delete this blog?')) return;
+    try {
+      setStatus('Deleting blog...');
+      await adminDeleteBlog(id);
+      setStatus('Blog deleted!');
+      loadBlogs();
+      setTimeout(() => setStatus(''), 2000);
+    } catch (error) {
+      setStatus(`Error: ${error.message}`);
+    }
+  };
+
+  const cancelEdit = () => {
+    setEditingBlog(null);
+    setTitle('');
+    setCategory('');
+    setTags('');
+    setContent('');
+    setIsDraft(false);
   };
 
   const submitLog = async (e) => {
@@ -384,24 +531,14 @@ export default function AdminPanel() {
           <h2 className="post-title" style={{ textAlign: 'center', marginBottom: '2rem' }}>Admin Login</h2>
           <form onSubmit={handleLogin} className="add-content-form">
             <div className="form-group">
-              <label className="form-label">Username</label>
-              <input 
-                className="form-input" 
-                type="text"
-                value={username} 
-                onChange={(e) => setUsername(e.target.value)}
-                autoComplete="username"
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Password</label>
+              <label className="form-label">Admin Password</label>
               <input 
                 className="form-input" 
                 type="password"
                 value={password} 
                 onChange={(e) => setPassword(e.target.value)}
                 autoComplete="current-password"
+                placeholder="Enter your admin password"
                 required
               />
             </div>
@@ -422,47 +559,48 @@ export default function AdminPanel() {
   }
 
   return (
-    <div className="container admin-wrapper">
-      <div className="admin-header">
-        <h2 className="post-title admin-title">
-          <span className="section-symbol" style={{ fontSize: '0.9em' }}>◉</span>
-          <span>Admin Panel</span>
-        </h2>
-        <button 
-          className="form-button admin-logout"
-          onClick={handleLogout}
-        >
-          Logout
-        </button>
-      </div>
+    <div className="home-layout">
+      <Sidebar />
+      
+      <div className="home-main">
+        <div className="admin-wrapper">
+          <div className="blog-header">
+            <h1 className="page-title">Admin Panel</h1>
+            <button 
+              className="form-button admin-logout"
+              onClick={handleLogout}
+            >
+              Logout
+            </button>
+          </div>
 
-      {/* Tabs */}
-      <div className="admin-tabs-grid">
-        {tabs.map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => {
-              setActiveTab(tab.id);
-              setStatus('');
-              if (tab.id !== 'thoughts' && tab.id !== 'music') {
-                setLogType(tab.id);
-              }
-            }}
-            className={`admin-tab-button ${activeTab === tab.id ? 'is-active' : ''}`}
-          >
-            <span style={{ opacity: 0.8, fontSize: '1.3em', display: 'block' }}>{tab.symbol}</span>
-            <span style={{ fontSize: '0.85rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>
-              {tab.name}
-            </span>
-          </button>
-        ))}
-      </div>
+          {/* Tabs */}
+          <div className="admin-tabs-grid">
+            {tabs.map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => {
+                  setActiveTab(tab.id);
+                  setStatus('');
+                  if (tab.id !== 'thoughts' && tab.id !== 'music') {
+                    setLogType(tab.id);
+                  }
+                }}
+                className={`admin-tab-button ${activeTab === tab.id ? 'is-active' : ''}`}
+              >
+                <span style={{ opacity: 0.8, fontSize: '1.3em', display: 'block' }}>{tab.symbol}</span>
+                <span style={{ fontSize: '0.85rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>
+                  {tab.name}
+                </span>
+              </button>
+            ))}
+          </div>
 
       {/* Thoughts Form */}
       {activeTab === 'thoughts' && (
         <section className="admin-section">
           <h3 className="twitter-sidebar-title" style={{ marginBottom: 'var(--space-md)', fontSize: 'clamp(1rem, 3vw, 1.25rem)' }}>
-            Create Thought
+            {editingBlog ? 'Edit Thought' : 'Create Thought'}
           </h3>
           <form onSubmit={submitBlog} className="add-content-form">
             <div className="form-group">
@@ -470,14 +608,14 @@ export default function AdminPanel() {
               <input className="form-input" value={title} onChange={(e) => setTitle(e.target.value)} required />
             </div>
             <div className="form-group">
-              <label className="form-label">Category</label>
-              <select className="form-input" value={category} onChange={(e) => setCategory(e.target.value)}>
-                <option value="general">General</option>
-                <option value="tech">Tech</option>
-                <option value="life">Life</option>
-                <option value="coding">Coding</option>
-                <option value="travel">Travel</option>
-              </select>
+              <label className="form-label">Category (UPPERCASE)</label>
+              <input 
+                className="form-input" 
+                value={category}
+                onChange={(e) => setCategory(e.target.value.toUpperCase())}
+                placeholder="TECH, LIFE, TRAVEL, ..."
+                required
+              />
             </div>
             <div className="form-group">
               <label className="form-label">Tags (comma separated)</label>
@@ -495,6 +633,7 @@ export default function AdminPanel() {
                 overflow: 'hidden'
               }}>
                 <ReactQuill
+                  ref={quillRef}
                   theme="snow"
                   value={content}
                   onChange={setContent}
@@ -511,10 +650,41 @@ export default function AdminPanel() {
                 Essential formatting tools: Headers, Bold, Lists, Links, Code blocks
               </p>
             </div>
-            <div className="form-actions">
+            <div className="form-group">
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                <input 
+                  type="checkbox" 
+                  checked={isDraft} 
+                  onChange={(e) => setIsDraft(e.target.checked)}
+                  style={{ width: '1.125rem', height: '1.125rem', cursor: 'pointer' }}
+                />
+                <span>Save as draft (won't be published)</span>
+              </label>
+            </div>
+            <div className="form-actions" style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
               <button className="form-button form-button-primary" type="submit" disabled={!canSubmitBlog}>
-                Create Thought
+                {editingBlog ? 'Update Blog' : (isDraft ? 'Save Draft' : 'Publish Blog')}
               </button>
+              {editingBlog && (
+                <button 
+                  type="button"
+                  className="form-button" 
+                  onClick={cancelEdit}
+                  style={{ background: 'var(--color-bg-secondary)' }}
+                >
+                  Cancel Edit
+                </button>
+              )}
+              {!editingBlog && (
+                <button 
+                  type="button"
+                  className="form-button" 
+                  onClick={() => setShowManageBlogs(!showManageBlogs)}
+                  style={{ background: 'var(--color-bg-secondary)' }}
+                >
+                  {showManageBlogs ? 'Hide' : 'Manage'} Blogs
+                </button>
+              )}
             </div>
             {status && (
               <div style={{ 
@@ -531,6 +701,76 @@ export default function AdminPanel() {
               </div>
             )}
           </form>
+
+          {showManageBlogs && (
+            <div style={{ marginTop: '2rem' }}>
+              <h3 className="twitter-sidebar-title" style={{ marginBottom: 'var(--space-md)', fontSize: 'clamp(1rem, 3vw, 1.25rem)' }}>
+                Manage Blogs
+              </h3>
+              {blogs.length === 0 ? (
+                <p style={{ color: 'var(--color-text-light)', textAlign: 'center', padding: '2rem' }}>
+                  No blogs yet. Create your first one above!
+                </p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  {blogs.map(blog => (
+                    <div 
+                      key={blog.id}
+                      style={{
+                        padding: '1rem',
+                        border: '2px solid var(--color-border)',
+                        borderRadius: '8px',
+                        background: 'var(--color-bg-secondary)',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        gap: '1rem',
+                        flexWrap: 'wrap'
+                      }}
+                    >
+                      <div style={{ flex: 1, minWidth: '200px' }}>
+                        <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>
+                          {blog.title}
+                          {blog.is_draft && (
+                            <span style={{ 
+                              marginLeft: '0.5rem', 
+                              fontSize: '0.75rem', 
+                              padding: '0.125rem 0.5rem',
+                              background: 'orange',
+                              color: 'black',
+                              borderRadius: '4px',
+                              fontWeight: 700
+                            }}>
+                              DRAFT
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ fontSize: '0.875rem', color: 'var(--color-text-light)' }}>
+                          {blog.category} • {new Date(blog.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button
+                          onClick={() => handleEditBlog(blog)}
+                          className="form-button"
+                          style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeleteBlog(blog.id)}
+                          className="form-button"
+                          style={{ padding: '0.5rem 1rem', fontSize: '0.875rem', background: 'rgba(255, 0, 0, 0.2)' }}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </section>
       )}
 
@@ -1021,6 +1261,8 @@ export default function AdminPanel() {
           </section>
         </>
       )}
+        </div>
+      </div>
     </div>
   );
 }

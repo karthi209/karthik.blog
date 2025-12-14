@@ -406,6 +406,33 @@
   .hero-banner {
     min-height: 200px;
   }
+
+  .hero-avatar {
+    width: 100%;
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  .hero-intro-text,
+  .hero-quote {
+    text-align: left;
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  .section-title {
+    font-size: 1.5rem;
+  }
+
+  .home-list-row {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+
+  .home-list-date {
+    font-size: 0.8125rem;
+    align-self: start;
+  }
 }
 
 /* ===== TOUCH TARGETS ===== */

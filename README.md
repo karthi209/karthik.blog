@@ -5,7 +5,7 @@ A full-stack monorepo for a personal blog, music library, games, and more. Built
 ## Project Structure
 
 ```
-zerosandones/
+karthik.blog/
 ├── backend/        # Node.js/Express backend
 ├── frontend/       # React (Vite) frontend
 ├── scripts/        # Deployment scripts and configs

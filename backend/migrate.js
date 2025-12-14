@@ -11,91 +11,82 @@ const pool = new Pool({
   port: process.env.DB_PORT || 5432,
 });
 
-// Migration function to add missing columns and indexes for games functionality
+// Migration function to consolidate blog date columns
 const runMigrations = async () => {
   try {
-    console.log('Running database migrations for games functionality...');
+    console.log('Running database migrations...');
 
-    // Check if games table exists
-    const gamesTableExists = await pool.query(`
+    // Consolidate blog date columns
+    console.log('Consolidating blog timestamp columns...');
+    
+    // Check if blogs table exists
+    const blogsTableExists = await pool.query(`
       SELECT EXISTS (
         SELECT FROM information_schema.tables
         WHERE table_schema = 'public'
-        AND table_name = 'games'
+        AND table_name = 'blogs'
       )
     `);
 
-    if (!gamesTableExists.rows[0].exists) {
-      console.log('Games table does not exist. Please run the server first to initialize tables.');
-      return;
-    }
-
-    // Add missing columns to games table if they don't exist
-    const gameColumns = await pool.query(`
-      SELECT column_name
-      FROM information_schema.columns
-      WHERE table_name = 'games' AND table_schema = 'public'
-    `);
-
-    const existingGameColumns = gameColumns.rows.map(row => row.column_name);
-
-    const missingGameColumns = [
-      { name: 'platform', type: 'VARCHAR(100)' },
-      { name: 'genre', type: 'VARCHAR(100)' },
-      { name: 'release_year', type: 'INTEGER' },
-      { name: 'cover_image_url', type: 'TEXT' }
-    ];
-
-    for (const column of missingGameColumns) {
-      if (!existingGameColumns.includes(column.name)) {
-        await pool.query(`ALTER TABLE games ADD COLUMN ${column.name} ${column.type}`);
-        console.log(`✓ Added ${column.name} column to games table`);
+    if (blogsTableExists.rows[0].exists) {
+      // Get existing columns
+      const blogColumns = await pool.query(`
+        SELECT column_name
+        FROM information_schema.columns
+        WHERE table_name = 'blogs' AND table_schema = 'public'
+      `);
+      
+      const existingColumns = blogColumns.rows.map(row => row.column_name);
+      
+      // Migrate data from 'date' and 'published_at' to 'created_at' if needed
+      if (existingColumns.includes('date')) {
+        // Copy 'date' values to 'created_at' where created_at is null or older
+        await pool.query(`
+          UPDATE blogs 
+          SET created_at = date 
+          WHERE created_at IS NULL OR created_at > date
+        `);
+        console.log('Migrated date column to created_at');
+        
+        // Drop the 'date' column
+        await pool.query(`ALTER TABLE blogs DROP COLUMN IF EXISTS date`);
+        console.log('Dropped redundant date column');
       }
-    }
-
-    // Add missing columns to game_logs table if they don't exist
-    const gameLogColumns = await pool.query(`
-      SELECT column_name
-      FROM information_schema.columns
-      WHERE table_name = 'game_logs' AND table_schema = 'public'
-    `);
-
-    const existingGameLogColumns = gameLogColumns.rows.map(row => row.column_name);
-
-    const missingGameLogColumns = [
-      { name: 'hours_played', type: 'DECIMAL(10,2)' },
-      { name: 'status', type: 'VARCHAR(50) DEFAULT \'completed\'' },
-      { name: 'played_on', type: 'DATE DEFAULT CURRENT_DATE' }
-    ];
-
-    for (const column of missingGameLogColumns) {
-      if (!existingGameLogColumns.includes(column.name)) {
-        await pool.query(`ALTER TABLE game_logs ADD COLUMN ${column.name} ${column.type}`);
-        console.log(`✓ Added ${column.name} column to game_logs table`);
+      
+      // Drop published_at column as it's redundant with created_at
+      if (existingColumns.includes('published_at')) {
+        await pool.query(`ALTER TABLE blogs DROP COLUMN IF EXISTS published_at`);
+        console.log('Dropped redundant published_at column');
       }
+      
+      // Ensure created_at and updated_at exist with proper defaults
+      if (!existingColumns.includes('created_at')) {
+        await pool.query(`
+          ALTER TABLE blogs 
+          ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        `);
+        console.log('Added created_at column');
+      }
+      
+      if (!existingColumns.includes('updated_at')) {
+        await pool.query(`
+          ALTER TABLE blogs 
+          ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        `);
+        console.log('Added updated_at column');
+      }
+      
+      // Update indexes - remove old date index, add created_at index
+      await pool.query(`DROP INDEX IF EXISTS idx_blogs_date`);
+      await pool.query(`DROP INDEX IF EXISTS idx_blogs_category_date`);
+      await pool.query(`CREATE INDEX IF NOT EXISTS idx_blogs_created_at ON blogs(created_at DESC)`);
+      await pool.query(`CREATE INDEX IF NOT EXISTS idx_blogs_category_created_at ON blogs(category, created_at DESC)`);
+      console.log('Updated indexes for created_at');
     }
 
-    // Add indexes for better performance
-    const indexes = [
-      'CREATE INDEX IF NOT EXISTS idx_games_title ON games(title)',
-      'CREATE INDEX IF NOT EXISTS idx_games_platform ON games(platform)',
-      'CREATE INDEX IF NOT EXISTS idx_games_genre ON games(genre)',
-      'CREATE INDEX IF NOT EXISTS idx_games_release_year ON games(release_year)',
-      'CREATE INDEX IF NOT EXISTS idx_games_created_at ON games(created_at DESC)',
-      'CREATE INDEX IF NOT EXISTS idx_game_logs_status ON game_logs(status)',
-      'CREATE INDEX IF NOT EXISTS idx_game_logs_rating ON game_logs(rating)',
-      'CREATE INDEX IF NOT EXISTS idx_game_logs_created_at ON game_logs(created_at DESC)'
-    ];
-
-    for (const index of indexes) {
-      await pool.query(index);
-    }
-    console.log('✓ Added performance indexes');
-
-    console.log('🎮 Database migrations completed successfully!');
-    console.log('Your games functionality is now ready to use.');
+    console.log('Database migrations completed successfully!');
   } catch (error) {
-    console.error('❌ Error running migrations:', error);
+    console.error('Error running migrations:', error);
     process.exit(1);
   } finally {
     await pool.end();

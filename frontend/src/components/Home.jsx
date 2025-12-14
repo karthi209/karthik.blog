@@ -137,12 +137,11 @@ export default function Home() {
           <div className="latest-section">
             <div className="section-header">
               <h2 className="section-title">Blogs</h2>
-              <p className="section-subtitle">Long form articles and musings.</p>
             </div>
             
             <div className="home-list-rows">
               {entries.blogs.slice(0, 5).map((blog) => {
-                const dateLabel = blog?.date ? new Date(blog.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric' }) : '—';
+                const dateLabel = blog?.created_at ? new Date(blog.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—';
                 const readingTime = blog?.content ? Math.ceil(blog.content.replace(/<[^>]*>/g, '').split(/\s+/).length / 200) : 1;
                 return (
                   <div 

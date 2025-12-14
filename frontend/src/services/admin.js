@@ -2,8 +2,8 @@ const BASE = import.meta.env.VITE_API_URL || '/api';
 const API = BASE;
 
 export const getStoredApiKey = () => {
-  // Use admin password from env, fallback to localStorage for backward compatibility
-  return import.meta.env.VITE_ADMIN_PASSWORD || localStorage.getItem('admin_api_key') || '';
+  // Get from localStorage (set during login)
+  return localStorage.getItem('admin_api_key') || '';
 };
 
 export const setStoredApiKey = (key) => {
@@ -13,6 +13,48 @@ export const setStoredApiKey = (key) => {
 const authHeaders = () => {
   const key = getStoredApiKey();
   return key ? { 'x-api-key': key } : {};
+};
+
+export const adminUploadImage = async (file) => {
+  const formData = new FormData();
+  formData.append('image', file);
+
+  const res = await fetch(`${API}/upload/image`, {
+    method: 'POST',
+    headers: { ...authHeaders() },
+    body: formData,
+  });
+
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+};
+
+export const adminListBlogs = async () => {
+  const res = await fetch(`${API}/blogs/admin/list`, {
+    method: 'GET',
+    headers: { ...authHeaders() },
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+};
+
+export const adminUpdateBlog = async (id, { title, content, category, tags, is_draft }) => {
+  const res = await fetch(`${API}/blogs/admin/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ title, content, category, tags, is_draft }),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+};
+
+export const adminDeleteBlog = async (id) => {
+  const res = await fetch(`${API}/blogs/admin/${id}`, {
+    method: 'DELETE',
+    headers: { ...authHeaders() },
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
 };
 
 export const adminCreateBlog = async ({ title, content, category, tags }) => {
