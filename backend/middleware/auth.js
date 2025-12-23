@@ -1,40 +1,55 @@
-// Simple admin password authentication middleware
+import jwt from 'jsonwebtoken';
+
 export const authenticateApiKey = async (req, res, next) => {
   try {
-    const providedKey = req.headers['x-api-key'] || req.query.api_key;
-    const adminPassword = process.env.ADMIN_PASSWORD;
-    
-    // Security: Don't allow empty admin password in production
-    if (!adminPassword || adminPassword === 'admin123') {
-      console.error('⚠️  WARNING: Using default or no admin password! Set ADMIN_PASSWORD in environment.');
-      if (process.env.NODE_ENV === 'production') {
-        return res.status(500).json({ message: 'Server configuration error' });
-      }
-    }
-    
-    if (!providedKey) {
+    const authHeader = req.headers.authorization || '';
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
+    const secret = process.env.JWT_SECRET || '';
+
+    if (!token) {
       return res.status(401).json({ message: 'Authentication required' });
     }
 
-    // Constant-time comparison to prevent timing attacks
-    if (providedKey.length !== adminPassword.length) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+    if (!secret) {
+      return res.status(500).json({ message: 'Server configuration error' });
     }
-    
-    let match = true;
-    for (let i = 0; i < providedKey.length; i++) {
-      if (providedKey[i] !== adminPassword[i]) {
-        match = false;
-      }
+
+    const decoded = jwt.verify(token, secret);
+    if (!decoded || decoded.role !== 'admin') {
+      return res.status(403).json({ message: 'Forbidden' });
     }
-    
-    if (!match) {
+
+    req.user = decoded;
+    next();
+  } catch (error) {
+    return res.status(401).json({ message: 'Invalid credentials' });
+  }
+};
+
+export const requireAdminJwt = authenticateApiKey;
+
+export const requireUserJwt = async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization || '';
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
+    const secret = process.env.JWT_SECRET || '';
+
+    if (!token) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    if (!secret) {
+      return res.status(500).json({ message: 'Server configuration error' });
+    }
+
+    const decoded = jwt.verify(token, secret);
+    if (!decoded || !decoded.email) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
+    req.user = decoded;
     next();
-  } catch (error) {
-    console.error('Authentication error:', error);
-    res.status(500).json({ message: 'Authentication error' });
+  } catch {
+    return res.status(401).json({ message: 'Invalid credentials' });
   }
 };

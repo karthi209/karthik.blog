@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { fetchBlogs, fetchCategories, fetchBlogArchives } from '../services/api';
-import { Filter, Calendar, Tag } from 'lucide-react';
 import './BlogsPage.css';
 
 export default function BlogsPage() {
@@ -32,7 +31,7 @@ export default function BlogsPage() {
         setCategories(categoriesData);
         setArchives(archivesData);
       } catch (error) {
-        console.error('Error loading blog data:', error);
+        // Silently fail
       } finally {
         setLoading(false);
       }
@@ -56,7 +55,7 @@ export default function BlogsPage() {
       const filteredBlogs = await fetchBlogs(filters);
       setBlogs(filteredBlogs);
     } catch (error) {
-      console.error('Error filtering blogs:', error);
+      // Silently fail
     }
   };
 
@@ -103,7 +102,7 @@ export default function BlogsPage() {
 
   return (
     <>
-      <div className="blog-header">
+      <div className="page-header">
         <div>
           <h1 className="page-title">Blogs</h1>
           <p className="page-meta">{blogs.length} POSTS</p>
@@ -121,11 +120,11 @@ export default function BlogsPage() {
           />
         </div>
         <button 
-          className="filter-toggle-btn"
+          className="filter-toggle-btn retro-button retro-button--icon"
           onClick={() => setShowFilters(!showFilters)}
           aria-label="Toggle filters"
         >
-          <Filter size={18} />
+          Filters
         </button>
       </div>
 
@@ -201,34 +200,30 @@ export default function BlogsPage() {
                   <h3 className="list-section-title">{year}</h3>
                   <span className="meta-small">{groupedBlogs[year].length} {groupedBlogs[year].length === 1 ? 'post' : 'posts'}</span>
                 </div>
-                <div className="list-rows">
+                <div className="library-entries">
                   {groupedBlogs[year].map((blog) => {
                     const dateLabel = blog?.created_at ? new Date(blog.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '—';
                     const readingTime = blog?.content ? Math.ceil(blog.content.replace(/<[^>]*>/g, '').split(/\s+/).length / 200) : 1;
                     const wordCount = blog?.content ? blog.content.replace(/<[^>]*>/g, '').split(/\s+/).length : 0;
                     return (
-                      <div 
-                        key={blog._id} 
-                        className="list-row"
+                      <button
+                        key={blog._id}
+                        type="button"
+                        className="library-entry blog-entry"
                         onClick={() => navigate(`/blogs/${blog._id}`)}
-                        role="button"
-                        tabIndex={0}
-                        onKeyDown={(e) => { if (e.key === 'Enter') navigate(`/blogs/${blog._id}`); }}
                       >
-                        <div>
-                          <div className="list-row-title">{blog.title}</div>
-                          <div className="list-row-meta">
-                            {blog.category && (
-                              <span className="meta-tag">{blog.category.toUpperCase()}</span>
-                            )}
+                        <span className="library-entry-date">{dateLabel}</span>
+                        <span>
+                          <div className="library-entry-title">{blog.title}</div>
+                          <div className="library-entry-meta">
+                            {blog.category ? (
+                              <span className="library-entry-tag">{blog.category.toUpperCase()}</span>
+                            ) : null}
                             <span className="meta-detail">{readingTime} MIN READ</span>
                             <span className="meta-detail">{wordCount} WORDS</span>
                           </div>
-                        </div>
-                        <div className="list-row-right">
-                          <span className="date">{dateLabel}</span>
-                        </div>
-                      </div>
+                        </span>
+                      </button>
                     );
                   })}
                 </div>

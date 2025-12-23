@@ -1,41 +1,57 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { Moon, Sun } from 'lucide-react';
 
-export default function ThemeToggle({ className = '' }) {
+const THEMES = [
+  { key: 'dark', label: 'Dark' },
+  { key: 'light', label: 'Light' }
+];
+
+export default function ThemeToggle({ className = '', iconOnly = false }) {
   const [theme, setTheme] = useState(() => {
     if (typeof document === 'undefined') return 'dark';
-    return document.body.getAttribute('data-theme') || 'dark';
+    const saved = (() => {
+      try {
+        return localStorage.getItem('theme');
+      } catch {
+        return null;
+      }
+    })();
+
+    if (saved && THEMES.some(t => t.key === saved)) return saved;
+
+    return document.documentElement.getAttribute('data-theme') || 'dark';
   });
 
   useEffect(() => {
-    document.body.setAttribute('data-theme', theme);
-    // persist preference
+    document.documentElement.setAttribute('data-theme', theme);
     try {
       localStorage.setItem('theme', theme);
     } catch {}
   }, [theme]);
 
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem('theme');
-      if (saved) setTheme(saved);
-    } catch {}
-  }, []);
+  const nextTheme = () => {
+    const idx = THEMES.findIndex(t => t.key === theme);
+    const next = THEMES[(idx + 1) % THEMES.length];
+    setTheme(next.key);
+  };
+
+  const current = THEMES.find(t => t.key === theme) || THEMES[0];
+  const next = useMemo(() => {
+    const idx = THEMES.findIndex(t => t.key === theme);
+    return THEMES[(idx + 1) % THEMES.length];
+  }, [theme]);
 
   return (
     <button
-      className={`nav-item ${className}`}
-      aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
-      onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-      style={{ gap: '0.5rem' }}
+      type="button"
+      className={`theme-toggle ${iconOnly ? 'theme-toggle--icon-only' : ''} ${className}`}
+      aria-label={`Switch to ${next.label} theme`}
+      onClick={nextTheme}
     >
-      <span style={{
-        width: 16,
-        height: 16,
-        borderRadius: '50%',
-        border: '1px solid var(--color-border)',
-        background: theme === 'dark' ? 'var(--color-text)' : 'var(--color-background)'
-      }} />
-      <span>{theme === 'dark' ? 'Dark' : 'Light'}</span>
+      <span className="theme-toggle-icon" aria-hidden="true">
+        {theme === 'dark' ? <Moon size={16} /> : <Sun size={16} />}
+      </span>
+      {!iconOnly ? <span className="theme-toggle-label">{current.label}</span> : null}
     </button>
   );
 }

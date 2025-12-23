@@ -10,6 +10,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { initDatabase } from './db.js';
 import { authenticateApiKey } from './middleware/auth.js';
+import passport from 'passport';
 import blogRoutes from './routes/blogs.js';
 import blogApiRoutes from './routes/blogs-api.js';
 import logRoutes from './routes/logs.js';
@@ -17,7 +18,11 @@ import playlistRoutes from './routes/playlists.js';
 import gameRoutes from './routes/games.js';
 import screenRoutes from './routes/screens.js';
 import readRoutes from './routes/reads.js';
-import travelRoutes from './routes/travels.js';
+import uploadRoutes from './routes/upload.js';
+import noteRoutes from './routes/notes.js';
+import viewRoutes from './routes/views.js';
+import reactionRoutes from './routes/reactions.js';
+import authRoutes from './routes/auth.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -46,6 +51,9 @@ app.use(helmet({
 // Enable response compression
 app.use(compression());
 
+// Passport init (used for Google OAuth)
+app.use(passport.initialize());
+
 // CORS configuration - restrict to allowed origins
 const allowedOrigins = process.env.ALLOWED_ORIGINS 
   ? process.env.ALLOWED_ORIGINS.split(',')
@@ -55,6 +63,13 @@ app.use(cors({
   origin: function (origin, callback) {
     // Allow requests with no origin (mobile apps, Postman, etc.)
     if (!origin) return callback(null, true);
+    const isDev = process.env.NODE_ENV !== 'production';
+    if (isDev) {
+      // Allow localhost/127.0.0.1 on any port during development
+      if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+        return callback(null, true);
+      }
+    }
     if (allowedOrigins.indexOf(origin) === -1) {
       return callback(new Error('CORS policy violation'), false);
     }
@@ -90,6 +105,15 @@ const apiLimiter = rateLimit({
   windowMs: 1 * 60 * 1000, // 1 minute
   max: 100, // 100 requests per minute
   message: 'Too many requests, please try again later',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Stricter limiter for reactions (cheap to spam)
+const reactionsLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 20, // 20 reactions/min per IP
+  message: 'Too many reactions, please slow down',
   standardHeaders: true,
   legacyHeaders: false,
 });
@@ -160,25 +184,8 @@ const uploadImage = multer({
   }
 });
 
-// File upload route
-app.post('/api/upload/cover', upload.single('cover'), (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'No file uploaded' });
-    }
-
-    // Return the relative path that can be stored in the database
-    const filePath = `/uploads/covers/${req.file.filename}`;
-    res.json({
-      success: true,
-      filePath: filePath,
-      filename: req.file.filename
-    });
-  } catch (error) {
-    console.error('Upload error:', error);
-    res.status(500).json({ error: 'File upload failed' });
-  }
-});
+// Mount upload routes (for cover uploads)
+app.use('/api/upload', uploadRoutes);
 
 // Generic image upload route (for editor images) - PROTECTED
 app.post('/api/upload/image', authenticateApiKey, uploadImage.single('image'), (req, res) => {
@@ -210,6 +217,7 @@ initDatabase()
   });
 
 // Routes
+app.use('/api/auth', authRoutes);
 app.use('/api/blogs', blogRoutes);
 app.use('/api/blogs', adminLimiter, blogApiRoutes); // API routes with authentication and rate limiting
 app.use('/api/logs', logRoutes);
@@ -217,7 +225,9 @@ app.use('/api/playlists', playlistRoutes);
 app.use('/api/games', gameRoutes);
 app.use('/api/screens', screenRoutes);
 app.use('/api/reads', readRoutes);
-app.use('/api/travels', travelRoutes);
+app.use('/api/notes', noteRoutes);
+app.use('/api/views', viewRoutes);
+app.use('/api/reactions', reactionsLimiter, reactionRoutes);
 
 const PORT = 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`)); 

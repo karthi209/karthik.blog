@@ -12,6 +12,10 @@ export const Screen = {
         director VARCHAR(255),
         genre VARCHAR(100),
         cover_image_url TEXT,
+        rating INTEGER CHECK (rating >= 1 AND rating <= 10),
+        status VARCHAR(50) DEFAULT 'completed',
+        review TEXT,
+        watched_on DATE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
@@ -19,12 +23,12 @@ export const Screen = {
   },
 
   async create(screenData) {
-    const { title, type, year, director, genre, cover_image_url } = screenData;
+    const { title, type, year, director, genre, cover_image_url, rating, status, review, watched_on } = screenData;
     const result = await pool.query(
-      `INSERT INTO screens (title, type, year, director, genre, cover_image_url) 
-       VALUES ($1, $2, $3, $4, $5, $6) 
+      `INSERT INTO screens (title, type, year, director, genre, cover_image_url, rating, status, review, watched_on) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) 
        RETURNING *`,
-      [title, type, year, director, genre, cover_image_url]
+      [title, type, year, director, genre, cover_image_url, rating, status, review, watched_on]
     );
     return result.rows[0];
   },
@@ -49,14 +53,15 @@ export const Screen = {
   },
 
   async update(id, screenData) {
-    const { title, type, year, director, genre, cover_image_url } = screenData;
+    const { title, type, year, director, genre, cover_image_url, rating, status, review, watched_on } = screenData;
     const result = await pool.query(
       `UPDATE screens 
        SET title = $1, type = $2, year = $3, director = $4, 
-           genre = $5, cover_image_url = $6, updated_at = CURRENT_TIMESTAMP 
-       WHERE id = $7 
+           genre = $5, cover_image_url = $6, rating = $7, status = $8, 
+           review = $9, watched_on = $10, updated_at = CURRENT_TIMESTAMP 
+       WHERE id = $11 
        RETURNING *`,
-      [title, type, year, director, genre, cover_image_url, id]
+      [title, type, year, director, genre, cover_image_url, rating, status, review, watched_on, id]
     );
     return result.rows[0];
   },

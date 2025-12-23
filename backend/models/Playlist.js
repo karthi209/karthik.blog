@@ -10,6 +10,7 @@ export const Playlist = {
         description TEXT,
         spotify_url TEXT,
         youtube_music_url TEXT,
+        cover_image_url TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
@@ -18,12 +19,12 @@ export const Playlist = {
 
   // Create a new playlist
   async create(playlistData) {
-    const { name, description, spotify_url, youtube_music_url } = playlistData;
+    const { name, description, spotify_url, youtube_music_url, cover_image_url } = playlistData;
     const result = await pool.query(
-      `INSERT INTO playlists (name, description, spotify_url, youtube_music_url) 
-       VALUES ($1, $2, $3, $4) 
+      `INSERT INTO playlists (name, description, spotify_url, youtube_music_url, cover_image_url) 
+       VALUES ($1, $2, $3, $4, $5) 
        RETURNING *`,
-      [name, description, spotify_url, youtube_music_url]
+      [name, description, spotify_url, youtube_music_url, cover_image_url]
     );
     return result.rows[0];
   },
@@ -42,14 +43,14 @@ export const Playlist = {
 
   // Update playlist
   async update(id, playlistData) {
-    const { name, description, spotify_url, youtube_music_url } = playlistData;
+    const { name, description, spotify_url, youtube_music_url, cover_image_url } = playlistData;
     const result = await pool.query(
       `UPDATE playlists 
-       SET name = $1, description = $2, spotify_url = $3, youtube_music_url = $4, 
+       SET name = $1, description = $2, spotify_url = $3, youtube_music_url = $4, cover_image_url = $5,
            updated_at = CURRENT_TIMESTAMP 
-       WHERE id = $5 
+       WHERE id = $6 
        RETURNING *`,
-      [name, description, spotify_url, youtube_music_url, id]
+      [name, description, spotify_url, youtube_music_url, cover_image_url, id]
     );
     return result.rows[0];
   },

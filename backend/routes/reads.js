@@ -1,6 +1,5 @@
 import express from 'express';
 import { Read } from '../models/Read.js';
-import { ReadLog } from '../models/ReadLog.js';
 import { authenticateApiKey } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -30,69 +29,33 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// Get all read logs
-router.get('/logs/all', async (req, res) => {
-  try {
-    const logs = await ReadLog.getAll();
-    res.json(logs);
-  } catch (error) {
-    console.error('Error fetching read logs:', error);
-    res.status(500).json({ error: 'Failed to fetch read logs' });
-  }
-});
+// Note: Log data is now merged into the reads table
 
-// Get logs for a specific read
-router.get('/:id/logs', async (req, res) => {
-  try {
-    const logs = await ReadLog.getByReadId(req.params.id);
-    res.json(logs);
-  } catch (error) {
-    console.error('Error fetching read logs:', error);
-    res.status(500).json({ error: 'Failed to fetch read logs' });
-  }
-});
-
-// Get single read log by ID
-router.get('/logs/:id', async (req, res) => {
-  try {
-    const log = await ReadLog.getById(req.params.id);
-    if (!log) {
-      return res.status(404).json({ error: 'Read log not found' });
-    }
-    res.json(log);
-  } catch (error) {
-    console.error('Error fetching read log:', error);
-    res.status(500).json({ error: 'Failed to fetch read log' });
-  }
-});
-
-// Admin routes for creating reads and logs
+// Admin endpoint to create read with all data
 router.post('/admin/create-with-log', authenticateApiKey, async (req, res) => {
   try {
-    const { title, rating, content } = req.body;
+    const { title, author, genre, year, cover_image_url, rating, content } = req.body;
 
     if (!title) {
       return res.status(400).json({ error: 'Title is required' });
     }
 
-    // Create the read entry
-    const read = await Read.create({
+    // Create the read with all data in one call (merged schema)
+    const read = await Read.create(
       title,
-      author: null // Books don't have author in the current schema
-    });
-
-    // Create the log entry
-    const log = await ReadLog.create({
-      read_id: read.id,
-      rating: rating ? parseInt(rating) : null,
-      status: 'completed',
-      review: content || null
-    });
+      author || null,
+      genre || null,
+      year ? parseInt(year) : null,
+      cover_image_url || null,
+      rating ? parseInt(rating) : null,
+      'completed',
+      content || null,
+      new Date().toISOString().split('T')[0]
+    );
 
     res.status(201).json({
       read,
-      log,
-      message: 'Read and log created successfully'
+      message: 'Read created successfully'
     });
   } catch (error) {
     console.error('Error creating read with log:', error);

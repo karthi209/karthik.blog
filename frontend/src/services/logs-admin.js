@@ -1,14 +1,14 @@
-import { getStoredApiKey } from './admin';
+import { getStoredAdminToken } from './admin';
 
 const BASE = import.meta.env.VITE_API_URL || '/api';
 const API = BASE;
 
 const authHeaders = () => {
-  const key = getStoredApiKey();
-  return key ? { 'x-api-key': key } : {};
+  const token = getStoredAdminToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
 };
 
-export const adminCreateLog = async ({ title, type, content, rating }) => {
+export const adminCreateLog = async ({ title, type, director, genre, year, cover_image_url, author, rating, content }) => {
   let endpoint;
   let body;
 
@@ -17,6 +17,10 @@ export const adminCreateLog = async ({ title, type, content, rating }) => {
     body = {
       title,
       type: type === 'movies' ? 'movie' : 'series',
+      director,
+      genre,
+      year,
+      cover_image_url,
       rating,
       content
     };
@@ -24,6 +28,10 @@ export const adminCreateLog = async ({ title, type, content, rating }) => {
     endpoint = `${API}/reads/admin/create-with-log`;
     body = {
       title,
+      author,
+      genre,
+      year,
+      cover_image_url,
       rating,
       content
     };

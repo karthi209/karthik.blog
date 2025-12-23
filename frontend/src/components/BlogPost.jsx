@@ -1,17 +1,26 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useParams, useLocation } from 'react-router-dom';
 import { fetchBlogs } from '../services/api';
-import { ArrowLeft, Calendar, Tag, Share2 } from 'lucide-react';
+import { fetchViewCount } from '../services/views';
+import CommentsSection from './CommentsSection';
 import './BlogPost.css';
 import DOMPurify from 'dompurify';
+import { Heart } from 'lucide-react';
+import { getStoredAuthToken, hasSeenAuthDisclaimer, markAuthDisclaimerSeen, startGoogleLogin } from '../services/auth';
+import { fetchBlogLikes, toggleBlogLike } from '../services/comments';
+import BlogToc from './BlogToc';
+import AuthRequiredModal from './AuthRequiredModal';
 
 export default function BlogPost() {
   const { id: paramId } = useParams();
   const location = useLocation();
-  const navigate = useNavigate();
   const [post, setPost] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [views, setViews] = useState(null);
+  const [likeCount, setLikeCount] = useState(0);
+  const [liked, setLiked] = useState(false);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
 
   // Extract ID from URL pathname if not in params (fallback for catch-all routes)
   const id = paramId || location.pathname.replace('/blog/', '').replace('/blogs/', '');
@@ -53,7 +62,6 @@ export default function BlogPost() {
         setPost(data);
         setError(null);
       } catch (error) {
-        console.error('Error fetching blog post:', error);
         setError(error.message);
       } finally {
         setLoading(false);
@@ -62,6 +70,47 @@ export default function BlogPost() {
 
     fetchPost();
   }, [id, location.pathname]);
+
+  useEffect(() => {
+    const loadViews = async () => {
+      try {
+        const res = await fetchViewCount(location.pathname);
+        setViews(typeof res?.count === 'number' ? res.count : Number(res?.count || 0));
+      } catch {
+        setViews(null);
+      }
+    };
+
+    loadViews();
+  }, [location.pathname]);
+
+  useEffect(() => {
+    const loadLikes = async () => {
+      try {
+        const res = await fetchBlogLikes(Number(id));
+        setLikeCount(Number(res?.count || 0));
+        setLiked(!!res?.liked);
+      } catch {
+      }
+    };
+
+    if (!id) return;
+    loadLikes();
+  }, [id]);
+
+  const onToggleLike = async () => {
+    const token = getStoredAuthToken();
+    if (!token) {
+      setAuthModalOpen(true);
+      return;
+    }
+    try {
+      const res = await toggleBlogLike(Number(id));
+      setLikeCount(Number(res?.count || 0));
+      setLiked(!!res?.liked);
+    } catch {
+    }
+  };
 
   if (loading) {
     return (
@@ -87,72 +136,102 @@ export default function BlogPost() {
         <div className="error-state">
           <h2>Error</h2>
           <p>{error}</p>
-          <button onClick={() => navigate('/blogs')} className="back-button">
-            <ArrowLeft size={16} /> Back to blogs
-          </button>
         </div>
       </div>
     );
   }
 
   return (
-    <div 
-      className="blog-post-container"
-      style={{ minHeight: '60vh' }}
-    >
-      <button onClick={() => navigate('/blogs')} className="back-link">
-        <ArrowLeft size={16} /> Back to blogs
-      </button>
+    <div className="blog-post-container" style={{ minHeight: '60vh' }}>
+      <AuthRequiredModal
+        open={authModalOpen}
+        title="Login required"
+        message="Please login to like or comment."
+        showFirstTimeDisclaimer={!hasSeenAuthDisclaimer()}
+        onClose={() => setAuthModalOpen(false)}
+        onLogin={() => {
+          console.log('[BLOGPOST] Login button clicked', { 
+            currentPath: window.location.pathname,
+            currentUrl: window.location.href 
+          });
+          if (!hasSeenAuthDisclaimer()) markAuthDisclaimerSeen();
+          startGoogleLogin(window.location.pathname || '/');
+        }}
+      />
+      <div className="blog-post-layout">
+        <div className="blog-post-main">
+          <article className="blog-post-content">
+            <header className="blog-post-header">
+              <h1 className="blog-post-title">{post.title}</h1>
+              
+              <div className="blog-post-meta">
+                <div className="meta-item">
+                  <span>{new Date(post.created_at).toLocaleDateString(undefined, { dateStyle: 'long' }).toUpperCase()}</span>
+                </div>
+                {post.category && (
+                  <div className="meta-item">
+                    <span>{post.category.toUpperCase()}</span>
+                  </div>
+                )}
+                {typeof views === 'number' ? (
+                  <div className="meta-item">
+                    <span>{String(views).toUpperCase()} VIEWS</span>
+                  </div>
+                ) : null}
 
-      <article className="blog-post-content">
-        <header className="blog-post-header">
-          <h1 className="blog-post-title">{post.title}</h1>
-          
-          <div className="blog-post-meta">
-            <div className="meta-item">
-              <span>{new Date(post.created_at).toLocaleDateString(undefined, { dateStyle: 'long' }).toUpperCase()}</span>
-            </div>
-            {post.category && (
-              <div className="meta-item">
-                <span>{post.category.toUpperCase()}</span>
+                <button
+                  type="button"
+                  className={`like-button like-button--inline ${liked ? 'liked' : ''}`}
+                  onClick={onToggleLike}
+                  aria-label="Like this post"
+                >
+                  <Heart size={14} fill={liked ? '#ff2d55' : 'none'} color={liked ? '#ff2d55' : 'currentColor'} />
+                  <span>{likeCount}</span>
+                </button>
               </div>
-            )}
-          </div>
-        </header>
+            </header>
 
-        <div 
-          className="blog-post-body"
-          dangerouslySetInnerHTML={{ 
-            __html: DOMPurify.sanitize(post.content) 
-          }} 
-          onLoad={() => {
-            const container = document.querySelector('.blog-post-body');
-            if (!container) return;
-            container.querySelectorAll('img').forEach(img => {
-              img.setAttribute('loading', 'lazy');
-              img.setAttribute('decoding', 'async');
-              img.style.display = 'block';
-              img.style.maxWidth = '100%';
-              img.style.height = 'auto';
-            });
-          }}
-        />
-
-        <footer className="blog-post-footer">
-          <div className="share-section">
-            <span>Share this thought:</span>
-            <button 
-              className="share-button"
-              onClick={() => {
-                navigator.clipboard.writeText(window.location.href);
-                alert('Link copied to clipboard!');
+            <div 
+              className="blog-post-body"
+              dangerouslySetInnerHTML={{ 
+                __html: DOMPurify.sanitize(post.content) 
+              }} 
+              onLoad={() => {
+                const container = document.querySelector('.blog-post-body');
+                if (!container) return;
+                container.querySelectorAll('img').forEach(img => {
+                  img.setAttribute('loading', 'lazy');
+                  img.setAttribute('decoding', 'async');
+                  img.style.display = 'block';
+                  img.style.maxWidth = '100%';
+                  img.style.height = 'auto';
+                });
               }}
-            >
-              <Share2 size={16} /> Copy Link
-            </button>
-          </div>
-        </footer>
-      </article>
+            />
+
+            <footer className="blog-post-footer">
+              <div className="share-section">
+                <span>Share this thought:</span>
+                <button 
+                  className="share-button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(window.location.href);
+                    alert('Link copied to clipboard!');
+                  }}
+                >
+                  Copy Link
+                </button>
+              </div>
+            </footer>
+
+            <CommentsSection blogId={Number(id)} />
+          </article>
+        </div>
+
+        <div className="blog-post-aside">
+          <BlogToc />
+        </div>
+      </div>
     </div>
   );
 }

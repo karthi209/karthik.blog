@@ -1,6 +1,5 @@
 import express from 'express';
 import { Screen } from '../models/Screen.js';
-import { ScreenLog } from '../models/ScreenLog.js';
 import { authenticateApiKey } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -30,46 +29,12 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// Get all screen logs
-router.get('/logs/all', async (req, res) => {
-  try {
-    const logs = await ScreenLog.getAll();
-    res.json(logs);
-  } catch (error) {
-    console.error('Error fetching screen logs:', error);
-    res.status(500).json({ error: 'Failed to fetch screen logs' });
-  }
-});
+// Note: Log data is now merged into the screens table
 
-// Get logs for a specific screen
-router.get('/:id/logs', async (req, res) => {
-  try {
-    const logs = await ScreenLog.getByScreenId(req.params.id);
-    res.json(logs);
-  } catch (error) {
-    console.error('Error fetching screen logs:', error);
-    res.status(500).json({ error: 'Failed to fetch screen logs' });
-  }
-});
-
-// Get single screen log by ID
-router.get('/logs/:id', async (req, res) => {
-  try {
-    const log = await ScreenLog.getById(req.params.id);
-    if (!log) {
-      return res.status(404).json({ error: 'Screen log not found' });
-    }
-    res.json(log);
-  } catch (error) {
-    console.error('Error fetching screen log:', error);
-    res.status(500).json({ error: 'Failed to fetch screen log' });
-  }
-});
-
-// Admin routes for creating screens and logs
+// Admin endpoint to create screen with all data
 router.post('/admin/create-with-log', authenticateApiKey, async (req, res) => {
   try {
-    const { title, type, rating, content } = req.body;
+    const { title, type, director, genre, year, cover_image_url, rating, content } = req.body;
 
     if (!title || !type) {
       return res.status(400).json({ error: 'Title and type are required' });
@@ -79,24 +44,23 @@ router.post('/admin/create-with-log', authenticateApiKey, async (req, res) => {
       return res.status(400).json({ error: 'Type must be movie or series' });
     }
 
-    // Create the screen entry
+    // Create the screen with all data in one call (merged schema)
     const screen = await Screen.create({
       title,
-      type
-    });
-
-    // Create the log entry
-    const log = await ScreenLog.create({
-      screen_id: screen.id,
+      type,
+      director: director || null,
+      genre: genre || null,
+      year: year ? parseInt(year) : null,
+      cover_image_url: cover_image_url || null,
       rating: rating ? parseInt(rating) : null,
       status: 'completed',
-      review: content || null
+      review: content || null,
+      watched_on: new Date().toISOString().split('T')[0]
     });
 
     res.status(201).json({
       screen,
-      log,
-      message: 'Screen and log created successfully'
+      message: 'Screen created successfully'
     });
   } catch (error) {
     console.error('Error creating screen with log:', error);

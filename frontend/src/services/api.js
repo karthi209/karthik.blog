@@ -37,6 +37,20 @@ export const fetchLogs = async (type) => {
   return response.json();
 };
 
+export const fetchNotes = async (filters = {}) => {
+  const queryParams = new URLSearchParams();
+  if (filters.sortBy) queryParams.append('sortBy', filters.sortBy);
+  if (filters.order) queryParams.append('order', filters.order);
+  const qs = queryParams.toString();
+  const response = await fetch(`${API_URL}/notes${qs ? `?${qs}` : ''}`);
+  return response.json();
+};
+
+export const fetchNote = async (id) => {
+  const response = await fetch(`${API_URL}/notes/${id}`);
+  return response.json();
+};
+
 export const addBlog = async (blog) => {
   try {
     const response = await fetch(`${API_URL}/blogs`, {

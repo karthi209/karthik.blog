@@ -1,19 +1,6 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
-
 export default function Privacy() {
-  const navigate = useNavigate();
-
   return (
     <div className="post">
-      <button 
-        onClick={() => navigate('/')} 
-        className="back-button"
-        style={{ marginBottom: '1rem', cursor: 'pointer' }}
-      >
-        ← Back to Home
-      </button>
-      
       <h1 className="post-title">Privacy Policy</h1>
       
       <div className="post-content">

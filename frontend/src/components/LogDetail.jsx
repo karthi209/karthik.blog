@@ -1,16 +1,16 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useParams, useLocation } from 'react-router-dom';
 
-import { ArrowLeft, Star, Calendar, Tag, Clock, Gamepad2, Film, Tv, Book } from 'lucide-react';
 import '../styles/modern.css';
+import { fetchViewCount } from '../services/views';
 
 export default function LogDetail() {
   const params = useParams();
   const location = useLocation();
-  const navigate = useNavigate();
   const [log, setLog] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [views, setViews] = useState(null);
 
   // Derive category and id from params or fallback to pathname parsing
   const { category: paramCategory, id: paramId } = params || {};
@@ -36,13 +36,14 @@ export default function LogDetail() {
     }
   };
 
-  const getCategoryIcon = (cat) => {
+  const getCategoryLabel = (cat) => {
     switch (cat?.toLowerCase()) {
-      case 'games': return <Gamepad2 size={16} />;
-      case 'movies': return <Film size={16} />;
-      case 'series': return <Tv size={16} />;
-      case 'books': return <Book size={16} />;
-      default: return <Tag size={16} />;
+      case 'games': return 'Games';
+      case 'movies': return 'Movies';
+      case 'series': return 'TV';
+      case 'books': return 'Books';
+      default:
+        return cat ? String(cat) : 'Library';
     }
   };
 
@@ -61,7 +62,6 @@ export default function LogDetail() {
         const data = await response.json();
         setLog(data);
       } catch (err) {
-        console.error('Error fetching log:', err);
         setError(err.message);
       } finally {
         setLoading(false);
@@ -73,38 +73,42 @@ export default function LogDetail() {
     }
   }, [category, id]);
 
+  useEffect(() => {
+    const loadViews = async () => {
+      try {
+        const res = await fetchViewCount(location.pathname);
+        setViews(typeof res?.count === 'number' ? res.count : Number(res?.count || 0));
+      } catch {
+        setViews(null);
+      }
+    };
+
+    loadViews();
+  }, [location.pathname]);
+
   if (loading) {
     return (
-      <div className="container" style={{ marginTop: '3rem' }}>
-        <div className="loading-state">
-          <div className="loading-spinner">
-            <span></span>
-            <span></span>
-            <span></span>
-            <span></span>
-            <span></span>
-            <span></span>
-          </div>
-          <p>Loading entry...</p>
+      <div className="loading-state">
+        <div className="loading-spinner">
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
         </div>
+        <p>Loading entry...</p>
       </div>
     );
   }
 
   if (error || !log) {
     return (
-      <div className="container" style={{ marginTop: '3rem' }}>
+      <div className="content-wrap">
         <div className="post">
           <h2 className="post-title">Entry Not Found</h2>
           <div className="post-content">
             <p>Sorry, this entry doesn't exist or has been removed.</p>
-            <button
-              onClick={() => navigate('/library')}
-              className="modern-button primary"
-              style={{ marginTop: '1rem' }}
-            >
-              <ArrowLeft size={16} /> Back to Library
-            </button>
           </div>
         </div>
       </div>
@@ -112,96 +116,76 @@ export default function LogDetail() {
   }
 
   return (
-    <div className="container" style={{ marginTop: '3rem' }}>
-      <div 
-        className="log-detail-modern"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <button
-          onClick={() => navigate(-1)}
-          className="back-button"
-          style={{ marginBottom: '1.5rem' }}
-        >
-          <ArrowLeft size={16} /> Back
-        </button>
+    <div className="content-wrap">
+      <article className="post library-note library-note-page">
+        <header className="library-note-header">
+          <div>
+            <div className="library-note-kicker">
+              <span className="library-note-kicker-item">{getCategoryLabel(log.category)}</span>
+              {log.created_at ? (
+                <span className="library-note-kicker-item">
+                  · {new Date(log.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                </span>
+              ) : null}
+            </div>
 
-        <article className="post">
-          <div className="log-detail-header-grid">
-            {log.image && (
-              <div className="log-detail-image-container">
-                <img src={log.image} alt={log.title} className="log-detail-image" />
-              </div>
-            )}
+            <h1 className="library-note-title">{log.title}</h1>
 
-            <div className="log-detail-info">
-              <div className="status-badge-inline" style={{ 
-                color: getStatusColor(log.status),
-                marginBottom: '0.5rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                fontSize: '0.85rem',
-                fontWeight: 600,
-                textTransform: 'uppercase'
-              }}>
-                {log.status}
-              </div>
+            <div className="library-note-chips">
+              {log.status ? (
+                <span className="library-note-chip" style={{ color: getStatusColor(log.status) }}>
+                  {log.status}
+                </span>
+              ) : null}
 
-              <h1 className="post-title" style={{ margin: '0.5rem 0 1rem 0', fontSize: '2.5rem' }}>{log.title}</h1>
-              
-              <div className="meta-grid">
-                {log.rating && (
-                  <div className="meta-item-box">
-                    <span className="meta-label">Rating</span>
-                    <div className="rating-display" style={{ color: 'var(--color-accent)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                      <Star size={16} fill="currentColor" />
-                      <span className="rating-value">{log.rating}/5</span>
-                    </div>
-                  </div>
-                )}
-                
-                {log.category && (
-                  <div className="meta-item-box">
-                    <span className="meta-label">Category</span>
-                    <div className="meta-value" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      {getCategoryIcon(log.category)}
-                      <span style={{ textTransform: 'capitalize' }}>{log.category}</span>
-                    </div>
-                  </div>
-                )}
-                
-                {log.created_at && (
-                  <div className="meta-item-box">
-                    <span className="meta-label">Added</span>
-                    <div className="meta-value" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <Calendar size={16} />
-                      {new Date(log.created_at).toLocaleDateString()}
-                    </div>
-                  </div>
-                )}
+              {log.rating ? (
+                <span className="library-note-chip">
+                  {log.rating}/10
+                </span>
+              ) : null}
 
-                {log.platform && (
-                  <div className="meta-item-box">
-                    <span className="meta-label">Platform</span>
-                    <div className="meta-value">
-                      {log.platform}
-                    </div>
-                  </div>
-                )}
-              </div>
+              {typeof views === 'number' ? (
+                <span className="library-note-chip">
+                  {views} views
+                </span>
+              ) : null}
+
+              {log.category ? (
+                <span className="library-note-chip">
+                  {getCategoryLabel(log.category)}
+                </span>
+              ) : null}
+
+              {log.platform ? <span className="library-note-chip">{log.platform}</span> : null}
+              {log.author ? <span className="library-note-chip">{log.author}</span> : null}
+              {log.genre ? <span className="library-note-chip">{log.genre}</span> : null}
+              {log.release_year ? <span className="library-note-chip">{log.release_year}</span> : null}
+              {log.hours_played ? (
+                <span className="library-note-chip">
+                  {log.hours_played}h
+                </span>
+              ) : null}
             </div>
           </div>
 
-          {log.content && (
-            <div className="post-content" style={{ marginTop: '2rem', borderTop: '1px solid var(--color-border)', paddingTop: '2rem' }}>
-              <h3 style={{ marginBottom: '1rem' }}>Review & Notes</h3>
-              <div dangerouslySetInnerHTML={{ __html: log.content }} />
+          {log.image ? (
+            <div className="library-note-thumb" aria-hidden="true">
+              <img src={log.image} alt="" loading="lazy" />
             </div>
-          )}
-        </article>
-      </div>
+          ) : null}
+        </header>
+
+        {log.content ? (
+          <div className="post-content">
+            <div className="review-content" dangerouslySetInnerHTML={{ __html: log.content }} />
+          </div>
+        ) : (
+          <div className="post-content">
+            <p className="page-meta">No notes yet.</p>
+          </div>
+        )}
+
+      </article>
     </div>
   );
 }

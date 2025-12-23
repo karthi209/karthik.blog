@@ -1,11 +1,8 @@
 import { Router } from 'express';
 import pool from '../db.js';
 import { Game } from '../models/Game.js';
-import { GameLog } from '../models/GameLog.js';
 import { Screen } from '../models/Screen.js';
-import { ScreenLog } from '../models/ScreenLog.js';
 import { Read } from '../models/Read.js';
-import { ReadLog } from '../models/ReadLog.js';
 import { Playlist } from '../models/Playlist.js';
 import NodeCache from 'node-cache';
 
@@ -38,74 +35,42 @@ router.get('/combined/homepage', async (req, res) => {
         ORDER BY created_at DESC
       `),
 
-      // Get games with latest log
+      // Get games with log data (now in same table)
       pool.query(`
         SELECT
-          g.id, g.title, g.platform, g.genre, g.release_year, g.cover_image_url,
-          gl.rating, gl.status, gl.hours_played,
-          COALESCE(gl.created_at, g.created_at) as date
-        FROM games g
-        LEFT JOIN LATERAL (
-          SELECT rating, status, hours_played, created_at
-          FROM game_logs
-          WHERE game_id = g.id
-          ORDER BY created_at DESC
-          LIMIT 1
-        ) gl ON true
-        ORDER BY COALESCE(gl.created_at, g.created_at) DESC
+          id, title, platform, genre, release_year, cover_image_url,
+          rating, status, hours_played, created_at as date
+        FROM games
+        ORDER BY created_at DESC
       `),
 
-      // Get movies with latest log
+      // Get movies with log data (now in same table)
       pool.query(`
         SELECT
-          s.id, s.title,
-          sl.rating, sl.status,
-          COALESCE(sl.created_at, s.created_at) as date
-        FROM screens s
-        LEFT JOIN LATERAL (
-          SELECT rating, status, created_at
-          FROM screen_logs
-          WHERE screen_id = s.id
-          ORDER BY created_at DESC
-          LIMIT 1
-        ) sl ON true
-        WHERE s.type = 'movie'
-        ORDER BY COALESCE(sl.created_at, s.created_at) DESC
+          id, title, cover_image_url,
+          rating, status, created_at as date
+        FROM screens
+        WHERE type = 'movie'
+        ORDER BY created_at DESC
       `),
 
-      // Get series with latest log
+      // Get series with log data (now in same table)
       pool.query(`
         SELECT
-          s.id, s.title,
-          sl.rating, sl.status,
-          COALESCE(sl.created_at, s.created_at) as date
-        FROM screens s
-        LEFT JOIN LATERAL (
-          SELECT rating, status, created_at
-          FROM screen_logs
-          WHERE screen_id = s.id
-          ORDER BY created_at DESC
-          LIMIT 1
-        ) sl ON true
-        WHERE s.type = 'series'
-        ORDER BY COALESCE(sl.created_at, s.created_at) DESC
+          id, title, cover_image_url,
+          rating, status, created_at as date
+        FROM screens
+        WHERE type = 'series'
+        ORDER BY created_at DESC
       `),
 
-      // Get books with latest log
+      // Get books with log data (now in same table)
       pool.query(`
         SELECT
-          r.id, r.title, r.author,
-          rl.rating, rl.status,
-          COALESCE(rl.created_at, r.created_at) as date
-        FROM reads r
-        LEFT JOIN LATERAL (
-          SELECT rating, status, created_at
-          FROM read_logs
-            WHERE read_id = r.id
-          ORDER BY created_at DESC
-          LIMIT 1
-        ) rl ON true
-        ORDER BY COALESCE(rl.created_at, r.created_at) DESC
+          id, title, author, cover_image_url,
+          rating, status, created_at as date
+        FROM reads
+        ORDER BY created_at DESC
       `)
     ]);
 
@@ -149,21 +114,12 @@ router.get('/', async (req, res) => {
     // Aggregate all recent logs from different tables
     const results = [];
 
-    // Get game logs with game info
+    // Get game logs with game info (now merged in games table)
     const games = await pool.query(`
       SELECT
-        g.id, g.title,
-        gl.rating,
-        COALESCE(gl.created_at, g.created_at) as date
-      FROM games g
-      LEFT JOIN LATERAL (
-        SELECT rating, created_at
-        FROM game_logs
-        WHERE game_id = g.id
-        ORDER BY created_at DESC
-        LIMIT 1
-      ) gl ON true
-      ORDER BY COALESCE(gl.created_at, g.created_at) DESC
+        id, title, rating, created_at as date
+      FROM games
+      ORDER BY created_at DESC
       LIMIT 10
     `);
 
@@ -208,21 +164,13 @@ router.get('/:type', async (req, res) => {
         break;
 
       case 'games':
-        // Optimized: Single query with JOIN
+        // Optimized: Direct query from games table (merged schema)
         const games = await pool.query(`
           SELECT
-            g.id, g.title, g.platform, g.genre, g.release_year, g.cover_image_url,
-            gl.rating, gl.status, gl.hours_played,
-            COALESCE(gl.created_at, g.created_at) as date
-          FROM games g
-          LEFT JOIN LATERAL (
-            SELECT rating, status, hours_played, created_at
-            FROM game_logs
-            WHERE game_id = g.id
-            ORDER BY created_at DESC
-            LIMIT 1
-          ) gl ON true
-          ORDER BY COALESCE(gl.created_at, g.created_at) DESC
+            id, title, platform, genre, release_year, cover_image_url,
+            rating, status, hours_played, created_at as date
+          FROM games
+          ORDER BY created_at DESC
         `);
         results = games.rows.map(game => ({
           _id: game.id,
@@ -241,30 +189,20 @@ router.get('/:type', async (req, res) => {
         break;
 
       case 'movies':
-        // Optimized: Single query with JOIN
+        // Optimized: Direct query from screens table (merged schema)
         const movies = await pool.query(`
           SELECT
-            s.id,
-            s.title,
-            sl.rating,
-            sl.status,
-            COALESCE(sl.created_at, s.created_at) as date
-          FROM screens s
-          LEFT JOIN LATERAL (
-            SELECT rating, status, created_at
-            FROM screen_logs
-            WHERE screen_id = s.id
-            ORDER BY created_at DESC
-            LIMIT 1
-          ) sl ON true
-          WHERE s.type = 'movie'
-          ORDER BY COALESCE(sl.created_at, s.created_at) DESC
+            id, title, cover_image_url, rating, status, created_at as date
+          FROM screens
+          WHERE type = 'movie'
+          ORDER BY created_at DESC
         `);
         results = movies.rows.map(movie => ({
           _id: movie.id,
           id: movie.id,
           title: movie.title,
           type: 'movies',
+          cover_image_url: movie.cover_image_url,
           rating: movie.rating?.toString(),
           status: movie.status,
           date: movie.date
@@ -272,30 +210,20 @@ router.get('/:type', async (req, res) => {
         break;
 
       case 'series':
-        // Optimized: Single query with JOIN
+        // Optimized: Direct query from screens table (merged schema)
         const series = await pool.query(`
           SELECT
-            s.id,
-            s.title,
-            sl.rating,
-            sl.status,
-            COALESCE(sl.created_at, s.created_at) as date
-          FROM screens s
-          LEFT JOIN LATERAL (
-            SELECT rating, status, created_at
-            FROM screen_logs
-            WHERE screen_id = s.id
-            ORDER BY created_at DESC
-            LIMIT 1
-          ) sl ON true
-          WHERE s.type = 'series'
-          ORDER BY COALESCE(sl.created_at, s.created_at) DESC
+            id, title, cover_image_url, rating, status, created_at as date
+          FROM screens
+          WHERE type = 'series'
+          ORDER BY created_at DESC
         `);
         results = series.rows.map(show => ({
           _id: show.id,
           id: show.id,
           title: show.title,
           type: 'series',
+          cover_image_url: show.cover_image_url,
           rating: show.rating?.toString(),
           status: show.status,
           date: show.date
@@ -303,24 +231,12 @@ router.get('/:type', async (req, res) => {
         break;
 
       case 'books':
-        // Optimized: Single query with JOIN
+        // Optimized: Direct query from reads table (merged schema)
         const books = await pool.query(`
           SELECT
-            r.id,
-            r.title,
-            r.author,
-            rl.rating,
-            rl.status,
-            COALESCE(rl.created_at, r.created_at) as date
-          FROM reads r
-          LEFT JOIN LATERAL (
-            SELECT rating, status, created_at
-            FROM read_logs
-            WHERE read_id = r.id
-            ORDER BY created_at DESC
-            LIMIT 1
-          ) rl ON true
-          ORDER BY COALESCE(rl.created_at, r.created_at) DESC
+            id, title, author, cover_image_url, rating, status, created_at as date
+          FROM reads
+          ORDER BY created_at DESC
         `);
         results = books.rows.map(book => ({
           _id: book.id,
@@ -328,6 +244,7 @@ router.get('/:type', async (req, res) => {
           title: book.title,
           type: 'books',
           author: book.author,
+          cover_image_url: book.cover_image_url,
           rating: book.rating?.toString(),
           status: book.status,
           date: book.date
@@ -353,21 +270,13 @@ router.get('/:category/:id', async (req, res) => {
 
     switch (category) {
       case 'games':
-        // Get game with its latest log
+        // Get game with all data (merged schema)
         const gameData = await pool.query(`
           SELECT
-            g.id, g.title, g.platform, g.genre, g.release_year, g.cover_image_url as image,
-            gl.rating, gl.status, gl.hours_played, gl.review as content,
-            COALESCE(gl.created_at, g.created_at) as created_at
-          FROM games g
-          LEFT JOIN LATERAL (
-            SELECT rating, status, hours_played, review, created_at
-            FROM game_logs
-            WHERE game_id = g.id
-            ORDER BY created_at DESC
-            LIMIT 1
-          ) gl ON true
-          WHERE g.id = $1
+            id, title, platform, genre, release_year, cover_image_url as image,
+            rating, status, hours_played, review as content, created_at
+          FROM games
+          WHERE id = $1
         `, [id]);
 
         if (gameData.rows.length > 0) {
@@ -393,21 +302,13 @@ router.get('/:category/:id', async (req, res) => {
 
       case 'movies':
       case 'series':
-        // Get screen (movie/series) with its latest log
+        // Get screen (movie/series) with all data (merged schema)
         const screenData = await pool.query(`
           SELECT
-            s.id, s.title, s.type,
-            sl.rating, sl.status, sl.review as content,
-            COALESCE(sl.created_at, s.created_at) as created_at
-          FROM screens s
-          LEFT JOIN LATERAL (
-            SELECT rating, status, review, created_at
-            FROM screen_logs
-            WHERE screen_id = s.id
-            ORDER BY created_at DESC
-            LIMIT 1
-          ) sl ON true
-          WHERE s.id = $1 AND s.type = $2
+            id, title, type, director, genre, year, cover_image_url as image,
+            rating, status, review as content, created_at
+          FROM screens
+          WHERE id = $1 AND type = $2
         `, [id, category === 'movies' ? 'movie' : 'series']);
 
         if (screenData.rows.length > 0) {
@@ -417,6 +318,10 @@ router.get('/:category/:id', async (req, res) => {
             id: screen.id,
             title: screen.title,
             type: category,
+            director: screen.director,
+            genre: screen.genre,
+            release_year: screen.year,
+            image: screen.image,
             rating: screen.rating?.toString(),
             status: screen.status,
             content: screen.content,
@@ -427,21 +332,13 @@ router.get('/:category/:id', async (req, res) => {
         break;
 
       case 'books':
-        // Get book with its latest log
+        // Get book with all data (merged schema)
         const bookData = await pool.query(`
           SELECT
-            r.id, r.title, r.author,
-            rl.rating, rl.status, rl.review as content,
-            COALESCE(rl.created_at, r.created_at) as created_at
-          FROM reads r
-          LEFT JOIN LATERAL (
-            SELECT rating, status, review, created_at
-            FROM read_logs
-            WHERE read_id = r.id
-            ORDER BY created_at DESC
-            LIMIT 1
-          ) rl ON true
-          WHERE r.id = $1
+            id, title, author, genre, year, cover_image_url as image,
+            rating, status, review as content, created_at
+          FROM reads
+          WHERE id = $1
         `, [id]);
 
         if (bookData.rows.length > 0) {
@@ -452,6 +349,9 @@ router.get('/:category/:id', async (req, res) => {
             title: book.title,
             type: 'books',
             author: book.author,
+            genre: book.genre,
+            release_year: book.year,
+            image: book.image,
             rating: book.rating?.toString(),
             status: book.status,
             content: book.content,

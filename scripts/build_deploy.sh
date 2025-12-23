@@ -12,6 +12,15 @@
 set -euo pipefail
 trap 'cleanup' EXIT
 
+# Optionally load deploy defaults from scripts/.env.deploy
+ENV_DEPLOY_FILE="$(dirname "$0")/.env.deploy"
+if [ -f "$ENV_DEPLOY_FILE" ]; then
+  set -a
+  # shellcheck disable=SC1090
+  . "$ENV_DEPLOY_FILE"
+  set +a
+fi
+
 cleanup() {
   # Remove local tarballs if they exist
   rm -f "$(dirname "$0")/../zerosandones-frontend-"*.tar
@@ -49,7 +58,11 @@ fi
 
 if [ "$BUILD_FRONTEND" = "true" ]; then
   echo "[INFO] Building frontend Docker image..."
-  docker build -t zerosandones-frontend:${FRONTEND_NEW_VERSION} -f "$(dirname "$0")/../frontend/Dockerfile" "$(dirname "$0")/../frontend"
+  docker build \
+    --build-arg VITE_API_URL="${VITE_API_URL:-/api}" \
+    -t zerosandones-frontend:${FRONTEND_NEW_VERSION} \
+    -f "$(dirname "$0")/../frontend/Dockerfile" \
+    "$(dirname "$0")/../frontend"
   echo "[INFO] Saving frontend image as tarball..."
   docker save -o "$(dirname "$0")/../zerosandones-frontend-${FRONTEND_NEW_VERSION}.tar" zerosandones-frontend:${FRONTEND_NEW_VERSION}
   echo "[INFO] Transferring frontend tarball to server..."
@@ -115,8 +128,14 @@ if [ "$DEPLOY_BACKEND" = "true" ]; then
       -e DB_HOST="$DB_HOST" \
       -e DB_PORT="$DB_PORT" \
       -e DB_NAME="$DB_NAME" \
-      -e ADMIN_PASSWORD="$ADMIN_PASSWORD" \
       -e ALLOWED_ORIGINS="$ALLOWED_ORIGINS" \
+      -e NODE_ENV="${NODE_ENV:-production}" \
+      -e FRONTEND_URL="${FRONTEND_URL:-https://notkarthik.com}" \
+      -e GOOGLE_CLIENT_ID="${GOOGLE_CLIENT_ID:-}" \
+      -e GOOGLE_CLIENT_SECRET="${GOOGLE_CLIENT_SECRET:-}" \
+      -e GOOGLE_CALLBACK_URL="${GOOGLE_CALLBACK_URL:-https://notkarthik.com/api/auth/google/callback}" \
+      -e JWT_SECRET="${JWT_SECRET:-}" \
+      -e ADMIN_EMAILS="${ADMIN_EMAILS:-}" \
       zerosandones-backend:${BACKEND_VERSION_TO_DEPLOY}
     docker update --restart unless-stopped backend-zerosandones
     

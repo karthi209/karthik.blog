@@ -1,5 +1,5 @@
 # Backend Dockerfile
-FROM node:18-alpine
+FROM node:22-alpine
 
 # Add non-root user for security
 RUN addgroup -g 1001 -S nodejs && adduser -S nodejs -u 1001
@@ -16,7 +16,6 @@ RUN npm ci --only=production && npm cache clean --force
 COPY server.js ./
 COPY db.js ./
 COPY cache.js ./
-COPY migrate.js ./
 COPY models ./models
 COPY routes ./routes
 COPY middleware ./middleware

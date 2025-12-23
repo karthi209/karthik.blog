@@ -43,7 +43,7 @@ router.get('/:id', async (req, res) => {
 
 // Create playlist (admin)
 router.post('/', authenticateApiKey, async (req, res) => {
-  const { name, description, spotify_url, youtube_music_url } = req.body;
+  const { name, description, spotify_url, youtube_music_url, cover_image_url } = req.body;
   
   if (!name || !name.trim()) {
     return res.status(400).json({ error: 'Playlist name is required' });
@@ -54,7 +54,8 @@ router.post('/', authenticateApiKey, async (req, res) => {
       name: name.trim(),
       description: (description || '').trim(),
       spotify_url: spotify_url || null,
-      youtube_music_url: youtube_music_url || null
+      youtube_music_url: youtube_music_url || null,
+      cover_image_url: cover_image_url || null
     });
     res.status(201).json(playlist);
   } catch (error) {
@@ -66,12 +67,13 @@ router.post('/', authenticateApiKey, async (req, res) => {
 // Update playlist (admin)
 router.put('/:id', authenticateApiKey, async (req, res) => {
   try {
-    const { name, description, spotify_url, youtube_music_url } = req.body;
+    const { name, description, spotify_url, youtube_music_url, cover_image_url } = req.body;
     const playlist = await Playlist.update(req.params.id, {
       name,
       description,
       spotify_url: spotify_url || null,
-      youtube_music_url: youtube_music_url || null
+      youtube_music_url: youtube_music_url || null,
+      cover_image_url: cover_image_url || null
     });
 
     if (!playlist) {

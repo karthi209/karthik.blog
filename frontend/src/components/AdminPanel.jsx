@@ -1,40 +1,26 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
-import { adminCreateBlog, getStoredApiKey, setStoredApiKey, adminUploadImage, adminListBlogs, adminUpdateBlog, adminDeleteBlog } from '../services/admin';
+import { adminCreateBlog, getStoredAdminToken, setStoredAdminToken, clearStoredAdminToken, adminUploadImage, adminListBlogs, adminUpdateBlog, adminDeleteBlog } from '../services/admin';
 import { adminCreateLog, adminCreateGame } from '../services/logs-admin';
 import { adminCreatePlaylist, adminUpdatePlaylist, adminDeletePlaylist, adminAddSong, adminAddSongsBulk, adminDeleteSong, fetchPlaylists } from '../services/playlists-admin';
+import { adminListNotes, adminCreateNote, adminUpdateNote, adminDeleteNote } from '../services/notes-admin';
 import ReactQuill from 'react-quill';
 import "quill/dist/quill.snow.css";
 import './BlogsPage.css';
 import Sidebar from './Sidebar';
+import AuthRequiredModal from './AuthRequiredModal';
+import { hasSeenAuthDisclaimer, markAuthDisclaimerSeen } from '../services/auth';
 
 const API = import.meta.env.VITE_API_URL || '/api';
 
-// Suppress React.findDOMNode deprecation warning from react-quill
-const originalError = console.error;
-console.error = function(...args) {
-  if (
-    args[0]?.includes?.('findDOMNode') ||
-    args[0]?.includes?.('DOMNodeInserted')
-  ) {
-    return;
-  }
-  originalError.call(console, ...args);
-};
-
-const authHeaders = () => {
-  const key = getStoredApiKey();
-  return key ? { 'x-api-key': key } : {};
-};
-
 export default function AdminPanel() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState('');
-  const [activeTab, setActiveTab] = useState('thoughts'); // thoughts, games, movies, series, books, music
+  const [contentType, setContentType] = useState('blogs'); // blogs, notes, library, music
+  const [libraryType, setLibraryType] = useState('games'); // games, screen_movie, screen_series, books
+  const [activeTab, setActiveTab] = useState('blogs'); // blogs, notes, games, movies, series, books, music
   
-  const [apiKey, setApiKey] = useState('');
   const [status, setStatus] = useState('');
+  const [loginModalOpen, setLoginModalOpen] = useState(false);
 
   const quillRef = useRef(null);
 
@@ -50,10 +36,18 @@ export default function AdminPanel() {
   const [editingBlog, setEditingBlog] = useState(null);
   const [showManageBlogs, setShowManageBlogs] = useState(false);
 
+  // Notes form + management
+  const [noteTitle, setNoteTitle] = useState('');
+  const [noteContent, setNoteContent] = useState('');
+  const [noteTags, setNoteTags] = useState('');
+  const [notes, setNotes] = useState([]);
+  const [editingNote, setEditingNote] = useState(null);
+  const [showManageNotes, setShowManageNotes] = useState(false);
+
   // Log form (games, movies, series, books)
   const [logTitle, setLogTitle] = useState('');
   const [logContent, setLogContent] = useState('');
-  const [logRating, setLogRating] = useState(5);
+  const [logRating, setLogRating] = useState(10);
   const [logType, setLogType] = useState('games');
 
   // Game-specific fields
@@ -64,12 +58,26 @@ export default function AdminPanel() {
   const [gameStatus, setGameStatus] = useState('completed');
   const [gameHoursPlayed, setGameHoursPlayed] = useState('');
 
+  // Movie/Series-specific fields
+  const [screenDirector, setScreenDirector] = useState('');
+  const [screenGenre, setScreenGenre] = useState('');
+  const [screenYear, setScreenYear] = useState('');
+  const [screenCoverImageFile, setScreenCoverImageFile] = useState(null);
+
+  // Book-specific fields
+  const [bookAuthor, setBookAuthor] = useState('');
+  const [bookGenre, setBookGenre] = useState('');
+  const [bookYear, setBookYear] = useState('');
+  const [bookCoverImageFile, setBookCoverImageFile] = useState(null);
+
   // Playlists management
   const [playlists, setPlaylists] = useState([]);
   const [playlistName, setPlaylistName] = useState('');
   const [playlistDescription, setPlaylistDescription] = useState('');
   const [spotifyUrl, setSpotifyUrl] = useState('');
   const [youtubeMusicUrl, setYoutubeMusicUrl] = useState('');
+  const [playlistCoverFile, setPlaylistCoverFile] = useState(null);
+  const [playlistCoverPreview, setPlaylistCoverPreview] = useState(null);
   const [activePlaylist, setActivePlaylist] = useState(null);
   const [editingPlaylist, setEditingPlaylist] = useState(null);
   const [songTitle, setSongTitle] = useState('');
@@ -107,7 +115,6 @@ export default function AdminPanel() {
         setStatus('Image uploaded');
         setTimeout(() => setStatus(''), 1500);
       } catch (error) {
-        console.error('Image upload failed', error);
         setStatus('Image upload failed');
         setTimeout(() => setStatus(''), 2000);
       }
@@ -115,10 +122,16 @@ export default function AdminPanel() {
   }, []);
 
   useEffect(() => {
-    if (isAuthenticated && activeTab === 'thoughts' && showManageBlogs) {
+    if (isAuthenticated && activeTab === 'blogs' && showManageBlogs) {
       loadBlogs();
     }
   }, [isAuthenticated, activeTab, showManageBlogs]);
+
+  useEffect(() => {
+    if (isAuthenticated && activeTab === 'notes' && showManageNotes) {
+      loadNotes();
+    }
+  }, [isAuthenticated, activeTab, showManageNotes]);
 
   const modules = useMemo(() => ({
     toolbar: {
@@ -150,14 +163,29 @@ export default function AdminPanel() {
   ];
 
   useEffect(() => {
-    // Check if already authenticated
-    const authStatus = sessionStorage.getItem('adminAuth');
-    if (authStatus === 'true') {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+    const error = params.get('error');
+
+    if (token) {
+      setStoredAdminToken(token);
       setIsAuthenticated(true);
+      setLoginError('');
+      // Remove token from URL
+      params.delete('token');
+      const next = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ''}`;
+      window.history.replaceState({}, '', next);
     }
-    
-    const key = getStoredApiKey();
-    if (key) setApiKey(key);
+
+    if (error) {
+      setLoginError(String(error));
+      params.delete('error');
+      const next = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ''}`;
+      window.history.replaceState({}, '', next);
+    }
+
+    const stored = getStoredAdminToken();
+    if (stored) setIsAuthenticated(true);
 
     // Load playlists if on music tab
     if (activeTab === 'music' && isAuthenticated) {
@@ -165,56 +193,69 @@ export default function AdminPanel() {
     }
   }, [activeTab, isAuthenticated]);
 
+  useEffect(() => {
+    if (contentType === 'blogs') {
+      setActiveTab('blogs');
+      return;
+    }
+    if (contentType === 'notes') {
+      setActiveTab('notes');
+      return;
+    }
+    if (contentType === 'music') {
+      setActiveTab('music');
+      return;
+    }
+
+    // Library
+    if (libraryType === 'games') {
+      setActiveTab('games');
+      setLogType('games');
+    } else if (libraryType === 'screen_movie') {
+      setActiveTab('movies');
+      setLogType('movies');
+    } else if (libraryType === 'screen_series') {
+      setActiveTab('series');
+      setLogType('series');
+    } else if (libraryType === 'books') {
+      setActiveTab('books');
+      setLogType('books');
+    }
+  }, [contentType, libraryType]);
+
   const loadPlaylists = async () => {
     try {
       const data = await fetchPlaylists();
       setPlaylists(data);
     } catch (error) {
-      console.error('Error loading playlists:', error);
+      // Silently fail
     }
   };
 
   const handleLogin = (e) => {
     e.preventDefault();
-    
-    // Store the password for API authentication
-    setStoredApiKey(password);
-    
-    // Simple client-side validation - just check if password is provided
-    // The real validation happens on the backend when making API calls
-    if (password && password.length > 0) {
-      setIsAuthenticated(true);
-      sessionStorage.setItem('adminAuth', 'true');
-      setLoginError('');
-    } else {
-      setLoginError('Please enter a password');
-      setPassword('');
-    }
+    const apiBase = import.meta.env.VITE_API_URL || '/api';
+    const base = apiBase.endsWith('/api') ? apiBase : `${apiBase}`;
+    window.location.href = `${base}/auth/google?redirect=${encodeURIComponent('/admin')}`;
   };
 
   const handleLogout = () => {
     setIsAuthenticated(false);
-    sessionStorage.removeItem('adminAuth');
-    localStorage.removeItem('admin_api_key'); // Clear stored password
-    setUsername('');
-    setPassword('');
+    clearStoredAdminToken();
   };
 
   const canSubmitBlog = useMemo(() => title && category && content, [title, category, content]);
-
-  const handleSaveKey = () => {
-    setStoredApiKey(apiKey.trim());
-    setStatus('API key saved');
-    setTimeout(() => setStatus(''), 1500);
-  };
 
   const uploadCoverImage = async (file) => {
     const formData = new FormData();
     formData.append('cover', file);
 
+    const token = getStoredAdminToken();
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
     const res = await fetch(`${API}/upload/cover`, {
       method: 'POST',
-      headers: authHeaders(),
+      headers,
       body: formData,
     });
 
@@ -273,8 +314,16 @@ export default function AdminPanel() {
       const data = await adminListBlogs();
       setBlogs(data);
     } catch (error) {
-      console.error('Error loading blogs:', error);
       setStatus('Failed to load blogs');
+    }
+  };
+
+  const loadNotes = async () => {
+    try {
+      const data = await adminListNotes();
+      setNotes(Array.isArray(data) ? data : []);
+    } catch (error) {
+      setStatus('Failed to load notes');
     }
   };
 
@@ -291,7 +340,6 @@ export default function AdminPanel() {
       setShowManageBlogs(false);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (error) {
-      console.error('Error loading blog:', error);
       setStatus('Failed to load blog');
     }
   };
@@ -316,6 +364,76 @@ export default function AdminPanel() {
     setTags('');
     setContent('');
     setIsDraft(false);
+  };
+
+  const cancelEditNote = () => {
+    setEditingNote(null);
+    setNoteTitle('');
+    setNoteContent('');
+    setNoteTags('');
+  };
+
+  const submitNote = async (e) => {
+    e.preventDefault();
+    try {
+      if (!noteTitle.trim()) {
+        setStatus('Error: Title is required');
+        return;
+      }
+
+      const tagsArray = noteTags
+        ? noteTags.split(',').map(t => t.trim()).filter(Boolean)
+        : null;
+
+      if (editingNote) {
+        setStatus('Updating note...');
+        await adminUpdateNote(editingNote.id, {
+          title: noteTitle.trim(),
+          content: noteContent || null,
+          tags: tagsArray
+        });
+        setStatus('Note updated!');
+        setEditingNote(null);
+      } else {
+        setStatus('Creating note...');
+        await adminCreateNote({
+          title: noteTitle.trim(),
+          content: noteContent || null,
+          tags: tagsArray
+        });
+        setStatus('Note created!');
+      }
+
+      setNoteTitle('');
+      setNoteContent('');
+      setNoteTags('');
+      if (showManageNotes) loadNotes();
+      setTimeout(() => setStatus(''), 2000);
+    } catch (err) {
+      setStatus(`Error: ${err.message || 'Failed'}`);
+    }
+  };
+
+  const handleEditNote = (note) => {
+    setEditingNote(note);
+    setNoteTitle(note.title || '');
+    setNoteContent(note.content || '');
+    setNoteTags(Array.isArray(note.tags) ? note.tags.join(', ') : '');
+    setShowManageNotes(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleDeleteNote = async (id) => {
+    if (!confirm('Are you sure you want to delete this note?')) return;
+    try {
+      setStatus('Deleting note...');
+      await adminDeleteNote(id);
+      setStatus('Note deleted!');
+      loadNotes();
+      setTimeout(() => setStatus(''), 2000);
+    } catch (error) {
+      setStatus(`Error: ${error.message}`);
+    }
   };
 
   const submitLog = async (e) => {
@@ -350,8 +468,30 @@ export default function AdminPanel() {
           review: logContent,
           played_on: new Date().toISOString().split('T')[0]
         });
+      } else if (logType === 'movies' || logType === 'series') {
+        // Upload cover image first if selected
+        let coverImageUrl = null;
+        if (screenCoverImageFile) {
+          setStatus('Uploading cover image...');
+          try {
+            coverImageUrl = await uploadCoverImage(screenCoverImageFile);
+          } catch (uploadError) {
+            setStatus(`Upload failed: ${uploadError.message}`);
+            return;
+          }
+        }
+        await adminCreateLog({
+          title: logTitle,
+          type: logType,
+          director: screenDirector,
+          genre: screenGenre,
+          year: screenYear,
+          cover_image_url: coverImageUrl,
+          rating: logRating ? String(logRating) : null,
+          content: logContent
+        });
       } else {
-        // Use the regular log creation for movies, series, books
+        // Use the regular log creation for books
         await adminCreateLog({ 
           title: logTitle, 
           type: logType, 
@@ -365,13 +505,21 @@ export default function AdminPanel() {
       // Reset all form fields
       setLogTitle(''); 
       setLogContent(''); 
-      setLogRating(5);
+      setLogRating(10);
       setGamePlatform('');
       setGameGenre('');
       setGameReleaseYear('');
       setGameCoverImageFile(null);
       setGameStatus('completed');
       setGameHoursPlayed('');
+      setScreenDirector('');
+      setScreenGenre('');
+      setScreenYear('');
+      setScreenCoverImageFile(null);
+      setBookAuthor('');
+      setBookGenre('');
+      setBookYear('');
+      setBookCoverImageFile(null);
       
       setTimeout(() => setStatus(''), 2000);
     } catch (err) {
@@ -382,14 +530,27 @@ export default function AdminPanel() {
   const submitMusic = async (e) => {
     e.preventDefault();
     try {
-      setStatus('Creating playlist...');
+      setStatus('Creating album...');
+      let coverImageUrl = null;
+      if (playlistCoverFile) {
+        setStatus('Uploading cover image...');
+        try {
+          coverImageUrl = await uploadCoverImage(playlistCoverFile);
+        } catch (uploadError) {
+          setStatus(`Upload failed: ${uploadError.message}`);
+          return;
+        }
+      }
       await adminCreatePlaylist({
         name: playlistName.trim(),
-        description: playlistDescription.trim()
+        description: playlistDescription.trim(),
+        cover_image_url: coverImageUrl
       });
-      setStatus('Playlist created successfully!');
+      setStatus('Album created successfully!');
       setPlaylistName('');
       setPlaylistDescription('');
+      setPlaylistCoverFile(null);
+      setPlaylistCoverPreview(null);
       await loadPlaylists();
       setTimeout(() => setStatus(''), 2000);
     } catch (err) {
@@ -398,11 +559,11 @@ export default function AdminPanel() {
   };
 
   const handleDeletePlaylist = async (id) => {
-    if (!confirm('Delete this playlist and all its songs?')) return;
+    if (!confirm('Delete this album and all its songs?')) return;
     try {
-      setStatus('Deleting playlist...');
+      setStatus('Deleting album...');
       await adminDeletePlaylist(id);
-      setStatus('Playlist deleted!');
+      setStatus('Album deleted!');
       await loadPlaylists();
       if (activePlaylist === id) setActivePlaylist(null);
       if (editingPlaylist === id) setEditingPlaylist(null);
@@ -412,23 +573,26 @@ export default function AdminPanel() {
     }
   };
 
-  const handleUpdatePlaylist = async (id, name, description, spotifyUrl, youtubeMusicUrl) => {
+  const handleUpdatePlaylist = async (id, name, description, spotifyUrl, youtubeMusicUrl, coverImageUrl) => {
     if (!name.trim()) {
-      setStatus('Playlist name is required');
+      setStatus('Album name is required');
       setTimeout(() => setStatus(''), 2000);
       return;
     }
     try {
-      setStatus('Updating playlist...');
+      setStatus('Updating album...');
       await adminUpdatePlaylist(id, { 
         name: name.trim(), 
         description: description.trim(),
         spotify_url: spotifyUrl?.trim() || null,
-        youtube_music_url: youtubeMusicUrl?.trim() || null
+        youtube_music_url: youtubeMusicUrl?.trim() || null,
+        cover_image_url: coverImageUrl || null
       });
-      setStatus('Playlist updated!');
+      setStatus('Album updated!');
       await loadPlaylists();
       setEditingPlaylist(null);
+      setPlaylistCoverFile(null);
+      setPlaylistCoverPreview(null);
       setTimeout(() => setStatus(''), 2000);
     } catch (err) {
       setStatus(`Error: ${err.message || 'Failed'}`);
@@ -514,45 +678,34 @@ export default function AdminPanel() {
     }
   };
 
-  const tabs = [
-    { id: 'thoughts', name: 'Thoughts', symbol: '◈' },
-    { id: 'games', name: 'Games', symbol: '🎮' },
-    { id: 'movies', name: 'Movies', symbol: '▶' },
-    { id: 'series', name: 'TV Series', symbol: '📺' },
-    { id: 'books', name: 'Books', symbol: '📚' },
-    { id: 'music', name: 'Music', symbol: '♫' },
-  ];
-
   // Login screen
   if (!isAuthenticated) {
     return (
       <div className="container">
+        <AuthRequiredModal
+          open={loginModalOpen}
+          title="Admin Login"
+          message="Login is only required for admin actions. Reading is always open."
+          showFirstTimeDisclaimer={!hasSeenAuthDisclaimer()}
+          onClose={() => setLoginModalOpen(false)}
+          onLogin={() => {
+            if (!hasSeenAuthDisclaimer()) markAuthDisclaimerSeen();
+            handleLogin({ preventDefault: () => {} });
+          }}
+        />
         <div className="post" style={{ maxWidth: '480px', margin: '4rem auto', padding: '2rem' }}>
           <h2 className="post-title" style={{ textAlign: 'center', marginBottom: '2rem' }}>Admin Login</h2>
-          <form onSubmit={handleLogin} className="add-content-form">
-            <div className="form-group">
-              <label className="form-label">Admin Password</label>
-              <input 
-                className="form-input" 
-                type="password"
-                value={password} 
-                onChange={(e) => setPassword(e.target.value)}
-                autoComplete="current-password"
-                placeholder="Enter your admin password"
-                required
-              />
+          {loginError ? (
+            <div style={{ color: 'var(--color-accent)', marginBottom: '1rem', textAlign: 'center' }}>
+              {loginError}
             </div>
-            {loginError && (
-              <div style={{ color: 'var(--color-accent)', marginBottom: '1rem', textAlign: 'center' }}>
-                {loginError}
-              </div>
-            )}
-            <div className="form-actions">
-              <button className="form-button form-button-primary" type="submit">
-                Login
-              </button>
-            </div>
-          </form>
+          ) : null}
+
+          <div className="form-actions" style={{ justifyContent: 'center' }}>
+            <button className="form-button form-button-primary" type="button" onClick={() => setLoginModalOpen(true)}>
+              Login with Google
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -574,33 +727,51 @@ export default function AdminPanel() {
             </button>
           </div>
 
-          {/* Tabs */}
-          <div className="admin-tabs-grid">
-            {tabs.map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => {
-                  setActiveTab(tab.id);
+          <div className="admin-tabs-grid" style={{ gridTemplateColumns: '1fr', gap: '0.75rem' }}>
+            <div className="form-group" style={{ margin: 0 }}>
+              <label className="form-label">Content Type</label>
+              <select
+                className="form-input"
+                value={contentType}
+                onChange={(e) => {
+                  setContentType(e.target.value);
                   setStatus('');
-                  if (tab.id !== 'thoughts' && tab.id !== 'music') {
-                    setLogType(tab.id);
-                  }
+                  setShowManageBlogs(false);
+                  setShowManageNotes(false);
                 }}
-                className={`admin-tab-button ${activeTab === tab.id ? 'is-active' : ''}`}
               >
-                <span style={{ opacity: 0.8, fontSize: '1.3em', display: 'block' }}>{tab.symbol}</span>
-                <span style={{ fontSize: '0.85rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>
-                  {tab.name}
-                </span>
-              </button>
-            ))}
+                <option value="blogs">Blogs</option>
+                <option value="notes">Notes</option>
+                <option value="library">Library</option>
+                <option value="music">Music</option>
+              </select>
+            </div>
+
+            {contentType === 'library' ? (
+              <div className="form-group" style={{ margin: 0 }}>
+                <label className="form-label">Library Type</label>
+                <select
+                  className="form-input"
+                  value={libraryType}
+                  onChange={(e) => {
+                    setLibraryType(e.target.value);
+                    setStatus('');
+                  }}
+                >
+                  <option value="games">Games</option>
+                  <option value="screen_movie">Screen: Movie</option>
+                  <option value="screen_series">Screen: TV</option>
+                  <option value="books">Books</option>
+                </select>
+              </div>
+            ) : null}
           </div>
 
-      {/* Thoughts Form */}
-      {activeTab === 'thoughts' && (
+      {/* Blogs Form */}
+      {activeTab === 'blogs' && (
         <section className="admin-section">
           <h3 className="twitter-sidebar-title" style={{ marginBottom: 'var(--space-md)', fontSize: 'clamp(1rem, 3vw, 1.25rem)' }}>
-            {editingBlog ? 'Edit Thought' : 'Create Thought'}
+            {editingBlog ? 'Edit Blog' : 'Create Blog'}
           </h3>
           <form onSubmit={submitBlog} className="add-content-form">
             <div className="form-group">
@@ -774,6 +945,115 @@ export default function AdminPanel() {
         </section>
       )}
 
+      {activeTab === 'notes' && (
+        <section className="admin-section">
+          <h3 className="twitter-sidebar-title" style={{ marginBottom: 'var(--space-md)', fontSize: 'clamp(1rem, 3vw, 1.25rem)' }}>
+            {editingNote ? 'Edit Note' : 'Create Note'}
+          </h3>
+
+          <form onSubmit={submitNote} className="add-content-form">
+            <div className="form-group">
+              <label className="form-label">Title</label>
+              <input className="form-input" value={noteTitle} onChange={(e) => setNoteTitle(e.target.value)} required />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Tags (comma separated, optional)</label>
+              <input className="form-input" value={noteTags} onChange={(e) => setNoteTags(e.target.value)} placeholder="raw, idea, life" />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Content (raw, optional)</label>
+              <textarea
+                className="form-textarea"
+                value={noteContent}
+                onChange={(e) => setNoteContent(e.target.value)}
+                placeholder="Write anything. This is a raw note."
+                rows="10"
+                style={{ minHeight: '220px' }}
+              />
+            </div>
+
+            <div className="form-actions" style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+              <button className="form-button form-button-primary" type="submit">
+                {editingNote ? 'Update Note' : 'Publish Note'}
+              </button>
+              {editingNote ? (
+                <button type="button" className="form-button" onClick={cancelEditNote} style={{ background: 'var(--color-bg-secondary)' }}>
+                  Cancel Edit
+                </button>
+              ) : (
+                <button type="button" className="form-button" onClick={() => setShowManageNotes(!showManageNotes)} style={{ background: 'var(--color-bg-secondary)' }}>
+                  {showManageNotes ? 'Hide' : 'Manage'} Notes
+                </button>
+              )}
+            </div>
+
+            {status && (
+              <div style={{
+                marginTop: '1rem',
+                padding: '1rem',
+                background: status.includes('Error') ? 'rgba(255, 0, 0, 0.1)' : 'rgba(0, 255, 0, 0.1)',
+                border: `1px solid ${status.includes('Error') ? 'rgba(255, 0, 0, 0.3)' : 'rgba(0, 255, 0, 0.3)'}`,
+                borderRadius: '8px',
+                color: 'var(--color-text)',
+                fontSize: '0.95rem',
+                textAlign: 'center'
+              }}>
+                {status}
+              </div>
+            )}
+          </form>
+
+          {showManageNotes && (
+            <div style={{ marginTop: '2rem' }}>
+              <h3 className="twitter-sidebar-title" style={{ marginBottom: 'var(--space-md)', fontSize: 'clamp(1rem, 3vw, 1.25rem)' }}>
+                Manage Notes
+              </h3>
+              {notes.length === 0 ? (
+                <p style={{ color: 'var(--color-text-light)', textAlign: 'center', padding: '2rem' }}>
+                  No notes yet. Create your first one above!
+                </p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  {notes.map(n => (
+                    <div
+                      key={n.id}
+                      style={{
+                        padding: '1rem',
+                        border: '2px solid var(--color-border)',
+                        borderRadius: '8px',
+                        background: 'var(--color-bg-secondary)',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        gap: '1rem',
+                        flexWrap: 'wrap'
+                      }}
+                    >
+                      <div style={{ flex: 1, minWidth: '200px' }}>
+                        <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>{n.title}</div>
+                        <div style={{ fontSize: '0.875rem', color: 'var(--color-text-light)' }}>
+                          {new Date(n.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button onClick={() => handleEditNote(n)} className="form-button" style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }}>
+                          Edit
+                        </button>
+                        <button onClick={() => handleDeleteNote(n.id)} className="form-button" style={{ padding: '0.5rem 1rem', fontSize: '0.875rem', background: 'rgba(255, 0, 0, 0.2)' }}>
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </section>
+      )}
+
       {/* Games Form */}
       {activeTab === 'games' && (
         <section className="admin-section">
@@ -870,12 +1150,12 @@ export default function AdminPanel() {
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
               <div className="form-group">
-                <label className="form-label">Rating (1-5)</label>
+                <label className="form-label">Rating (1-10)</label>
                 <input 
                   className="form-input" 
                   type="number" 
                   min="1" 
-                  max="5" 
+                  max="10" 
                   value={logRating} 
                   onChange={(e) => setLogRating(e.target.value)} 
                   required 
@@ -948,8 +1228,8 @@ export default function AdminPanel() {
         </section>
       )}
 
-      {/* Movies, Series, Books Form */}
-      {['movies', 'series', 'books'].includes(activeTab) && (
+      {/* Movies, Series Form */}
+      {['movies', 'series'].includes(activeTab) && (
         <section className="admin-section">
           <h3 className="twitter-sidebar-title" style={{ marginBottom: 'var(--space-md)', fontSize: 'clamp(1rem, 3vw, 1.25rem)' }}>
             Add {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} Entry
@@ -961,17 +1241,64 @@ export default function AdminPanel() {
                 className="form-input" 
                 value={logTitle} 
                 onChange={(e) => setLogTitle(e.target.value)} 
-                placeholder={`Name of the ${activeTab === 'series' ? 'TV series' : activeTab.slice(0, -1)}`}
+                placeholder={`Name of the ${activeTab === 'series' ? 'TV series' : 'movie'}`}
                 required 
               />
             </div>
             <div className="form-group">
-              <label className="form-label">Rating (1-5)</label>
+              <label className="form-label">Director</label>
+              <input 
+                className="form-input" 
+                value={screenDirector} 
+                onChange={(e) => setScreenDirector(e.target.value)} 
+                placeholder="Director name"
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Genre</label>
+              <input 
+                className="form-input" 
+                value={screenGenre} 
+                onChange={(e) => setScreenGenre(e.target.value)} 
+                placeholder="Action, Drama, Sci-Fi, etc."
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Release Year</label>
+              <input 
+                className="form-input" 
+                type="number" 
+                value={screenYear} 
+                onChange={(e) => setScreenYear(e.target.value)} 
+                placeholder="2024"
+                min="1900"
+                max="2100"
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Cover Image</label>
+              <input 
+                className="form-input" 
+                type="file" 
+                accept="image/*"
+                onChange={(e) => setScreenCoverImageFile(e.target.files[0])}
+                style={{
+                  padding: '0.5rem',
+                  fontSize: '0.9rem',
+                  cursor: 'pointer'
+                }}
+              />
+              <small style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem', display: 'block', marginTop: '0.25rem' }}>
+                Upload a cover image (optional, max 5MB)
+              </small>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Rating (1-10)</label>
               <input 
                 className="form-input" 
                 type="number" 
                 min="1" 
-                max="5" 
+                max="10" 
                 value={logRating} 
                 onChange={(e) => setLogRating(e.target.value)} 
                 required 
@@ -1011,16 +1338,126 @@ export default function AdminPanel() {
         </section>
       )}
 
-      {/* Playlists Management */}
+      {/* Books Form */}
+      {activeTab === 'books' && (
+        <section className="admin-section">
+          <h3 className="twitter-sidebar-title" style={{ marginBottom: 'var(--space-md)', fontSize: 'clamp(1rem, 3vw, 1.25rem)' }}>
+            Add Book Entry
+          </h3>
+          <form onSubmit={submitLog} className="add-content-form">
+            <div className="form-group">
+              <label className="form-label">Title</label>
+              <input 
+                className="form-input" 
+                value={logTitle} 
+                onChange={(e) => setLogTitle(e.target.value)} 
+                placeholder="Name of the book"
+                required 
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Author</label>
+              <input 
+                className="form-input" 
+                value={bookAuthor} 
+                onChange={(e) => setBookAuthor(e.target.value)} 
+                placeholder="Author name"
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Genre</label>
+              <input 
+                className="form-input" 
+                value={bookGenre} 
+                onChange={(e) => setBookGenre(e.target.value)} 
+                placeholder="Fiction, Non-fiction, Mystery, etc."
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Publication Year</label>
+              <input 
+                className="form-input" 
+                type="number" 
+                value={bookYear} 
+                onChange={(e) => setBookYear(e.target.value)} 
+                placeholder="2024"
+                min="1000"
+                max="2100"
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Cover Image</label>
+              <input 
+                className="form-input" 
+                type="file" 
+                accept="image/*"
+                onChange={(e) => setBookCoverImageFile(e.target.files[0])}
+                style={{
+                  padding: '0.5rem',
+                  fontSize: '0.9rem',
+                  cursor: 'pointer'
+                }}
+              />
+              <small style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem', display: 'block', marginTop: '0.25rem' }}>
+                Upload a cover image (optional, max 5MB)
+              </small>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Rating (1-10)</label>
+              <input 
+                className="form-input" 
+                type="number" 
+                min="1" 
+                max="10" 
+                value={logRating} 
+                onChange={(e) => setLogRating(e.target.value)} 
+                required 
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Review / Notes</label>
+              <textarea 
+                className="form-textarea" 
+                value={logContent} 
+                onChange={(e) => setLogContent(e.target.value)}
+                placeholder="Your thoughts, review, or notes..."
+                rows="8"
+                style={{ minHeight: '200px' }}
+              />
+            </div>
+            <div className="form-actions">
+              <button className="form-button form-button-primary" type="submit">
+                Add {activeTab.charAt(0).toUpperCase() + activeTab.slice(0, -1)}
+              </button>
+            </div>
+            {status && (
+              <div style={{ 
+                marginTop: '1rem', 
+                padding: '1rem', 
+                background: status.includes('Error') ? 'rgba(255, 0, 0, 0.1)' : 'rgba(0, 255, 0, 0.1)',
+                border: `1px solid ${status.includes('Error') ? 'rgba(255, 0, 0, 0.3)' : 'rgba(0, 255, 0, 0.3)'}`,
+                borderRadius: '8px',
+                color: 'var(--color-text)',
+                fontSize: '0.95rem',
+                textAlign: 'center'
+              }}>
+                {status}
+              </div>
+            )}
+          </form>
+        </section>
+      )}
+
+      {/* Albums Management */}
       {activeTab === 'music' && (
         <>
           <section className="admin-section">
             <h3 className="twitter-sidebar-title" style={{ marginBottom: 'var(--space-md)', fontSize: 'clamp(1rem, 3vw, 1.25rem)' }}>
-              Create Playlist
+              Create Album
             </h3>
             <form onSubmit={submitMusic} className="add-content-form">
               <div className="form-group">
-                <label className="form-label">Playlist Name</label>
+                <label className="form-label">Album Name</label>
                 <input 
                   className="form-input" 
                   value={playlistName} 
@@ -1035,10 +1472,30 @@ export default function AdminPanel() {
                   className="form-textarea" 
                   value={playlistDescription} 
                   onChange={(e) => setPlaylistDescription(e.target.value)}
-                  placeholder="A short description of the playlist"
+                  placeholder="A short description of the album"
                   rows="3"
                   style={{ minHeight: '80px' }}
                 />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Cover Image (optional)</label>
+                <input
+                  className="form-input"
+                  type="file"
+                  accept="image/*"
+                  onChange={e => {
+                    const file = e.target.files[0];
+                    setPlaylistCoverFile(file);
+                    setPlaylistCoverPreview(file ? URL.createObjectURL(file) : null);
+                  }}
+                  style={{ padding: '0.5rem', fontSize: '0.9rem', cursor: 'pointer' }}
+                />
+                {playlistCoverPreview && (
+                  <img src={playlistCoverPreview} alt="Cover Preview" style={{ marginTop: 8, maxWidth: 120, borderRadius: 8 }} />
+                )}
+                <small style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem', display: 'block', marginTop: '0.25rem' }}>
+                  Upload a cover image (optional, max 5MB)
+                </small>
               </div>
               <div className="form-group">
                 <label className="form-label">Spotify URL (optional)</label>
@@ -1062,7 +1519,7 @@ export default function AdminPanel() {
               </div>
               <div className="form-actions">
                 <button className="form-button form-button-primary" type="submit">
-                  Create Playlist
+                  Create Album
                 </button>
               </div>
             </form>
@@ -1070,10 +1527,10 @@ export default function AdminPanel() {
 
           <section className="admin-section">
             <h3 className="twitter-sidebar-title" style={{ marginBottom: 'var(--space-md)', fontSize: 'clamp(1rem, 3vw, 1.25rem)' }}>
-              Manage Playlists
+              Manage Albums
             </h3>
             {playlists.length === 0 ? (
-              <p className="post-content">No playlists yet. Create one above.</p>
+              <p className="post-content">No albums yet. Create one above.</p>
             ) : (
               playlists.map(p => (
                 <div key={p.id} style={{ marginBottom: 'var(--space-lg)', padding: 'var(--space-md)', border: '1px solid var(--color-border)' }}>
@@ -1108,15 +1565,48 @@ export default function AdminPanel() {
                         placeholder="YouTube Music URL"
                         style={{ marginBottom: '0.5rem' }}
                       />
+                      <div className="form-group" style={{ marginBottom: '0.5rem' }}>
+                        <label className="form-label">Cover Image (optional)</label>
+                        <input
+                          className="form-input"
+                          type="file"
+                          accept="image/*"
+                          id={`edit-cover-${p.id}`}
+                          onChange={e => {
+                            const file = e.target.files[0];
+                            setPlaylistCoverFile(file);
+                            setPlaylistCoverPreview(file ? URL.createObjectURL(file) : null);
+                          }}
+                          style={{ padding: '0.5rem', fontSize: '0.9rem', cursor: 'pointer' }}
+                        />
+                        {(playlistCoverPreview || p.cover_image_url) && (
+                          <img src={playlistCoverPreview || p.cover_image_url} alt="Cover Preview" style={{ marginTop: 8, maxWidth: 120, borderRadius: 8 }} />
+                        )}
+                        <small style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem', display: 'block', marginTop: '0.25rem' }}>
+                          Upload a cover image (optional, max 5MB)
+                        </small>
+                      </div>
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
                         <button 
                           className="form-button" 
-                          onClick={() => {
+                          onClick={async () => {
                             const name = document.getElementById(`edit-name-${p.id}`).value;
                             const desc = document.getElementById(`edit-desc-${p.id}`).value;
                             const spotify = document.getElementById(`edit-spotify-${p.id}`).value;
                             const youtube = document.getElementById(`edit-youtube-${p.id}`).value;
-                            handleUpdatePlaylist(p.id, name, desc, spotify, youtube);
+                            let coverImageUrl = p.cover_image_url;
+                            if (playlistCoverFile) {
+                              setStatus('Uploading cover image...');
+                              try {
+                                coverImageUrl = await uploadCoverImage(playlistCoverFile);
+                              } catch (uploadError) {
+                                setStatus(`Upload failed: ${uploadError.message}`);
+                                return;
+                              }
+                            }
+                            handleUpdatePlaylist(p.id, name, desc, spotify, youtube, coverImageUrl);
+                            setPlaylistCoverFile(null);
+                            setPlaylistCoverPreview(null);
                           }}
                           style={{ fontSize: '0.875rem' }}
                         >
@@ -1124,7 +1614,7 @@ export default function AdminPanel() {
                         </button>
                         <button 
                           className="form-button" 
-                          onClick={() => setEditingPlaylist(null)}
+                          onClick={() => { setEditingPlaylist(null); setPlaylistCoverFile(null); setPlaylistCoverPreview(null); }}
                           style={{ fontSize: '0.875rem' }}
                         >
                           Cancel

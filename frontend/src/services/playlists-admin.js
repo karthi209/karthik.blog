@@ -1,18 +1,18 @@
-import { getStoredApiKey } from './admin';
+import { getStoredAdminToken } from './admin';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 const BASE_URL = API_URL;
 
 // Create playlist
 export async function adminCreatePlaylist(playlist) {
-  const apiKey = getStoredApiKey();
-  if (!apiKey) throw new Error('No API key');
+  const token = getStoredAdminToken();
+  if (!token) throw new Error('Not authenticated');
 
   const response = await fetch(`${BASE_URL}/playlists`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-api-key': apiKey
+      Authorization: `Bearer ${token}`
     },
     body: JSON.stringify(playlist)
   });
@@ -27,14 +27,14 @@ export async function adminCreatePlaylist(playlist) {
 
 // Update playlist
 export async function adminUpdatePlaylist(id, playlist) {
-  const apiKey = getStoredApiKey();
-  if (!apiKey) throw new Error('No API key');
+  const token = getStoredAdminToken();
+  if (!token) throw new Error('Not authenticated');
 
   const response = await fetch(`${BASE_URL}/playlists/${id}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
-      'x-api-key': apiKey
+      Authorization: `Bearer ${token}`
     },
     body: JSON.stringify(playlist)
   });
@@ -49,12 +49,12 @@ export async function adminUpdatePlaylist(id, playlist) {
 
 // Delete playlist
 export async function adminDeletePlaylist(id) {
-  const apiKey = getStoredApiKey();
-  if (!apiKey) throw new Error('No API key');
+  const token = getStoredAdminToken();
+  if (!token) throw new Error('Not authenticated');
 
   const response = await fetch(`${BASE_URL}/playlists/${id}`, {
     method: 'DELETE',
-    headers: { 'x-api-key': apiKey }
+    headers: { Authorization: `Bearer ${token}` }
   });
 
   if (!response.ok) {
@@ -67,14 +67,14 @@ export async function adminDeletePlaylist(id) {
 
 // Add song to playlist
 export async function adminAddSong(playlistId, song) {
-  const apiKey = getStoredApiKey();
-  if (!apiKey) throw new Error('No API key');
+  const token = getStoredAdminToken();
+  if (!token) throw new Error('Not authenticated');
 
   const response = await fetch(`${BASE_URL}/playlists/${playlistId}/songs`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-api-key': apiKey
+      Authorization: `Bearer ${token}`
     },
     body: JSON.stringify(song)
   });
@@ -89,14 +89,14 @@ export async function adminAddSong(playlistId, song) {
 
 // Add multiple songs to playlist (bulk)
 export async function adminAddSongsBulk(playlistId, songs) {
-  const apiKey = getStoredApiKey();
-  if (!apiKey) throw new Error('No API key');
+  const token = getStoredAdminToken();
+  if (!token) throw new Error('Not authenticated');
 
   const response = await fetch(`${BASE_URL}/playlists/${playlistId}/songs/bulk`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-api-key': apiKey
+      Authorization: `Bearer ${token}`
     },
     body: JSON.stringify({ songs })
   });
@@ -111,12 +111,12 @@ export async function adminAddSongsBulk(playlistId, songs) {
 
 // Delete song
 export async function adminDeleteSong(playlistId, songId) {
-  const apiKey = getStoredApiKey();
-  if (!apiKey) throw new Error('No API key');
+  const token = getStoredAdminToken();
+  if (!token) throw new Error('Not authenticated');
 
   const response = await fetch(`${BASE_URL}/playlists/${playlistId}/songs/${songId}`, {
     method: 'DELETE',
-    headers: { 'x-api-key': apiKey }
+    headers: { Authorization: `Bearer ${token}` }
   });
 
   if (!response.ok) {

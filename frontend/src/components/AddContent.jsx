@@ -79,7 +79,6 @@ export default function AddContent({ type, onClose, onSubmit }) {
       
       alert('Markdown file loaded successfully!');
     } catch (error) {
-      console.error('Error reading file:', error);
       alert('Error reading file: ' + error.message);
     }
   };
@@ -117,9 +116,6 @@ export default function AddContent({ type, onClose, onSubmit }) {
       alert('Category is required for blog posts!');
       return;
     }
-
-    // Log the data being submitted
-    console.log('Submitting form data:', formData);
 
     // Convert tags string to array if provided
     const submitData = { ...formData };

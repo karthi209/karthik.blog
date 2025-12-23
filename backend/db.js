@@ -35,26 +35,26 @@ export const initDatabase = async () => {
     const { Playlist } = await import('./models/Playlist.js');
     const { PlaylistSong } = await import('./models/PlaylistSong.js');
     const { Game } = await import('./models/Game.js');
-    const { GameLog } = await import('./models/GameLog.js');
     const { Screen } = await import('./models/Screen.js');
-    const { ScreenLog } = await import('./models/ScreenLog.js');
     const { Read } = await import('./models/Read.js');
-    const { ReadLog } = await import('./models/ReadLog.js');
-    const { Travel } = await import('./models/Travel.js');
-    const { TravelLog } = await import('./models/TravelLog.js');
+    const { Note } = await import('./models/Note.js');
+    const { View } = await import('./models/View.js');
+    const { Reaction } = await import('./models/Reaction.js');
+    const { BlogComment } = await import('./models/BlogComment.js');
+    const { BlogLike } = await import('./models/BlogLike.js');
 
     // Initialize all tables
     await Blog.init();
     await Playlist.init();
     await PlaylistSong.init();
     await Game.init();
-    await GameLog.init();
     await Screen.init();
-    await ScreenLog.init();
     await Read.init();
-    await ReadLog.init();
-    await Travel.init();
-    await TravelLog.init();
+    await Note.init();
+    await View.init();
+    await Reaction.init();
+    await BlogComment.init();
+    await BlogLike.init();
 
     // Run migrations for any missing columns/indexes
     await runMigrations();
@@ -100,29 +100,60 @@ export const runMigrations = async () => {
       console.log('Added cover_image_url column to games table');
     }
 
-    // Add missing columns to game_logs table if they don't exist
-    const gameLogColumns = await pool.query(`
-      SELECT column_name
-      FROM information_schema.columns
-      WHERE table_name = 'game_logs' AND table_schema = 'public'
+    // Update rating constraints from 1-5 to 1-10 across library tables
+    await pool.query(`
+      DO $$
+      DECLARE c RECORD;
+      BEGIN
+        IF to_regclass('public.games') IS NOT NULL THEN
+          FOR c IN
+            SELECT conname
+            FROM pg_constraint
+            WHERE conrelid = 'public.games'::regclass
+              AND contype = 'c'
+              AND pg_get_constraintdef(oid) ILIKE '%rating%'
+          LOOP
+            EXECUTE format('ALTER TABLE public.games DROP CONSTRAINT IF EXISTS %I', c.conname);
+          END LOOP;
+
+          IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'games_rating_check_10') THEN
+            EXECUTE 'ALTER TABLE public.games ADD CONSTRAINT games_rating_check_10 CHECK (rating >= 1 AND rating <= 10)';
+          END IF;
+        END IF;
+
+        IF to_regclass('public.screens') IS NOT NULL THEN
+          FOR c IN
+            SELECT conname
+            FROM pg_constraint
+            WHERE conrelid = 'public.screens'::regclass
+              AND contype = 'c'
+              AND pg_get_constraintdef(oid) ILIKE '%rating%'
+          LOOP
+            EXECUTE format('ALTER TABLE public.screens DROP CONSTRAINT IF EXISTS %I', c.conname);
+          END LOOP;
+
+          IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'screens_rating_check_10') THEN
+            EXECUTE 'ALTER TABLE public.screens ADD CONSTRAINT screens_rating_check_10 CHECK (rating >= 1 AND rating <= 10)';
+          END IF;
+        END IF;
+
+        IF to_regclass('public.reads') IS NOT NULL THEN
+          FOR c IN
+            SELECT conname
+            FROM pg_constraint
+            WHERE conrelid = 'public.reads'::regclass
+              AND contype = 'c'
+              AND pg_get_constraintdef(oid) ILIKE '%rating%'
+          LOOP
+            EXECUTE format('ALTER TABLE public.reads DROP CONSTRAINT IF EXISTS %I', c.conname);
+          END LOOP;
+
+          IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'reads_rating_check_10') THEN
+            EXECUTE 'ALTER TABLE public.reads ADD CONSTRAINT reads_rating_check_10 CHECK (rating >= 1 AND rating <= 10)';
+          END IF;
+        END IF;
+      END $$;
     `);
-
-    const existingGameLogColumns = gameLogColumns.rows.map(row => row.column_name);
-
-    if (!existingGameLogColumns.includes('hours_played')) {
-      await pool.query(`ALTER TABLE game_logs ADD COLUMN hours_played DECIMAL(10,2)`);
-      console.log('Added hours_played column to game_logs table');
-    }
-
-    if (!existingGameLogColumns.includes('status')) {
-      await pool.query(`ALTER TABLE game_logs ADD COLUMN status VARCHAR(50) DEFAULT 'completed'`);
-      console.log('Added status column to game_logs table');
-    }
-
-    if (!existingGameLogColumns.includes('played_on')) {
-      await pool.query(`ALTER TABLE game_logs ADD COLUMN played_on DATE DEFAULT CURRENT_DATE`);
-      console.log('Added played_on column to game_logs table');
-    }
 
     console.log('Database migrations completed');
   } catch (error) {

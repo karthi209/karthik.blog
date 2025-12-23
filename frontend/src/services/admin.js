@@ -1,18 +1,21 @@
 const BASE = import.meta.env.VITE_API_URL || '/api';
 const API = BASE;
 
-export const getStoredApiKey = () => {
-  // Get from localStorage (set during login)
-  return localStorage.getItem('admin_api_key') || '';
+export const getStoredAdminToken = () => {
+  return localStorage.getItem('auth_token') || '';
 };
 
-export const setStoredApiKey = (key) => {
-  try { localStorage.setItem('admin_api_key', key || ''); } catch { /* ignore */ }
+export const setStoredAdminToken = (token) => {
+  try { localStorage.setItem('auth_token', token || ''); } catch { /* ignore */ }
+};
+
+export const clearStoredAdminToken = () => {
+  try { localStorage.removeItem('auth_token'); } catch { /* ignore */ }
 };
 
 const authHeaders = () => {
-  const key = getStoredApiKey();
-  return key ? { 'x-api-key': key } : {};
+  const token = getStoredAdminToken();
+  return token ? { 'Authorization': `Bearer ${token}` } : {};
 };
 
 export const adminUploadImage = async (file) => {

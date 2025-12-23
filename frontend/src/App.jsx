@@ -10,7 +10,19 @@ import Home from './components/Home.jsx';
 
 function App() {
   React.useEffect(() => {
-    document.documentElement.setAttribute('data-theme', 'dark');
+    const saved = (() => {
+      try {
+        return localStorage.getItem('theme');
+      } catch {
+        return null;
+      }
+    })();
+
+    const current = document.documentElement.getAttribute('data-theme');
+    const valid = (t) => t === 'dark' || t === 'light';
+    const next = (valid(saved) && saved) || (valid(current) && current) || 'dark';
+
+    document.documentElement.setAttribute('data-theme', next);
   }, []);
   
   return (
