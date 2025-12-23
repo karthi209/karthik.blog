@@ -41,23 +41,22 @@
    * RETRO CRT PERSONAL BLOG THEME (Dark)
    * Deep, artistic, minimalist - like a warm CRT glow
    */
-  --color-text: #E8E6E3;
-  /* Warm off-white */
-  --color-text-light: #C5C3BE;
-  /* Slightly muted */
-  --color-text-muted: #7A7875;
-  /* Faded text */
-  --color-text-dark: #0D0D0D;
+  --color-text: #E0E0E0;
+  /* Clean off-white */
+  --color-text-light: #B0B0B0;
+  /* Better contrast secondary */
+  --color-text-muted: #707070;
+  --color-text-dark: #000000;
 
-  --color-border: #2A2A2A;
-  /* Subtle dark border */
-  --color-border-light: #3A3A3A;
+  --color-border: #333333;
+  /* More visible structural border */
+  --color-border-light: #404040;
 
-  --color-background: #0D0D0D;
-  /* Deep charcoal black */
-  --color-surface: #141414;
-  /* Slightly elevated surface */
-  --color-surface-hover: #1A1A1A;
+  --color-background: #111111;
+  /* Deep rich black */
+  --color-surface: #1C1C1C;
+  /* Distinct surface color */
+  --color-surface-hover: #252525;
 
   --color-hover: rgba(180, 140, 255, 0.08);
   --color-accent: #B48CFF;
@@ -100,13 +99,15 @@
   --transition-speed: 0.12s;
   --transition-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
 
-  /* Shadows */
-  --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.5);
+  /* Shadows - subtle ambient occlusion */
+  --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.8);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.9);
 
-  /* 3D offset shadows - key to retro box aesthetic */
-  --shadow-3d-sm: 2px 2px 0 0 var(--color-text);
-  --shadow-3d: 3px 3px 0 0 var(--color-text);
+  /* 3D offset shadows - retro hard edge */
+  --shadow-3d-sm: 2px 2px 0 0 var(--color-text-muted);
+  /* Softer 3D edge */
+  --shadow-3d: 3px 3px 0 0 var(--color-text-muted);
+  /* Softer 3D edge */
 }
 
 /* 
