@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
 import { fetchBlogs } from '../services/api';
 import { fetchViewCount } from '../services/views';
@@ -21,6 +21,32 @@ export default function BlogPost() {
   const [likeCount, setLikeCount] = useState(0);
   const [liked, setLiked] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [readingProgress, setReadingProgress] = useState(0);
+
+  // Reading progress bar - tracks scroll position
+  useEffect(() => {
+    const updateProgress = () => {
+      const article = document.querySelector('.blog-post-body');
+      if (!article) return;
+
+      const articleTop = article.offsetTop;
+      const articleHeight = article.scrollHeight;
+      const windowHeight = window.innerHeight;
+      const scrollY = window.scrollY;
+
+      // Calculate progress based on how much of the article is scrolled
+      const start = articleTop - windowHeight * 0.2;
+      const end = articleTop + articleHeight - windowHeight * 0.8;
+      const progress = Math.min(100, Math.max(0, ((scrollY - start) / (end - start)) * 100));
+
+      setReadingProgress(progress);
+    };
+
+    window.addEventListener('scroll', updateProgress, { passive: true });
+    updateProgress(); // Initial call
+
+    return () => window.removeEventListener('scroll', updateProgress);
+  }, [post]); // Re-run when post loads
 
   // Extract ID from URL pathname if not in params (fallback for catch-all routes)
   const id = paramId || location.pathname.replace('/blog/', '').replace('/blogs/', '');
@@ -53,8 +79,8 @@ export default function BlogPost() {
         const response = await fetch(`${apiUrl}/blogs/${id}`);
         if (!response.ok) {
           throw new Error(
-            response.status === 404 
-              ? 'Blog post not found' 
+            response.status === 404
+              ? 'Blog post not found'
               : 'Failed to fetch blog post'
           );
         }
@@ -112,6 +138,41 @@ export default function BlogPost() {
     }
   };
 
+  // Add copy buttons to code blocks after content loads
+  useEffect(() => {
+    if (!post) return;
+
+    const timeout = setTimeout(() => {
+      const codeBlocks = document.querySelectorAll('.blog-post-body pre');
+
+      codeBlocks.forEach((pre) => {
+        if (pre.querySelector('.copy-code-btn')) return;
+
+        if (!pre.parentElement.classList.contains('code-block-wrapper')) {
+          const wrapper = document.createElement('div');
+          wrapper.className = 'code-block-wrapper';
+          pre.parentNode.insertBefore(wrapper, pre);
+          wrapper.appendChild(pre);
+        }
+
+        const btn = document.createElement('button');
+        btn.className = 'copy-code-btn';
+        btn.textContent = 'Copy';
+        btn.addEventListener('click', () => {
+          const code = pre.querySelector('code')?.textContent || pre.textContent;
+          navigator.clipboard.writeText(code).then(() => {
+            btn.textContent = 'Copied!';
+            setTimeout(() => { btn.textContent = 'Copy'; }, 2000);
+          });
+        });
+
+        pre.parentElement.appendChild(btn);
+      });
+    }, 100);
+
+    return () => clearTimeout(timeout);
+  }, [post]);
+
   if (loading) {
     return (
       <div className="blog-post-container">
@@ -143,6 +204,18 @@ export default function BlogPost() {
 
   return (
     <div className="blog-post-container" style={{ minHeight: '60vh' }}>
+      {/* Reading Progress Bar */}
+      <div className="reading-progress-container">
+        <div
+          className="reading-progress-bar"
+          style={{ width: `${readingProgress}%` }}
+          role="progressbar"
+          aria-valuenow={Math.round(readingProgress)}
+          aria-valuemin="0"
+          aria-valuemax="100"
+        />
+      </div>
+
       <AuthRequiredModal
         open={authModalOpen}
         title="Login required"
@@ -150,9 +223,9 @@ export default function BlogPost() {
         showFirstTimeDisclaimer={!hasSeenAuthDisclaimer()}
         onClose={() => setAuthModalOpen(false)}
         onLogin={() => {
-          console.log('[BLOGPOST] Login button clicked', { 
+          console.log('[BLOGPOST] Login button clicked', {
             currentPath: window.location.pathname,
-            currentUrl: window.location.href 
+            currentUrl: window.location.href
           });
           if (!hasSeenAuthDisclaimer()) markAuthDisclaimerSeen();
           startGoogleLogin(window.location.pathname || '/');
@@ -163,7 +236,7 @@ export default function BlogPost() {
           <article className="blog-post-content">
             <header className="blog-post-header">
               <h1 className="blog-post-title">{post.title}</h1>
-              
+
               <div className="blog-post-meta">
                 <div className="meta-item">
                   <span>{new Date(post.created_at).toLocaleDateString(undefined, { dateStyle: 'long' }).toUpperCase()}</span>
@@ -191,11 +264,11 @@ export default function BlogPost() {
               </div>
             </header>
 
-            <div 
+            <div
               className="blog-post-body"
-              dangerouslySetInnerHTML={{ 
-                __html: DOMPurify.sanitize(post.content) 
-              }} 
+              dangerouslySetInnerHTML={{
+                __html: DOMPurify.sanitize(post.content)
+              }}
               onLoad={() => {
                 const container = document.querySelector('.blog-post-body');
                 if (!container) return;
@@ -212,7 +285,7 @@ export default function BlogPost() {
             <footer className="blog-post-footer">
               <div className="share-section">
                 <span>Share this thought:</span>
-                <button 
+                <button
                   className="share-button"
                   onClick={() => {
                     navigator.clipboard.writeText(window.location.href);

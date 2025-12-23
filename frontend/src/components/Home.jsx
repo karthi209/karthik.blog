@@ -35,7 +35,7 @@ export default function Home() {
     series: [],
     books: []
   });
-  
+
   // Route detection
   const isBlogPostPage = location.pathname.startsWith('/blog/') || location.pathname.startsWith('/blogs/');
   const isNotePostPage = location.pathname.startsWith('/notes/') && location.pathname.split('/').length > 2;
@@ -76,14 +76,14 @@ export default function Home() {
 
     if (!shouldTrack) return;
 
-    trackView(rawPath).catch(() => {});
+    trackView(rawPath).catch(() => { });
   }, [location.pathname]);
-  
+
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
-    
+
     if (isBlogPostPage || isNotePostPage || isLogDetailPage || isPlaylistPage || isAdminPage || isLegalPage) return;
-    
+
     const path = location.pathname;
     if (path === '/' || path === '') setActivePage('home');
     else if (path.startsWith('/blogs')) setActivePage('blogs');
@@ -121,7 +121,7 @@ export default function Home() {
     const path = location.pathname;
     const playlistMatch = path.match(/^\/library\/music\/(\d+)$/);
     if (playlistMatch) return <PlaylistPage id={playlistMatch[1]} />;
-    
+
     // Redirect old routes to unified library with filter
     if (path.includes('/library/music')) {
       navigate('/library?type=music', { replace: true });
@@ -139,10 +139,10 @@ export default function Home() {
       navigate('/library?type=reads', { replace: true });
       return null;
     }
-    
+
     return <LibraryPage />;
   };
-  
+
   const navItems = [
     { id: 'blogs', label: 'Blogs', path: '/blogs' },
     { id: 'notes', label: 'Notes', path: '/notes' },
@@ -188,7 +188,7 @@ export default function Home() {
         <div className="hero-section">
           <div className="hero-header">
             <div className="hero-content">
-              <h1 className="hero-title">Hey there!</h1>
+              <h1 className="hero-title typewriter">Hey there!<span className="cursor">_</span></h1>
               <p className="hero-intro-text">
                 I'm Karthik. By day, I'm a systems engineer based out of Chennai, India. By night… well, I collect hobbies like infinity stones. Mapping, embedded systems, gaming, photography, travelling, public transit, urban infrastructure, and probably five more by the time you read this.
               </p>
@@ -367,19 +367,19 @@ export default function Home() {
               <Sidebar />
               <div className="home-main">
                 {isBlogPostPage ? <BlogPost /> :
-                 isNotePostPage ? <NoteDetail /> :
-                 isLogDetailPage ? <LogDetail /> :
-                 isLegalPage ? (
-                   location.pathname === '/terms' ? <Terms /> :
-                   location.pathname === '/privacy' ? <Privacy /> : <Disclaimer />
-                 ) : (
-                   activePage === 'home' ? renderHomePage() :
-                   activePage === 'blogs' ? <BlogsPage /> :
-                   activePage === 'notes' ? <NotesPage /> :
-                   activePage === 'library' ? renderLibraryPage() :
-                   activePage === 'projects' ? <LabPage /> :
-                   <LabPage />
-                 )}
+                  isNotePostPage ? <NoteDetail /> :
+                    isLogDetailPage ? <LogDetail /> :
+                      isLegalPage ? (
+                        location.pathname === '/terms' ? <Terms /> :
+                          location.pathname === '/privacy' ? <Privacy /> : <Disclaimer />
+                      ) : (
+                        activePage === 'home' ? renderHomePage() :
+                          activePage === 'blogs' ? <BlogsPage /> :
+                            activePage === 'notes' ? <NotesPage /> :
+                              activePage === 'library' ? renderLibraryPage() :
+                                activePage === 'projects' ? <LabPage /> :
+                                  <LabPage />
+                      )}
               </div>
             </div>
           )}
