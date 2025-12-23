@@ -23,6 +23,7 @@ import noteRoutes from './routes/notes.js';
 import viewRoutes from './routes/views.js';
 import reactionRoutes from './routes/reactions.js';
 import authRoutes from './routes/auth.js';
+import anthologyRoutes from './routes/anthologies.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -55,7 +56,7 @@ app.use(compression());
 app.use(passport.initialize());
 
 // CORS configuration - restrict to allowed origins
-const allowedOrigins = process.env.ALLOWED_ORIGINS 
+const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',')
   : ['http://localhost:5173'];
 
@@ -228,6 +229,7 @@ app.use('/api/reads', readRoutes);
 app.use('/api/notes', noteRoutes);
 app.use('/api/views', viewRoutes);
 app.use('/api/reactions', reactionsLimiter, reactionRoutes);
+app.use('/api/anthologies', anthologyRoutes);
 
 const PORT = 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`)); 

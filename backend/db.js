@@ -42,9 +42,11 @@ export const initDatabase = async () => {
     const { Reaction } = await import('./models/Reaction.js');
     const { BlogComment } = await import('./models/BlogComment.js');
     const { BlogLike } = await import('./models/BlogLike.js');
+    const { Anthology } = await import('./models/Anthology.js');
 
     // Initialize all tables
     await Blog.init();
+    await Anthology.init();
     await Playlist.init();
     await PlaylistSong.init();
     await Game.init();

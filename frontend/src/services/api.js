@@ -60,11 +60,11 @@ export const addBlog = async (blog) => {
       },
       body: JSON.stringify(blog),
     });
-    
+
     if (!response.ok) {
       throw new Error('Failed to create blog post');
     }
-    
+
     const data = await response.json();
     return data;
   } catch (error) {
@@ -82,4 +82,28 @@ export const addLog = async (log) => {
     body: JSON.stringify(log),
   });
   return response.json();
+};
+
+// Fetch all anthologies
+export const fetchAnthologies = async () => {
+  try {
+    const response = await fetch(`${API_URL}/anthologies`);
+    if (!response.ok) throw new Error('Failed to fetch anthologies');
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching anthologies:', error);
+    return [];
+  }
+};
+
+// Fetch single anthology
+export const fetchAnthology = async (slug) => {
+  try {
+    const response = await fetch(`${API_URL}/anthologies/${slug}`);
+    if (!response.ok) throw new Error('Failed to fetch anthology');
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching anthology:', error);
+    return null;
+  }
 }; 

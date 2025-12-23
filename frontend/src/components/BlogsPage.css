@@ -236,10 +236,13 @@
 }
 
 @keyframes colorPulse {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 0.3;
     transform: scaleY(0.6);
   }
+
   50% {
     opacity: 1;
     transform: scaleY(1);
@@ -293,12 +296,166 @@
     gap: 1.25rem;
     padding: 1.25rem 0;
   }
-  
+
   .filter-group {
     width: 100%;
   }
-  
+
   .filter-select {
     width: 100%;
+  }
+}
+
+/* ============================================
+   RETRO 3D TABS - Timeline/Anthologies Switch
+   ============================================ */
+.blog-tabs {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  margin-bottom: 0;
+}
+
+.blog-tab {
+  background: var(--color-background);
+  border: 2px solid var(--color-text);
+  color: var(--color-text);
+  padding: 0.5rem 1rem;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+  position: relative;
+  box-shadow: 3px 3px 0 0 var(--color-text);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 500;
+}
+
+.blog-tab:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 0 var(--color-text);
+}
+
+.blog-tab:active {
+  transform: translate(3px, 3px);
+  box-shadow: none;
+}
+
+.blog-tab.active {
+  background: var(--color-accent);
+  color: var(--color-background);
+  border-color: var(--color-accent);
+  box-shadow: 3px 3px 0 0 var(--color-text);
+}
+
+.blog-tab.active:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 0 var(--color-text);
+}
+
+/* ============================================
+   ANTHOLOGIES GRID & CARDS
+   ============================================ */
+.anthologies-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin-top: 0.5rem;
+}
+
+.anthology-card {
+  background: var(--color-surface);
+  border: 2px solid var(--color-border);
+  padding: 1.25rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  box-shadow: var(--shadow-3d);
+}
+
+.anthology-card:hover {
+  border-color: var(--color-accent);
+  transform: translate(-2px, -2px);
+  box-shadow: 4px 4px 0 0 var(--color-text);
+}
+
+.anthology-title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.anthology-count {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-accent);
+  margin: 0;
+}
+
+.anthology-schema-desc {
+  margin: 0.25rem 0 0 0;
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  line-clamp: 3;
+  overflow: hidden;
+}
+
+.anthology-desc {
+  font-size: 1rem;
+  color: var(--color-text-light);
+  margin-bottom: 1.5rem;
+  max-width: 60ch;
+  line-height: 1.6;
+}
+
+/* Retro Back Button */
+.retro-button-sm {
+  background: var(--color-background);
+  border: 2px solid var(--color-text);
+  padding: 0.35rem 0.75rem;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.1s ease;
+  color: var(--color-text);
+  margin-right: 1rem;
+  box-shadow: 2px 2px 0 0 var(--color-text);
+}
+
+.retro-button-sm:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0 0 var(--color-text);
+}
+
+.retro-button-sm:active {
+  transform: translate(2px, 2px);
+  box-shadow: none;
+}
+
+/* Fade In Animation */
+.fade-in {
+  animation: fadeIn 0.25s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
