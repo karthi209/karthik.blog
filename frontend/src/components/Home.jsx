@@ -185,108 +185,114 @@ export default function Home() {
 
     return (
       <>
-        <div className="hero-section">
-          <div className="hero-header">
-            <div className="hero-content">
-              <h1 className="hero-title typewriter">Hey there!<span className="cursor">_</span></h1>
-              <p className="hero-intro-text">
-                I'm Karthik. By day, I'm a systems engineer based out of Chennai, India. By night… well, I collect hobbies like infinity stones. Mapping, embedded systems, gaming, photography, travelling, public transit, urban infrastructure, and probably five more by the time you read this.
-              </p>
-              <p className="hero-intro-text">
-                I made this website because my brain refuses to stay in one lane, so this is where I track my projects, experiments, and whatever obsession I'm currently in.
-              </p>
-              <div className="hero-avatar">
-                <div className="avatar-placeholder">
-                  <img src="/banner.jpg" alt="Karthik" />
+        <div className="home-homepage-grid">
+          <div className="home-homepage-main">
+            <div className="hero-section">
+              <div className="hero-header">
+                <div className="hero-content">
+                  <h1 className="hero-title">Hey there!</h1>
+                  <p className="hero-intro-text">
+                    I'm Karthik. By day, I'm a systems engineer based out of Chennai, India. By night… well, I collect hobbies like infinity stones. Mapping, embedded systems, gaming, photography, travelling, public transit, urban infrastructure, and probably five more by the time you read this.
+                  </p>
+                  <p className="hero-intro-text">
+                    I made this website because my brain refuses to stay in one lane, so this is where I track my projects, experiments, and whatever obsession I'm currently in.
+                  </p>
+                  <div className="hero-avatar">
+                    <div className="avatar-placeholder">
+                      <img src="/banner.jpg" alt="Karthik" />
+                    </div>
+                  </div>
+                  <p className="hero-quote">
+                    "The world's full of stories. There's room for every one of them to be told." — <em>Blood of Elves</em>
+                  </p>
+                  <p className="hero-intro-text">
+                    Feel free to explore, and if you are still interested, follow me on X/Twitter <a href="https://x.com/karthi9003" target="_blank" rel="noopener noreferrer">@karthi9003</a> for more rants and updates.
+                  </p>
                 </div>
+
               </div>
-              <p className="hero-quote">
-                "The world's full of stories. There's room for every one of them to be told." — <em>Blood of Elves</em>
-              </p>
-              <p className="hero-intro-text">
-                Feel free to explore, and if you are still interested, follow me on X/Twitter <a href="https://x.com/karthi9003" target="_blank" rel="noopener noreferrer">@karthi9003</a> for more rants and updates.
-              </p>
+            </div>
+          </div>
+
+          <aside className="home-homepage-rail">
+            <div className="latest-section">
+              <div className="section-header">
+                <h2 className="section-title">Blog</h2>
+              </div>
+              <div className="home-list-rows">
+                {latestBlogs.map((blog) => {
+                  const dateValue = blog?.created_at || blog?.date;
+                  const dateLabel = dateValue ? new Date(dateValue).toLocaleDateString('en-US', { month: 'long', day: 'numeric' }) : '—';
+                  const id = blog?._id || blog?.id;
+                  const path = id ? `/blogs/${id}` : '/blogs';
+
+                  return (
+                    <div key={id || blog.title} className="home-list-row" onClick={() => navigate(path)}>
+                      <span className="home-list-date">{dateLabel}</span>
+                      <div className="home-list-left">
+                        <Link to={path} className="home-list-link">
+                          {blog.title}
+                        </Link>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
-          </div>
-        </div>
+            <div className="latest-section">
+              <div className="section-header">
+                <h2 className="section-title">Notes</h2>
+              </div>
+              <div className="home-list-rows">
+                {latestNotes.map((n) => {
+                  const dateValue = n?.created_at || n?.date;
+                  const dateLabel = dateValue ? new Date(dateValue).toLocaleDateString('en-US', { month: 'long', day: 'numeric' }) : '—';
+                  const id = n?._id || n?.id;
+                  const path = id ? `/notes/${id}` : '/notes';
 
-        <div className="latest-section">
-          <div className="section-header">
-            <h2 className="section-title">Blog</h2>
-          </div>
-          <div className="home-list-rows">
-            {latestBlogs.map((blog) => {
-              const dateValue = blog?.created_at || blog?.date;
-              const dateLabel = dateValue ? new Date(dateValue).toLocaleDateString('en-US', { month: 'long', day: 'numeric' }) : '—';
-              const id = blog?._id || blog?.id;
-              const path = id ? `/blogs/${id}` : '/blogs';
+                  return (
+                    <div key={id || n.title} className="home-list-row" onClick={() => navigate(path)}>
+                      <span className="home-list-date">{dateLabel}</span>
+                      <div className="home-list-left">
+                        <Link to={path} className="home-list-link">
+                          {n.title}
+                        </Link>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
 
-              return (
-                <div key={id || blog.title} className="home-list-row" onClick={() => navigate(path)}>
-                  <span className="home-list-date">{dateLabel}</span>
-                  <div className="home-list-left">
-                    <Link to={path} className="home-list-link">
-                      {blog.title}
-                    </Link>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+            <div className="latest-section">
+              <div className="section-header">
+                <h2 className="section-title">Library</h2>
+              </div>
+              <div className="home-list-rows">
+                {latestLibrary.map((item) => {
+                  const dateValue = item?.date || item?.created_at || item?.createdAt;
+                  const dateLabel = dateValue ? new Date(dateValue).toLocaleDateString('en-US', { month: 'long', day: 'numeric' }) : '—';
+                  const id = item?.log_id || item?.id;
 
-        <div className="latest-section">
-          <div className="section-header">
-            <h2 className="section-title">Notes</h2>
-          </div>
-          <div className="home-list-rows">
-            {latestNotes.map((n) => {
-              const dateValue = n?.created_at || n?.date;
-              const dateLabel = dateValue ? new Date(dateValue).toLocaleDateString('en-US', { month: 'long', day: 'numeric' }) : '—';
-              const id = n?._id || n?.id;
-              const path = id ? `/notes/${id}` : '/notes';
+                  let path = '/library';
+                  if (item?.__type === 'music' && id) path = `/library/music/${id}`;
+                  else if (item?.__type && id) path = `/library/${item.__type}/${id}`;
 
-              return (
-                <div key={id || n.title} className="home-list-row" onClick={() => navigate(path)}>
-                  <span className="home-list-date">{dateLabel}</span>
-                  <div className="home-list-left">
-                    <Link to={path} className="home-list-link">
-                      {n.title}
-                    </Link>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="latest-section">
-          <div className="section-header">
-            <h2 className="section-title">Library</h2>
-          </div>
-          <div className="home-list-rows">
-            {latestLibrary.map((item) => {
-              const dateValue = item?.date || item?.created_at || item?.createdAt;
-              const dateLabel = dateValue ? new Date(dateValue).toLocaleDateString('en-US', { month: 'long', day: 'numeric' }) : '—';
-              const id = item?.log_id || item?.id;
-
-              let path = '/library';
-              if (item?.__type === 'music' && id) path = `/library/music/${id}`;
-              else if (item?.__type && id) path = `/library/${item.__type}/${id}`;
-
-              return (
-                <div key={`${item.__type}-${id || item.title}`} className="home-list-row" onClick={() => navigate(path)}>
-                  <span className="home-list-date">{dateLabel}</span>
-                  <div className="home-list-left">
-                    <Link to={path} className="home-list-link">
-                      {item.title}
-                    </Link>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                  return (
+                    <div key={`${item.__type}-${id || item.title}`} className="home-list-row" onClick={() => navigate(path)}>
+                      <span className="home-list-date">{dateLabel}</span>
+                      <div className="home-list-left">
+                        <Link to={path} className="home-list-link">
+                          {item.title}
+                        </Link>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </aside>
         </div>
       </>
     );

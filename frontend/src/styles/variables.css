@@ -86,6 +86,9 @@
   --item-spacing: var(--space-lg);
   --page-margin: 1.5rem;
 
+  --content-max: 1200px;
+  --content-gutter: 1.5rem;
+
   /* Borders - sharp edges for retro feel */
   --border-thin: 1px;
   --border-regular: 2px;
@@ -103,11 +106,17 @@
   --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.8);
   --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.9);
 
+  --shadow-soft: 0 10px 30px rgba(0, 0, 0, 0.45);
+  --shadow-soft-sm: 0 6px 18px rgba(0, 0, 0, 0.35);
+
   /* 3D offset shadows - retro hard edge */
   --shadow-3d-sm: 2px 2px 0 0 var(--color-text-muted);
   /* Softer 3D edge */
   --shadow-3d: 3px 3px 0 0 var(--color-text-muted);
   /* Softer 3D edge */
+
+  --underline-color: color-mix(in srgb, var(--color-accent) 55%, transparent);
+  --color-hover-soft: color-mix(in srgb, var(--color-accent) 14%, transparent);
 }
 
 /* 
@@ -148,7 +157,13 @@
   --shadow-sm: 0 2px 8px rgba(26, 26, 26, 0.06);
   --shadow-md: 0 4px 16px rgba(26, 26, 26, 0.08);
 
+  --shadow-soft: 0 14px 34px rgba(26, 26, 26, 0.12);
+  --shadow-soft-sm: 0 8px 20px rgba(26, 26, 26, 0.10);
+
   /* 3D shadows using dark text color */
   --shadow-3d-sm: 2px 2px 0 0 var(--color-text);
   --shadow-3d: 3px 3px 0 0 var(--color-text);
+
+  --underline-color: color-mix(in srgb, var(--color-accent) 55%, transparent);
+  --color-hover-soft: color-mix(in srgb, var(--color-accent) 10%, transparent);
 }

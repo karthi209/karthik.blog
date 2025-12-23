@@ -24,6 +24,7 @@ import viewRoutes from './routes/views.js';
 import reactionRoutes from './routes/reactions.js';
 import authRoutes from './routes/auth.js';
 import anthologyRoutes from './routes/anthologies.js';
+import { Blog } from './models/Blog.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -230,6 +231,46 @@ app.use('/api/notes', noteRoutes);
 app.use('/api/views', viewRoutes);
 app.use('/api/reactions', reactionsLimiter, reactionRoutes);
 app.use('/api/anthologies', anthologyRoutes);
+
+app.get('/rss.xml', async (req, res) => {
+  try {
+    const siteUrl = process.env.SITE_URL || `${req.protocol}://${req.get('host')}`;
+    const rows = await Blog.findAll({ is_draft: false, sortBy: 'created_at', order: 'DESC' });
+    const blogs = Array.isArray(rows) ? rows.slice(0, 25) : [];
+
+    const escapeXml = (s) => String(s || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&apos;');
+
+    const items = blogs.map((b) => {
+      const link = `${siteUrl}/blogs/${b.id}`;
+      const title = escapeXml(b.title);
+      const description = escapeXml(b.excerpt || '');
+      const pubDate = b.created_at ? new Date(b.created_at).toUTCString() : new Date().toUTCString();
+      return `\n      <item>\n        <title>${title}</title>\n        <link>${link}</link>\n        <guid>${link}</guid>\n        <pubDate>${pubDate}</pubDate>\n        <description>${description}</description>\n      </item>`;
+    }).join('');
+
+    const xml = `<?xml version="1.0" encoding="UTF-8" ?>
+<rss version="2.0">
+  <channel>
+    <title>Karthik.blog</title>
+    <link>${siteUrl}</link>
+    <description>Personal blog</description>
+    <language>en</language>
+    ${items}
+  </channel>
+</rss>`;
+
+    res.set('Content-Type', 'application/rss+xml; charset=utf-8');
+    res.send(xml);
+  } catch (err) {
+    console.error('RSS error:', err);
+    res.status(500).send('RSS generation failed');
+  }
+});
 
 const PORT = 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`)); 

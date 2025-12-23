@@ -17,6 +17,7 @@ export default function BlogsPage() {
   // activeTab can be: 'timeline' (default), 'anthologies'
   const [activeTab, setActiveTab] = useState(searchParams.get('view') || 'timeline');
   const [loading, setLoading] = useState(true);
+  const [showLoader, setShowLoader] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
 
@@ -43,6 +44,15 @@ export default function BlogsPage() {
     };
     loadData();
   }, []);
+
+  useEffect(() => {
+    if (!loading) {
+      setShowLoader(false);
+      return;
+    }
+    const t = setTimeout(() => setShowLoader(true), 1200);
+    return () => clearTimeout(t);
+  }, [loading]);
 
   // Handle tab change
   const handleTabChange = (tab) => {
@@ -215,14 +225,16 @@ export default function BlogsPage() {
 
       {loading ? (
         <div className="loading-container">
-          <div className="loading-dots">
-            <span></span>
-            <span></span>
-            <span></span>
-            <span></span>
-            <span></span>
-            <span></span>
-          </div>
+          {showLoader ? (
+            <div className="loading-dots">
+              <span></span>
+              <span></span>
+              <span></span>
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+          ) : null}
         </div>
       ) : activeTab === 'anthologies' ? (
         selectedAnthology ? renderAnthologyDetail() : (

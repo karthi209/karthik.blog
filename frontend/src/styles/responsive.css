@@ -185,14 +185,14 @@
   .container {
     width: 100%;
     max-width: 100%;
-    padding: 0;
+    padding: 0 var(--content-gutter);
     margin: var(--space-lg) 0 0 0;
     box-sizing: border-box;
   }
 
   main {
     width: 100%;
-    padding: 0 0.5%;
+    padding: 0;
   }
 
   /* HOMEPAGE */

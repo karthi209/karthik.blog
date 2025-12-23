@@ -8,6 +8,7 @@ export default function LibraryPage() {
   const [searchParams] = useSearchParams();
   const [filter, setFilter] = useState(searchParams.get('type') || 'all');
   const [loading, setLoading] = useState(true);
+  const [showLoader, setShowLoader] = useState(false);
   const [allItems, setAllItems] = useState([]);
 
   const FILTERS = useMemo(() => (
@@ -93,6 +94,15 @@ export default function LibraryPage() {
     fetchAllData();
   }, [navigate]);
 
+  useEffect(() => {
+    if (!loading) {
+      setShowLoader(false);
+      return;
+    }
+    const t = setTimeout(() => setShowLoader(true), 1200);
+    return () => clearTimeout(t);
+  }, [loading]);
+
   const handleFilterChange = (newFilter) => {
     setFilter(newFilter);
     if (newFilter === 'all') {
@@ -138,16 +148,20 @@ export default function LibraryPage() {
 
   if (loading) {
     return (
-      <div className="loading-state">
-        <div className="loading-spinner">
-          <span></span>
-          <span></span>
-          <span></span>
-          <span></span>
-          <span></span>
-          <span></span>
-        </div>
-        <p>Loading library...</p>
+      <div className="loading-container">
+        {showLoader ? (
+          <>
+            <div className="loading-spinner">
+              <span></span>
+              <span></span>
+              <span></span>
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+            <p className="loading-text">Loading library...</p>
+          </>
+        ) : null}
       </div>
     );
   }

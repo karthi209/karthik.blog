@@ -1,7 +1,7 @@
 .blogs-container {
-  max-width: 1200px;
+  max-width: var(--content-max);
   margin: 0 auto;
-  padding: 2rem 1.5rem;
+  padding: 2rem var(--content-gutter);
 }
 
 .blog-main {
@@ -202,51 +202,31 @@
   flex: 1;
   height: 100%;
   border-radius: 0;
-  animation: colorPulse 2.4s infinite ease-in-out both;
+  animation: none;
 }
 
 .loading-dots span:nth-child(1) {
   background: #FF6B9D;
-  animation-delay: 0s;
 }
 
 .loading-dots span:nth-child(2) {
   background: #FEC46D;
-  animation-delay: 0.4s;
 }
 
 .loading-dots span:nth-child(3) {
   background: #C3F584;
-  animation-delay: 0.8s;
 }
 
 .loading-dots span:nth-child(4) {
   background: #5ECFFF;
-  animation-delay: 1.2s;
 }
 
 .loading-dots span:nth-child(5) {
   background: #B19CD9;
-  animation-delay: 1.6s;
 }
 
 .loading-dots span:nth-child(6) {
   background: #FF8FB1;
-  animation-delay: 2s;
-}
-
-@keyframes colorPulse {
-
-  0%,
-  100% {
-    opacity: 0.3;
-    transform: scaleY(0.6);
-  }
-
-  50% {
-    opacity: 1;
-    transform: scaleY(1);
-  }
 }
 
 .loading-text {
@@ -324,7 +304,7 @@
   font-family: var(--font-mono);
   font-size: 0.85rem;
   cursor: pointer;
-  transition: transform 0.1s ease, box-shadow 0.1s ease;
+  transition: border-color 0.12s ease, color 0.12s ease, background 0.12s ease, box-shadow 0.12s ease;
   position: relative;
   box-shadow: 3px 3px 0 0 var(--color-text);
   text-transform: uppercase;
@@ -333,13 +313,12 @@
 }
 
 .blog-tab:hover {
-  transform: translate(-1px, -1px);
-  box-shadow: 4px 4px 0 0 var(--color-text);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
 }
 
 .blog-tab:active {
-  transform: translate(3px, 3px);
-  box-shadow: none;
+  border-color: var(--color-accent);
 }
 
 .blog-tab.active {
@@ -350,8 +329,7 @@
 }
 
 .blog-tab.active:hover {
-  transform: translate(-1px, -1px);
-  box-shadow: 4px 4px 0 0 var(--color-text);
+  border-color: var(--color-accent);
 }
 
 /* ============================================
@@ -378,8 +356,7 @@
 
 .anthology-card:hover {
   border-color: var(--color-accent);
-  transform: translate(-2px, -2px);
-  box-shadow: 4px 4px 0 0 var(--color-text);
+  box-shadow: var(--shadow-3d);
 }
 
 .anthology-title {
@@ -427,35 +404,23 @@
   font-family: var(--font-mono);
   font-size: 0.8rem;
   cursor: pointer;
-  transition: all 0.1s ease;
+  transition: border-color 0.12s ease, color 0.12s ease, background 0.12s ease;
   color: var(--color-text);
   margin-right: 1rem;
   box-shadow: 2px 2px 0 0 var(--color-text);
 }
 
 .retro-button-sm:hover {
-  transform: translate(-1px, -1px);
-  box-shadow: 3px 3px 0 0 var(--color-text);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
 }
 
 .retro-button-sm:active {
-  transform: translate(2px, 2px);
-  box-shadow: none;
+  border-color: var(--color-accent);
+  color: var(--color-accent);
 }
 
 /* Fade In Animation */
 .fade-in {
-  animation: fadeIn 0.25s ease-out;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  animation: none;
 }

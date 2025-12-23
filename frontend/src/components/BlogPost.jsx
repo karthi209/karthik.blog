@@ -16,6 +16,7 @@ export default function BlogPost() {
   const location = useLocation();
   const [post, setPost] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showLoader, setShowLoader] = useState(false);
   const [error, setError] = useState(null);
   const [views, setViews] = useState(null);
   const [likeCount, setLikeCount] = useState(0);
@@ -98,6 +99,15 @@ export default function BlogPost() {
   }, [id, location.pathname]);
 
   useEffect(() => {
+    if (!loading) {
+      setShowLoader(false);
+      return;
+    }
+    const t = setTimeout(() => setShowLoader(true), 1200);
+    return () => clearTimeout(t);
+  }, [loading]);
+
+  useEffect(() => {
     const loadViews = async () => {
       try {
         const res = await fetchViewCount(location.pathname);
@@ -176,16 +186,20 @@ export default function BlogPost() {
   if (loading) {
     return (
       <div className="blog-post-container">
-        <div className="loading-state">
-          <div className="loading-spinner">
-            <span></span>
-            <span></span>
-            <span></span>
-            <span></span>
-            <span></span>
-            <span></span>
-          </div>
-          <p>Loading thought...</p>
+        <div className="loading-container">
+          {showLoader ? (
+            <>
+              <div className="loading-spinner">
+                <span></span>
+                <span></span>
+                <span></span>
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
+              <p className="loading-text">Loading thought...</p>
+            </>
+          ) : null}
         </div>
       </div>
     );
