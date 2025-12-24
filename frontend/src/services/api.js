@@ -32,6 +32,11 @@ export const fetchHomepageData = async () => {
   return response.json();
 };
 
+export const fetchProjects = async () => {
+  const response = await fetch(`${API_URL}/projects`);
+  return response.json();
+};
+
 export const fetchLogs = async (type) => {
   const response = await fetch(`${API_URL}/logs/${type}`);
   return response.json();

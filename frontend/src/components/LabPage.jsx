@@ -1,13 +1,26 @@
 import { useState, useEffect } from 'react';
-import { projects as projectsData } from '../data/projects';
+
+const API = import.meta.env.VITE_API_URL || '/api';
 
 export default function LabPage() {
   const [projects, setProjects] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Load projects from config file
-    setProjects(projectsData);
+    const loadProjects = async () => {
+      try {
+        const res = await fetch(`${API}/projects`);
+        if (!res.ok) throw new Error('Failed to load projects');
+        const data = await res.json();
+        setProjects(data);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadProjects();
   }, []);
 
   return (
@@ -32,17 +45,17 @@ export default function LabPage() {
           <p>Loading projects...</p>
         </div>
       ) : projects.length === 0 ? (
-        <div className="blog-card-empty" style={{ 
-          textAlign: 'center', 
+        <div className="blog-card-empty" style={{
+          textAlign: 'center',
           padding: '3rem 1rem',
           color: 'var(--color-text-muted)'
         }}>
           <p>No projects listed yet.</p>
           <p style={{ fontSize: '0.875rem', marginTop: '0.5rem' }}>
             Check my{' '}
-            <a 
-              href="https://github.com/karthi209" 
-              target="_blank" 
+            <a
+              href="https://github.com/karthi209"
+              target="_blank"
               rel="noopener noreferrer"
               style={{ color: 'var(--color-accent)' }}
             >
@@ -53,18 +66,19 @@ export default function LabPage() {
       ) : (
         <div className="projects-grid">
           {projects.map((project, index) => (
-            <article key={index} className="project-card">
+            <article key={project.id || index} className="project-card">
               <h3 className="project-card-title">{project.title}</h3>
+
 
               <div className="project-card-meta">
                 <span className="meta-tag">{(project.status || 'PROJECT').toUpperCase()}</span>
-                {project.tech && project.tech.slice(0, 4).map((t, i) => (
-                  <span key={i} className="meta-detail">{String(t).toUpperCase()}</span>
+                {project.tech && (Array.isArray(project.tech) ? project.tech : project.tech.split(',')).slice(0, 4).map((t, i) => (
+                  <span key={i} className="meta-detail">{String(t).trim().toUpperCase()}</span>
                 ))}
               </div>
 
               {project.description ? (
-                <div className="project-card-desc">{project.description}</div>
+                <div className="project-card-desc" dangerouslySetInnerHTML={{ __html: project.description }} />
               ) : null}
 
               <div className="project-card-actions">
@@ -73,9 +87,15 @@ export default function LabPage() {
                     Open →
                   </a>
                 ) : null}
-                <a className="retro-button retro-button--sm" href="https://github.com/karthi209" target="_blank" rel="noreferrer">
-                  GitHub →
-                </a>
+                {project.github_url ? (
+                  <a className="retro-button retro-button--sm" href={project.github_url} target="_blank" rel="noreferrer">
+                    GitHub →
+                  </a>
+                ) : (
+                  <a className="retro-button retro-button--sm" href="https://github.com/karthi209" target="_blank" rel="noreferrer">
+                    GitHub →
+                  </a>
+                )}
               </div>
             </article>
           ))}

@@ -27,10 +27,10 @@ export default function LibraryPage() {
       setLoading(true);
       try {
         const apiUrl = import.meta.env.VITE_API_URL || '/api';
-        
+
         // Fetch all types in parallel
         const [playlists, games, movies, series, books] = await Promise.all([
-          fetch(`${apiUrl}/playlists`).then(r => r.json()).catch(() => []),
+          fetchLogs('music').catch(() => []),
           fetchLogs('games').catch(() => []),
           fetchLogs('movies').catch(() => []),
           fetchLogs('series').catch(() => []),
@@ -42,9 +42,9 @@ export default function LibraryPage() {
           ...playlists.map(p => ({
             id: `album-${p.id}`,
             type: 'music',
-            title: p.name,
-            description: p.description,
-            date: p.created_at,
+            title: p.title,
+            description: p.content || p.description, // api returns content, fallback description if details has it
+            date: p.date,
             onClick: () => navigate(`/library/music/${p.id}`)
           })),
           ...games.map(g => ({
@@ -83,7 +83,7 @@ export default function LibraryPage() {
 
         // Sort by date (most recent first)
         items.sort((a, b) => new Date(b.date) - new Date(a.date));
-        
+
         setAllItems(items);
       } catch (error) {
       } finally {
@@ -170,7 +170,7 @@ export default function LibraryPage() {
     <>
       <div className="post hero-section">
         <h2 className="page-title">Library</h2>
-        <p className="page-meta">A small log of things I watched, played, listened to, and read.</p>
+        <p className="page-meta">A personal log of things I watched, played, listened to, and read — not recommendations, just what stayed with me.</p>
       </div>
 
       <div className="library-filters">

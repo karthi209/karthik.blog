@@ -1,6 +1,6 @@
 import { useState, useEffect, Suspense, lazy } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { fetchBlogs, fetchHomepageData, fetchNotes } from '../services/api';
+import { fetchBlogs, fetchHomepageData, fetchNotes, fetchProjects } from '../services/api';
 import { trackView } from '../services/views';
 import { clearStoredAuthToken, getStoredAuthToken, getUserAlias, hasSeenAuthDisclaimer, isAdminUser, markAuthDisclaimerSeen, setStoredAuthToken, startGoogleLogin } from '../services/auth';
 import '../styles/modern.css';
@@ -29,6 +29,7 @@ export default function Home() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [entries, setEntries] = useState({
     blogs: [],
+    projects: [],
     music: [],
     games: [],
     movies: [],
@@ -51,7 +52,14 @@ export default function Home() {
     if (token) {
       setStoredAuthToken(token);
       params.delete('token');
-      const next = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ''}`;
+      // Normalize pathname to handle edge cases like /// or empty paths
+      let pathname = window.location.pathname || '/';
+      // Remove duplicate slashes
+      pathname = pathname.replace(/\/+/g, '/');
+      // Ensure it starts with /
+      if (!pathname.startsWith('/')) pathname = '/' + pathname;
+
+      const next = `${pathname}${params.toString() ? `?${params.toString()}` : ''}`;
       window.history.replaceState({}, '', next);
     }
   }, []);
@@ -100,14 +108,16 @@ export default function Home() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [blogs, homeData, notes] = await Promise.all([
+        const [blogs, homeData, notes, projects] = await Promise.all([
           fetchBlogs(),
           fetchHomepageData(),
-          fetchNotes({ sortBy: 'created_at', order: 'desc' })
+          fetchNotes({ sortBy: 'created_at', order: 'desc' }),
+          fetchProjects()
         ]);
         setEntries({
           blogs: blogs || [],
           notes: Array.isArray(notes) ? notes : [],
+          projects: Array.isArray(projects) ? projects : [],
           ...homeData
         });
       } catch (error) {
@@ -168,6 +178,7 @@ export default function Home() {
   const renderHomePage = () => {
     const latestBlogs = (entries.blogs || []).slice(0, 5);
     const latestNotes = (entries.notes || []).slice(0, 5);
+    const latestProjects = (entries.projects || []).slice(0, 5);
 
     const allLibrary = [
       ...(entries.music || []).map((i) => ({ ...i, __type: 'music' })),
@@ -183,6 +194,71 @@ export default function Home() {
       .sort((a, b) => new Date(b.date || b.created_at || b.createdAt || 0) - new Date(a.date || a.created_at || a.createdAt || 0))
       .slice(0, 5);
 
+    const recentItems = [
+      ...latestBlogs.map((blog) => {
+        const dateValue = blog?.created_at || blog?.date;
+        const id = blog?._id || blog?.id;
+        const path = id ? `/blogs/${id}` : '/blogs';
+        return {
+          key: `blog-${id || blog?.title || ''}`,
+          title: blog?.title,
+          dateValue,
+          label: 'Blog',
+          dataType: 'blog',
+          path
+        };
+      }),
+      ...latestNotes.map((note) => {
+        const dateValue = note?.created_at || note?.date;
+        const id = note?._id || note?.id;
+        const path = id ? `/notes/${id}` : '/notes';
+        return {
+          key: `note-${id || note?.title || ''}`,
+          title: note?.title,
+          dateValue,
+          label: 'Note',
+          dataType: 'note',
+          path
+        };
+      }),
+      ...latestLibrary.map((item) => {
+        const dateValue = item?.date || item?.created_at || item?.createdAt;
+        const id = item?.log_id || item?.id;
+
+        let path = '/library';
+        if (item?.__type === 'music' && id) path = `/library/music/${id}`;
+        else if (item?.__type && id) path = `/library/${item.__type}/${id}`;
+
+        const typeLabel = item?.__type ? String(item.__type) : 'library';
+        const label = typeLabel.charAt(0).toUpperCase() + typeLabel.slice(1);
+
+        return {
+          key: `library-${item?.__type}-${id || item?.title || ''}`,
+          title: item?.title,
+          dateValue,
+          label,
+          dataType: 'library',
+          path
+        };
+      }),
+      ...latestProjects.map((project) => {
+        const dateValue = project?.created_at || project?.date;
+        const id = project?._id || project?.id;
+        const path = '/projects';
+        return {
+          key: `project-${id || project?.title || ''}`,
+          title: project?.title,
+          dateValue,
+          label: 'Project',
+          dataType: 'project',
+          path
+        };
+      })
+    ]
+      .filter((i) => i && i.title)
+      .sort((a, b) => new Date(b.dateValue || 0) - new Date(a.dateValue || 0))
+      .slice(0, 5);
+
     return (
       <>
         <div className="home-homepage-grid">
@@ -190,13 +266,17 @@ export default function Home() {
             <div className="hero-section">
               <div className="hero-header">
                 <div className="hero-content">
-                  <h1 className="hero-title">Hey there!</h1>
+                  <h1 className="hero-title">Hi.</h1>
                   <p className="hero-intro-text">
-                    I'm Karthik. By day, I'm a systems engineer based out of Chennai, India. By night… well, I collect hobbies like infinity stones. Mapping, embedded systems, gaming, photography, travelling, public transit, urban infrastructure, and probably five more by the time you read this.
+                    I'm Karthik. Systems engineer by day, ghoul by night.
                   </p>
                   <p className="hero-intro-text">
-                    I made this website because my brain refuses to stay in one lane, so this is where I track my projects, experiments, and whatever obsession I'm currently in.
+                    I tend to pick up hobbies faster than I finish them. Programming, cartography, gaming, photography, rants on public transit and a few I’m still in denial about.
                   </p>
+                  <p>
+                    This site documents my thoughts, projects, experiments, and whatever I’m currently obsessed with.
+                  </p>
+                  <p className="aside"><em>PS. Claims of ghoulhood remain unverified.</em></p>
                   <div className="hero-avatar">
                     <div className="avatar-placeholder">
                       <img src="/banner.jpg" alt="Karthik" />
@@ -206,7 +286,7 @@ export default function Home() {
                     "The world's full of stories. There's room for every one of them to be told." — <em>Blood of Elves</em>
                   </p>
                   <p className="hero-intro-text">
-                    Feel free to explore, and if you are still interested, follow me on X/Twitter <a href="https://x.com/karthi9003" target="_blank" rel="noopener noreferrer">@karthi9003</a> for more rants and updates.
+                    Follow me on X/Twitter <a href="https://x.com/karthi9003" target="_blank" rel="noopener noreferrer">@karthi9003</a> if you're looking for more rants and updates.
                   </p>
                 </div>
 
@@ -215,75 +295,27 @@ export default function Home() {
           </div>
 
           <aside className="home-homepage-rail">
-            <div className="latest-section">
-              <div className="section-header">
-                <h2 className="section-title">Blog</h2>
-              </div>
-              <div className="home-list-rows">
-                {latestBlogs.map((blog) => {
-                  const dateValue = blog?.created_at || blog?.date;
-                  const dateLabel = dateValue ? new Date(dateValue).toLocaleDateString('en-US', { month: 'long', day: 'numeric' }) : '—';
-                  const id = blog?._id || blog?.id;
-                  const path = id ? `/blogs/${id}` : '/blogs';
-
-                  return (
-                    <div key={id || blog.title} className="home-list-row" onClick={() => navigate(path)}>
-                      <span className="home-list-date">{dateLabel}</span>
-                      <div className="home-list-left">
-                        <Link to={path} className="home-list-link">
-                          {blog.title}
-                        </Link>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+            <div className="ascii-divider">
+              <span className="ascii-green">█</span><span className="ascii-yellow">▄</span><span className="ascii-orange">▀</span><span className="ascii-red">█</span><span className="ascii-purple">▄</span><span className="ascii-blue">▀</span><span className="ascii-green">█</span><span className="ascii-yellow">▄</span><span className="ascii-orange">▀</span><span className="ascii-red">█</span>
             </div>
-
             <div className="latest-section">
               <div className="section-header">
-                <h2 className="section-title">Notes</h2>
+                <h2 className="section-title">Recent</h2>
               </div>
               <div className="home-list-rows">
-                {latestNotes.map((n) => {
-                  const dateValue = n?.created_at || n?.date;
-                  const dateLabel = dateValue ? new Date(dateValue).toLocaleDateString('en-US', { month: 'long', day: 'numeric' }) : '—';
-                  const id = n?._id || n?.id;
-                  const path = id ? `/notes/${id}` : '/notes';
+                {recentItems.map((item) => {
+                  const dateLabel = item?.dateValue
+                    ? new Date(item.dateValue).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                    : '—';
 
                   return (
-                    <div key={id || n.title} className="home-list-row" onClick={() => navigate(path)}>
-                      <span className="home-list-date">{dateLabel}</span>
-                      <div className="home-list-left">
-                        <Link to={path} className="home-list-link">
-                          {n.title}
-                        </Link>
+                    <div key={item.key} className="home-list-row" onClick={() => navigate(item.path)}>
+                      <div className="home-list-date-row">
+                        <span className="home-list-date">{dateLabel}</span>
+                        <span className="home-list-type" data-type={item.dataType}>{item.label}</span>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="latest-section">
-              <div className="section-header">
-                <h2 className="section-title">Library</h2>
-              </div>
-              <div className="home-list-rows">
-                {latestLibrary.map((item) => {
-                  const dateValue = item?.date || item?.created_at || item?.createdAt;
-                  const dateLabel = dateValue ? new Date(dateValue).toLocaleDateString('en-US', { month: 'long', day: 'numeric' }) : '—';
-                  const id = item?.log_id || item?.id;
-
-                  let path = '/library';
-                  if (item?.__type === 'music' && id) path = `/library/music/${id}`;
-                  else if (item?.__type && id) path = `/library/${item.__type}/${id}`;
-
-                  return (
-                    <div key={`${item.__type}-${id || item.title}`} className="home-list-row" onClick={() => navigate(path)}>
-                      <span className="home-list-date">{dateLabel}</span>
                       <div className="home-list-left">
-                        <Link to={path} className="home-list-link">
+                        <Link to={item.path} className="home-list-link">
                           {item.title}
                         </Link>
                       </div>
@@ -299,7 +331,7 @@ export default function Home() {
   };
 
   return (
-    <div className="app-container">
+    <div className="app-container" data-page={activePage}>
       {/* Mobile Topbar inspired by tania.dev */}
       <div className="mobile-topbar">
         <div>
@@ -330,25 +362,28 @@ export default function Home() {
               </button>
             ))}
 
-            {token ? (
-              <button type="button" className="mobile-nav-item" onClick={onMobileLogout}>
-                <span>Logout ({alias})</span>
-              </button>
-            ) : (
-              <button type="button" className="mobile-nav-item" onClick={onMobileLogin}>
-                <span>Login</span>
-              </button>
-            )}
+            {/* System controls - less prominent */}
+            <div className="mobile-nav-system">
+              {token ? (
+                <button type="button" className="mobile-nav-system-item" onClick={onMobileLogout}>
+                  <span>Logout ({alias})</span>
+                </button>
+              ) : (
+                <button type="button" className="mobile-nav-system-item" onClick={onMobileLogin}>
+                  <span>Login</span>
+                </button>
+              )}
 
-            {isAdminUser() ? (
-              <button
-                type="button"
-                className={`mobile-nav-item ${location.pathname.startsWith('/admin') ? 'active' : ''}`}
-                onClick={() => { setMobileMenuOpen(false); navigate('/admin'); }}
-              >
-                <span>Admin</span>
-              </button>
-            ) : null}
+              {isAdminUser() ? (
+                <button
+                  type="button"
+                  className={`mobile-nav-system-item ${location.pathname.startsWith('/admin') ? 'active' : ''}`}
+                  onClick={() => { setMobileMenuOpen(false); navigate('/admin'); }}
+                >
+                  <span>Admin</span>
+                </button>
+              ) : null}
+            </div>
           </div>
         </div>
       )}
@@ -366,44 +401,48 @@ export default function Home() {
             </div>
           </div>
         }>
-          {isAdminPage ? (
-            <AdminPanel />
-          ) : (
-            <div className="home-layout">
-              <Sidebar />
-              <div className="home-main">
-                {isBlogPostPage ? <BlogPost /> :
-                  isNotePostPage ? <NoteDetail /> :
-                    isLogDetailPage ? <LogDetail /> :
-                      isLegalPage ? (
-                        location.pathname === '/terms' ? <Terms /> :
-                          location.pathname === '/privacy' ? <Privacy /> : <Disclaimer />
-                      ) : (
-                        activePage === 'home' ? renderHomePage() :
-                          activePage === 'blogs' ? <BlogsPage /> :
-                            activePage === 'notes' ? <NotesPage /> :
-                              activePage === 'library' ? renderLibraryPage() :
-                                activePage === 'projects' ? <LabPage /> :
-                                  <LabPage />
-                      )}
-              </div>
+          <div className="home-layout">
+            <Sidebar />
+            <div className="home-main">
+              {isAdminPage ? (
+                <AdminPanel />
+              ) : isBlogPostPage ? <BlogPost /> :
+                isNotePostPage ? <NoteDetail /> :
+                  isLogDetailPage ? <LogDetail /> :
+                    isLegalPage ? (
+                      location.pathname === '/terms' ? <Terms /> :
+                        location.pathname === '/privacy' ? <Privacy /> : <Disclaimer />
+                    ) : (
+                      activePage === 'home' ? renderHomePage() :
+                        activePage === 'blogs' ? <BlogsPage /> :
+                          activePage === 'notes' ? <NotesPage /> :
+                            activePage === 'library' ? renderLibraryPage() :
+                              activePage === 'projects' ? <LabPage /> :
+                                <LabPage />
+                    )}
             </div>
-          )}
+          </div>
         </Suspense>
       </main>
 
-      <footer className="site-footer">
-        <div className="footer-simple">
-          <div className="footer-left">
-            <p>© Copyright {new Date().getFullYear()}, Karthik.</p>
-            <p className="footer-meta">MADRAS, TN</p>
+      <footer className="footer">
+        <div className="footer-container">
+          <div className="footer-main">
+            <div className="footer-brand">
+              <span className="footer-title">KARTHIK.BLOG</span>
+              <span className="footer-subtitle">MADRAS, TN • EST. 2024</span>
+            </div>
+            <nav className="footer-nav">
+              <a href="https://github.com/karthi209" target="_blank" rel="noreferrer">GitHub</a>
+              <a href="https://x.com/karthi9003" target="_blank" rel="noreferrer">Twitter</a>
+              <a href="mailto:karthikeyan14june@gmail.com">Email</a>
+              <Link to="/terms">Terms</Link>
+              <Link to="/privacy">Privacy</Link>
+            </nav>
           </div>
-          <div className="footer-links-simple">
-            <a href="https://github.com/karthi209" target="_blank" rel="noreferrer">GitHub</a>
-            <a href="https://x.com/karthi9003" target="_blank" rel="noreferrer">Twitter</a>
-            <a href="mailto:karthikeyan14june@gmail.com">Email</a>
-            <Link to="/terms">Terms</Link>
-            <Link to="/privacy">Privacy</Link>
+          <div className="footer-bottom">
+            <span className="footer-copyright">© {new Date().getFullYear()} Karthik. Some rights, probably.</span>
+            <span className="footer-ascii-inline"><span className="ascii-green">█</span><span className="ascii-yellow">█</span><span className="ascii-orange">█</span><span className="ascii-red">█</span><span className="ascii-purple">█</span><span className="ascii-blue">█</span></span>
           </div>
         </div>
       </footer>

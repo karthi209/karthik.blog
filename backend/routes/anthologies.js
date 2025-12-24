@@ -40,6 +40,11 @@ router.get('/:slug', async (req, res) => {
         // Populate blogs
         const blogs = await Anthology.getAnthologyBlogs(anthology.id);
 
+        console.log(`[Anthology Debug] Slug: ${slug}`);
+        console.log(`[Anthology Debug] Anthology ID: ${anthology.id}`);
+        console.log(`[Anthology Debug] Raw Blogs array: ${JSON.stringify(anthology.blogs)}`);
+        console.log(`[Anthology Debug] Populated Blogs: ${blogs.length}`);
+
         res.json({ ...anthology, blogs });
     } catch (error) {
         console.error('Error fetching anthology:', error);

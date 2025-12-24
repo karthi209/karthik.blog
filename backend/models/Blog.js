@@ -9,30 +9,26 @@ export const Blog = {
         title VARCHAR(255) NOT NULL,
         content TEXT NOT NULL,
         category VARCHAR(100) NOT NULL,
-        tags TEXT[],
-        is_draft BOOLEAN DEFAULT FALSE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
-    
+
     await pool.query(`
       CREATE INDEX IF NOT EXISTS idx_blogs_category ON blogs(category);
       CREATE INDEX IF NOT EXISTS idx_blogs_created_at ON blogs(created_at DESC);
       CREATE INDEX IF NOT EXISTS idx_blogs_category_created_at ON blogs(category, created_at DESC);
-      CREATE INDEX IF NOT EXISTS idx_blogs_tags ON blogs USING GIN (tags);
-      CREATE INDEX IF NOT EXISTS idx_blogs_is_draft ON blogs(is_draft);
     `);
   },
 
   // Create a new blog
   async create(blogData) {
-    const { title, content, category, tags = [], is_draft = false } = blogData;
+    const { title, content, category } = blogData;
     const result = await pool.query(
-      `INSERT INTO blogs (title, content, category, tags, is_draft) 
-       VALUES ($1, $2, $3, $4, $5) 
+      `INSERT INTO blogs (title, content, category) 
+       VALUES ($1, $2, $3) 
        RETURNING *`,
-      [title, content, category, tags, is_draft]
+      [title, content, category]
     );
     return result.rows[0];
   },
@@ -46,18 +42,6 @@ export const Blog = {
     if (filters.category) {
       query += ` AND category = $${paramCount}`;
       params.push(filters.category);
-      paramCount++;
-    }
-
-    if (filters.is_draft !== undefined) {
-      query += ` AND is_draft = $${paramCount}`;
-      params.push(filters.is_draft);
-      paramCount++;
-    }
-
-    if (filters.tags && filters.tags.length > 0) {
-      query += ` AND tags && $${paramCount}`;
-      params.push(filters.tags);
       paramCount++;
     }
 
@@ -78,14 +62,14 @@ export const Blog = {
 
   // Update blog
   async update(id, blogData) {
-    const { title, content, category, tags, is_draft } = blogData;
+    const { title, content, category } = blogData;
     const result = await pool.query(
       `UPDATE blogs 
-       SET title = $1, content = $2, category = $3, tags = $4, is_draft = $5,
+       SET title = $1, content = $2, category = $3,
            updated_at = CURRENT_TIMESTAMP 
-       WHERE id = $6 
+       WHERE id = $4 
        RETURNING *`,
-      [title, content, category, tags, is_draft, id]
+      [title, content, category, id]
     );
     return result.rows[0];
   },  // Delete blog
@@ -108,7 +92,6 @@ export const Blog = {
         EXTRACT(MONTH FROM created_at) as month,
         COUNT(*) as count
       FROM blogs
-      WHERE is_draft = false
       GROUP BY year, month
       ORDER BY year DESC, month DESC
     `);

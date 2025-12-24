@@ -35,14 +35,10 @@ router.get('/admin/list', authenticateApiKey, async (req, res) => {
 
 router.post('/admin/create', authenticateApiKey, async (req, res) => {
   try {
-    const { title, content, tags } = req.body;
+    const { title, content } = req.body;
     if (!title) return res.status(400).json({ message: 'Title is required' });
 
-    const tagsArray = tags && Array.isArray(tags) ? tags :
-      tags && typeof tags === 'string' ? tags.split(',').map(t => t.trim()).filter(Boolean) :
-      null;
-
-    const note = await Note.create({ title, content: content || null, tags: tagsArray });
+    const note = await Note.create({ title, content: content || null });
     cache.flushAll();
     res.status(201).json({ success: true, note: { ...note, _id: note.id } });
   } catch (err) {
@@ -56,14 +52,10 @@ router.put('/admin/:id', authenticateApiKey, async (req, res) => {
     const id = parseInt(req.params.id);
     if (isNaN(id)) return res.status(400).json({ message: 'Invalid note ID format' });
 
-    const { title, content, tags } = req.body;
+    const { title, content } = req.body;
     if (!title) return res.status(400).json({ message: 'Title is required' });
 
-    const tagsArray = tags && Array.isArray(tags) ? tags :
-      tags && typeof tags === 'string' ? tags.split(',').map(t => t.trim()).filter(Boolean) :
-      null;
-
-    const note = await Note.update(id, { title, content: content || null, tags: tagsArray });
+    const note = await Note.update(id, { title, content: content || null });
     if (!note) return res.status(404).json({ message: 'Note not found' });
 
     cache.flushAll();

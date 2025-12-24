@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 
 export default function AuthRequiredModal({
   open,
@@ -21,7 +22,7 @@ export default function AuthRequiredModal({
 
   if (!open) return null;
 
-  return (
+  return createPortal(
     <div className="retro-modal-overlay" onClick={() => onClose?.()} role="presentation">
       <div
         className="retro-modal"
@@ -48,11 +49,12 @@ export default function AuthRequiredModal({
           <button type="button" className="retro-button retro-button--sm" onClick={() => onClose?.()}>
             Cancel
           </button>
-          <button type="button" className="retro-button retro-button--sm" onClick={() => onLogin?.()}>
+          <button type="button" className="retro-button retro-button--sm" onClick={() => onLogin?.()} style={{ cursor: 'pointer' }}>
             Login
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

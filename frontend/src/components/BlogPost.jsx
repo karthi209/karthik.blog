@@ -183,6 +183,40 @@ export default function BlogPost() {
     return () => clearTimeout(timeout);
   }, [post]);
 
+  useEffect(() => {
+    if (!post) return;
+
+    const container = document.querySelector('.blog-post-body');
+    if (!container) return;
+
+    const normalizeImg = (img) => {
+      if (!img || img.tagName !== 'IMG') return;
+      img.setAttribute('loading', 'lazy');
+      img.setAttribute('decoding', 'async');
+      img.style.display = 'block';
+      img.style.maxWidth = '100%';
+      img.style.height = 'auto';
+    };
+
+    container.querySelectorAll('img').forEach(normalizeImg);
+
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        mutation.addedNodes.forEach((node) => {
+          if (node?.nodeType !== 1) return;
+          if (node.tagName === 'IMG') {
+            normalizeImg(node);
+            return;
+          }
+          node.querySelectorAll?.('img')?.forEach(normalizeImg);
+        });
+      });
+    });
+
+    observer.observe(container, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, [post?.content]);
+
   if (loading) {
     return (
       <div className="blog-post-container">
@@ -282,17 +316,6 @@ export default function BlogPost() {
               className="blog-post-body"
               dangerouslySetInnerHTML={{
                 __html: DOMPurify.sanitize(post.content)
-              }}
-              onLoad={() => {
-                const container = document.querySelector('.blog-post-body');
-                if (!container) return;
-                container.querySelectorAll('img').forEach(img => {
-                  img.setAttribute('loading', 'lazy');
-                  img.setAttribute('decoding', 'async');
-                  img.style.display = 'block';
-                  img.style.maxWidth = '100%';
-                  img.style.height = 'auto';
-                });
               }}
             />
 

@@ -4,6 +4,9 @@ import { useParams, useLocation } from 'react-router-dom';
 import '../styles/modern.css';
 import { fetchViewCount } from '../services/views';
 
+const API_URL = import.meta.env.VITE_API_URL || '/api';
+const API_BASE = API_URL.replace(/\/api\/?$/, '');
+
 export default function LogDetail() {
   const params = useParams();
   const location = useLocation();
@@ -54,11 +57,11 @@ export default function LogDetail() {
       try {
         const apiUrl = import.meta.env.VITE_API_URL || '/api';
         const response = await fetch(`${apiUrl}/logs/${category}/${id}`);
-        
+
         if (!response.ok) {
           throw new Error('Log not found');
         }
-        
+
         const data = await response.json();
         setLog(data);
       } catch (err) {
@@ -117,74 +120,76 @@ export default function LogDetail() {
 
   return (
     <div className="content-wrap">
-      <article className="post library-note library-note-page">
-        <header className="library-note-header">
-          <div>
-            <div className="library-note-kicker">
-              <span className="library-note-kicker-item">{getCategoryLabel(log.category)}</span>
-              {log.created_at ? (
-                <span className="library-note-kicker-item">
-                  · {new Date(log.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
-                </span>
-              ) : null}
+      <article className="library-review">
+        <div className="library-review-layout">
+          {/* Left: Content */}
+          <div className={`library-review-main ${!log.image ? 'library-review-main--full' : ''}`}>
+            <div className="library-review-kicker">
+              <span>{getCategoryLabel(log.category)}</span>
+              {log.release_year ? <span>{log.release_year}</span> : null}
             </div>
 
-            <h1 className="library-note-title">{log.title}</h1>
+            <h1 className="library-review-title">{log.title}</h1>
 
-            <div className="library-note-chips">
-              {log.status ? (
-                <span className="library-note-chip" style={{ color: getStatusColor(log.status) }}>
-                  {log.status}
-                </span>
-              ) : null}
-
+            {/* Metadata row */}
+            <div className="library-review-meta">
               {log.rating ? (
-                <span className="library-note-chip">
-                  {log.rating}/10
+                <span className="library-review-rating">
+                  <span className="rating-value">{log.rating}</span>
+                  <span className="rating-max">/10</span>
                 </span>
               ) : null}
+              {log.director ? <span className="library-review-detail">{log.director}</span> : null}
+              {log.developer ? <span className="library-review-detail">{log.developer}</span> : null}
+              {log.author ? <span className="library-review-detail">{log.author}</span> : null}
+              {log.artist ? <span className="library-review-detail">{log.artist}</span> : null}
+              {log.platform ? <span className="library-review-detail">{log.platform}</span> : null}
+              {log.genre ? <span className="library-review-detail">{log.genre}</span> : null}
+              {log.hours_played ? <span className="library-review-detail">{log.hours_played}h played</span> : null}
+            </div>
 
+            {/* Mobile poster - shows only on mobile, between meta and content */}
+            {log.image ? (
+              <div className="library-review-poster-mobile">
+                <img 
+                  src={log.image.startsWith('http') ? log.image : `${API_BASE}${log.image}`} 
+                  alt={log.title} 
+                />
+              </div>
+            ) : null}
+
+            {/* Review content */}
+            <div className="library-review-body">
+              {log.content ? (
+                <div className="review-content" dangerouslySetInnerHTML={{ __html: log.content }} />
+              ) : (
+                <p className="library-review-empty">No review yet.</p>
+              )}
+            </div>
+
+            {/* Footer meta */}
+            <div className="library-review-footer">
+              {log.created_at ? (
+                <span className="library-review-date">
+                  {new Date(log.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                </span>
+              ) : null}
               {typeof views === 'number' ? (
-                <span className="library-note-chip">
-                  {views} views
-                </span>
-              ) : null}
-
-              {log.category ? (
-                <span className="library-note-chip">
-                  {getCategoryLabel(log.category)}
-                </span>
-              ) : null}
-
-              {log.platform ? <span className="library-note-chip">{log.platform}</span> : null}
-              {log.author ? <span className="library-note-chip">{log.author}</span> : null}
-              {log.genre ? <span className="library-note-chip">{log.genre}</span> : null}
-              {log.release_year ? <span className="library-note-chip">{log.release_year}</span> : null}
-              {log.hours_played ? (
-                <span className="library-note-chip">
-                  {log.hours_played}h
-                </span>
+                <span className="library-review-views">{views} views</span>
               ) : null}
             </div>
           </div>
 
+          {/* Right: Cover Image */}
           {log.image ? (
-            <div className="library-note-thumb" aria-hidden="true">
-              <img src={log.image} alt="" loading="lazy" />
+            <div className="library-review-poster">
+              <img 
+                src={log.image.startsWith('http') ? log.image : `${API_BASE}${log.image}`} 
+                alt={log.title} 
+              />
             </div>
           ) : null}
-        </header>
-
-        {log.content ? (
-          <div className="post-content">
-            <div className="review-content" dangerouslySetInnerHTML={{ __html: log.content }} />
-          </div>
-        ) : (
-          <div className="post-content">
-            <p className="page-meta">No notes yet.</p>
-          </div>
-        )}
-
+        </div>
       </article>
     </div>
   );

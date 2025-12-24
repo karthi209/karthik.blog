@@ -419,13 +419,12 @@
   }
 
   .home-list-row {
-    grid-template-columns: 1fr;
-    gap: 0.5rem;
+    flex-direction: column;
+    gap: 0.25rem;
   }
 
   .home-list-date {
-    font-size: 0.8125rem;
-    align-self: start;
+    font-size: 0.72rem;
   }
 }
 

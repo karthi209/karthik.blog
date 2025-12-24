@@ -206,27 +206,27 @@
 }
 
 .loading-dots span:nth-child(1) {
-  background: #FF6B9D;
+  background: #E54B4B;
 }
 
 .loading-dots span:nth-child(2) {
-  background: #FEC46D;
+  background: #FFA630;
 }
 
 .loading-dots span:nth-child(3) {
-  background: #C3F584;
+  background: #F9E74A;
 }
 
 .loading-dots span:nth-child(4) {
-  background: #5ECFFF;
+  background: #7BC950;
 }
 
 .loading-dots span:nth-child(5) {
-  background: #B19CD9;
+  background: #4ECDC4;
 }
 
 .loading-dots span:nth-child(6) {
-  background: #FF8FB1;
+  background: #5B7FFF;
 }
 
 .loading-text {
@@ -304,7 +304,7 @@
   font-family: var(--font-mono);
   font-size: 0.85rem;
   cursor: pointer;
-  transition: border-color 0.12s ease, color 0.12s ease, background 0.12s ease, box-shadow 0.12s ease;
+  transition: all 0.12s ease;
   position: relative;
   box-shadow: 3px 3px 0 0 var(--color-text);
   text-transform: uppercase;
@@ -315,21 +315,27 @@
 .blog-tab:hover {
   border-color: var(--color-accent);
   color: var(--color-accent);
+  box-shadow: 3px 3px 0 0 var(--color-accent),
+    0 0 12px rgba(107, 206, 196, 0.3);
 }
 
 .blog-tab:active {
-  border-color: var(--color-accent);
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 0 var(--color-text);
 }
 
 .blog-tab.active {
-  background: var(--color-accent);
-  color: var(--color-background);
-  border-color: var(--color-accent);
+  background: var(--color-background);
+  color: var(--color-text);
+  border-color: var(--color-text);
   box-shadow: 3px 3px 0 0 var(--color-text);
+  border-bottom: 3px solid;
+  border-image: linear-gradient(to right, #61BB46, #FDB827, #F5821F, #E03A3E, #963D97, #009DDC) 1;
 }
 
 .blog-tab.active:hover {
-  border-color: var(--color-accent);
+  box-shadow: 3px 3px 0 0 var(--color-text),
+    0 0 12px rgba(107, 206, 196, 0.25);
 }
 
 /* ============================================

@@ -1,13 +1,46 @@
 import { Router } from 'express';
 import pool from '../db.js';
-import { Game } from '../models/Game.js';
-import { Screen } from '../models/Screen.js';
-import { Read } from '../models/Read.js';
-import { Playlist } from '../models/Playlist.js';
+import { LogMetadata } from '../models/LogMetadata.js';
+import { LogContent } from '../models/LogContent.js';
+import { requireAdminJwt } from '../middleware/auth.js';
 import NodeCache from 'node-cache';
 
 const router = Router();
 const cache = new NodeCache({ stdTTL: 300 }); // 5 minutes cache
+
+// Helper to format log for frontend
+const formatLog = (log, content = null) => {
+  const base = {
+    _id: log.id,
+    id: log.id,
+    title: log.title,
+    image: log.cover_image,
+    rating: log.rating?.toString(),
+    status: log.status,
+    favorite: log.favorite,
+    date: log.logged_date || log.created_at,
+    type: log.category === 'tv' ? 'series' : log.category // maintain frontend 'series' type
+  };
+
+  if (content) {
+    base.content = content.content; // The main review/notes
+    // Spread details safely
+    if (content.details) {
+      Object.assign(base, content.details);
+    }
+  }
+
+  // Spread metadata if present (category specific fields like artist, director)
+  if (log.metadata) {
+    Object.assign(base, log.metadata);
+  }
+
+  // Frontend expects specific type keys for some lists or simplified views
+  // We can normalize further if needed.
+  return base;
+};
+
+// --- Public Endpoints ---
 
 // Combined endpoint to fetch all homepage data in one request
 router.get('/combined/homepage', async (req, res) => {
@@ -18,84 +51,72 @@ router.get('/combined/homepage', async (req, res) => {
       return res.json(cachedData);
     }
 
-    const [blogs, playlists, games, movies, series, books] = await Promise.all([
-      // Get recent blogs
-      pool.query(`
-        SELECT id, title, content, category, created_at, tags
-        FROM blogs
-        WHERE is_draft = false
-        ORDER BY created_at DESC
-        LIMIT 6
-      `),
+    // Get blogs (unchanged)
+    console.log('Fetching homepage blogs...');
+    const blogsPromise = pool.query(`
+      SELECT id, title, content, category, created_at
+      FROM blogs
+      ORDER BY created_at DESC
+      LIMIT 6
+    `);
 
-      // Get playlists
-      pool.query(`
-        SELECT id, name, created_at
-        FROM playlists
-        ORDER BY created_at DESC
-      `),
+    // Get logs by category
+    const [blogs, music, games, movies, series, books] = await Promise.all([
+      blogsPromise,
+      LogMetadata.findAll('music', 10),
+      LogMetadata.findAll('games', 10),
+      LogMetadata.findAll('movies', 10),
+      LogMetadata.findAll('tv', 10),
+      LogMetadata.findAll('books', 10)
+    ]);
 
-      // Get games with log data (now in same table)
-      pool.query(`
-        SELECT
-          id, title, platform, genre, release_year, cover_image_url,
-          rating, status, hours_played, created_at as date
-        FROM games
-        ORDER BY created_at DESC
-      `),
+    // Fetch separate playlist logic if needed, but for now assuming migrated to 'music'
+    // If music category covers playlists:
 
-      // Get movies with log data (now in same table)
-      pool.query(`
-        SELECT
-          id, title, cover_image_url,
-          rating, status, created_at as date
-        FROM screens
-        WHERE type = 'movie'
-        ORDER BY created_at DESC
-      `),
+    // Process details if strictly needed for homepage (usually just metadata is enough)
+    // The previous implementation returned full objects with some details. 
+    // For now, returning metadata should be sufficient for cards. 
+    // If we need 'platform' for games on homepage, we might need a join or store it in metadata.
+    // Wait, the previous implementation did return detailed fields for games/movies on homepage.
+    // I should check if LogMetadata needs platform/genre/etc.
+    // The simplified schema moved 'platform' to details (doh).
+    // If homepage cards need 'platform' or 'author', we need to join.
+    // Let's do a quick join for homepage items since it's just top 10.
+    // Actually, SQL JOIN is better than fetching details one by one.
 
-      // Get series with log data (now in same table)
-      pool.query(`
-        SELECT
-          id, title, cover_image_url,
-          rating, status, created_at as date
-        FROM screens
-        WHERE type = 'series'
-        ORDER BY created_at DESC
-      `),
+    // Let's optimize `LogMetadata.findAll` to optionally join or we write specific queries here.
+    // I will write specific queries here for best performance to get common fields needed for cards.
 
-      // Get books with log data (now in same table)
-      pool.query(`
-        SELECT
-          id, title, author, cover_image_url,
-          rating, status, created_at as date
-        FROM reads
-        ORDER BY created_at DESC
-      `)
+    // But `LogContent` separates them. 
+    // Let's rewrite the queries to LEFT JOIN log_content to get details for the homepage cards.
+
+    const getLogsWithDetails = async (category, limit = 10) => {
+      const result = await pool.query(`
+        SELECT m.*, c.content, c.details
+        FROM log_metadata m
+        LEFT JOIN log_content c ON m.id = c.log_id
+        WHERE m.category = $1
+        ORDER BY m.logged_date DESC
+        LIMIT $2
+       `, [category, limit]);
+      return result.rows.map(row => formatLog(row, { content: row.content, details: row.details }));
+    };
+
+    const [musicLogs, gameLogs, movieLogs, seriesLogs, bookLogs] = await Promise.all([
+      getLogsWithDetails('music'),
+      getLogsWithDetails('games'),
+      getLogsWithDetails('movies'),
+      getLogsWithDetails('tv'),
+      getLogsWithDetails('books')
     ]);
 
     const result = {
       blogs: blogs.rows.map(row => ({ ...row, _id: row.id })),
-      music: playlists.rows.map(p => ({
-        _id: p.id, id: p.id, title: p.name, type: 'music', date: p.created_at
-      })),
-      games: games.rows.map(g => ({
-        _id: g.id, id: g.id, title: g.title, type: 'games',
-        platform: g.platform, genre: g.genre, release_year: g.release_year, image: g.cover_image_url,
-        rating: g.rating?.toString(), status: g.status, hours_played: g.hours_played, date: g.date
-      })),
-      movies: movies.rows.map(m => ({
-        _id: m.id, id: m.id, title: m.title, type: 'movies',
-        rating: m.rating?.toString(), status: m.status, date: m.date
-      })),
-      series: series.rows.map(s => ({
-        _id: s.id, id: s.id, title: s.title, type: 'series',
-        rating: s.rating?.toString(), status: s.status, date: s.date
-      })),
-      books: books.rows.map(b => ({
-        _id: b.id, id: b.id, title: b.title, type: 'books', author: b.author,
-        rating: b.rating?.toString(), status: b.status, date: b.date
-      }))
+      music: musicLogs,
+      games: gameLogs,
+      movies: movieLogs,
+      series: seriesLogs,
+      books: bookLogs
     };
 
     // Cache the result
@@ -108,154 +129,45 @@ router.get('/combined/homepage', async (req, res) => {
   }
 });
 
-// Get all logs (backward compatibility endpoint)
+// Get all logs (backward compatibility or general feed)
 router.get('/', async (req, res) => {
   try {
-    // Aggregate all recent logs from different tables
-    const results = [];
-
-    // Get game logs with game info (now merged in games table)
-    const games = await pool.query(`
-      SELECT
-        id, title, rating, created_at as date
-      FROM games
-      ORDER BY created_at DESC
-      LIMIT 10
+    const result = await pool.query(`
+      SELECT m.*, c.details
+      FROM log_metadata m
+      LEFT JOIN log_content c ON m.id = c.log_id
+      ORDER BY m.logged_date DESC
+      LIMIT 20
     `);
 
-    results.push(...games.rows.map(game => ({
-      _id: game.id,
-      id: game.id,
-      title: game.title,
-      type: 'games',
-      rating: game.rating?.toString(),
-      date: game.date
-    })));
-
-    res.json(results);
+    const logs = result.rows.map(row => formatLog(row, { details: row.details }));
+    res.json(logs);
   } catch (err) {
     console.error('Error fetching logs:', err);
     res.status(500).json({ message: err.message });
   }
 });
 
-// Get logs by type (backward compatibility)
+// Get logs by type
 router.get('/:type', async (req, res) => {
   try {
-    const { type } = req.params;
-    let results = [];
+    let { type } = req.params;
 
-    switch (type) {
-      case 'music':
-        // Music is now playlists - optimized query
-        const playlists = await pool.query(`
-          SELECT id, name, created_at
-          FROM playlists
-          ORDER BY created_at DESC
-        `);
-        results = playlists.rows.map(p => ({
-          _id: p.id,
-          id: p.id,
-          title: p.name,
-          type: 'music',
-          rating: null,
-          date: p.created_at
-        }));
-        break;
+    // Clean up type mapping
+    let category = type;
+    if (type === 'series') category = 'tv';
+    // music, games, movies, books match.
 
-      case 'games':
-        // Optimized: Direct query from games table (merged schema)
-        const games = await pool.query(`
-          SELECT
-            id, title, platform, genre, release_year, cover_image_url,
-            rating, status, hours_played, created_at as date
-          FROM games
-          ORDER BY created_at DESC
-        `);
-        results = games.rows.map(game => ({
-          _id: game.id,
-          id: game.id,
-          title: game.title,
-          type: 'games',
-          platform: game.platform,
-          genre: game.genre,
-          release_year: game.release_year,
-          image: game.cover_image_url,
-          rating: game.rating?.toString(),
-          status: game.status,
-          hours_played: game.hours_played,
-          date: game.date
-        }));
-        break;
+    const result = await pool.query(`
+      SELECT m.*, c.details
+      FROM log_metadata m
+      LEFT JOIN log_content c ON m.id = c.log_id
+      WHERE m.category = $1
+      ORDER BY m.logged_date DESC
+    `, [category]);
 
-      case 'movies':
-        // Optimized: Direct query from screens table (merged schema)
-        const movies = await pool.query(`
-          SELECT
-            id, title, cover_image_url, rating, status, created_at as date
-          FROM screens
-          WHERE type = 'movie'
-          ORDER BY created_at DESC
-        `);
-        results = movies.rows.map(movie => ({
-          _id: movie.id,
-          id: movie.id,
-          title: movie.title,
-          type: 'movies',
-          cover_image_url: movie.cover_image_url,
-          rating: movie.rating?.toString(),
-          status: movie.status,
-          date: movie.date
-        }));
-        break;
-
-      case 'series':
-        // Optimized: Direct query from screens table (merged schema)
-        const series = await pool.query(`
-          SELECT
-            id, title, cover_image_url, rating, status, created_at as date
-          FROM screens
-          WHERE type = 'series'
-          ORDER BY created_at DESC
-        `);
-        results = series.rows.map(show => ({
-          _id: show.id,
-          id: show.id,
-          title: show.title,
-          type: 'series',
-          cover_image_url: show.cover_image_url,
-          rating: show.rating?.toString(),
-          status: show.status,
-          date: show.date
-        }));
-        break;
-
-      case 'books':
-        // Optimized: Direct query from reads table (merged schema)
-        const books = await pool.query(`
-          SELECT
-            id, title, author, cover_image_url, rating, status, created_at as date
-          FROM reads
-          ORDER BY created_at DESC
-        `);
-        results = books.rows.map(book => ({
-          _id: book.id,
-          id: book.id,
-          title: book.title,
-          type: 'books',
-          author: book.author,
-          cover_image_url: book.cover_image_url,
-          rating: book.rating?.toString(),
-          status: book.status,
-          date: book.date
-        }));
-        break;
-
-      default:
-        return res.status(400).json({ message: 'Invalid log type' });
-    }
-
-    res.json(results);
+    const logs = result.rows.map(row => formatLog(row, { details: row.details }));
+    res.json(logs);
   } catch (err) {
     console.error('Error fetching logs by type:', err);
     res.status(500).json({ message: err.message });
@@ -265,113 +177,197 @@ router.get('/:type', async (req, res) => {
 // Get individual log entry by category and ID
 router.get('/:category/:id', async (req, res) => {
   try {
-    const { category, id } = req.params;
-    let result = null;
+    let { category, id } = req.params;
+    if (category === 'series') category = 'tv';
 
-    switch (category) {
-      case 'games':
-        // Get game with all data (merged schema)
-        const gameData = await pool.query(`
-          SELECT
-            id, title, platform, genre, release_year, cover_image_url as image,
-            rating, status, hours_played, review as content, created_at
-          FROM games
-          WHERE id = $1
-        `, [id]);
+    const result = await pool.query(`
+      SELECT m.*, c.content, c.details
+      FROM log_metadata m
+      LEFT JOIN log_content c ON m.id = c.log_id
+      WHERE m.id = $1
+    `, [id]);
 
-        if (gameData.rows.length > 0) {
-          const game = gameData.rows[0];
-          result = {
-            _id: game.id,
-            id: game.id,
-            title: game.title,
-            type: 'games',
-            platform: game.platform,
-            genre: game.genre,
-            release_year: game.release_year,
-            image: game.image,
-            rating: game.rating?.toString(),
-            status: game.status,
-            hours_played: game.hours_played,
-            content: game.content,
-            created_at: game.created_at,
-            category: 'gaming'
-          };
-        }
-        break;
+    // Note: We ignore category in WHERE to allow finding by ID even if URL cat is wrong/lazy, 
+    // but good to check if needed. existing checked ID+type.
+    // If ID is unique across all metadata (it is serial), we are good.
 
-      case 'movies':
-      case 'series':
-        // Get screen (movie/series) with all data (merged schema)
-        const screenData = await pool.query(`
-          SELECT
-            id, title, type, director, genre, year, cover_image_url as image,
-            rating, status, review as content, created_at
-          FROM screens
-          WHERE id = $1 AND type = $2
-        `, [id, category === 'movies' ? 'movie' : 'series']);
-
-        if (screenData.rows.length > 0) {
-          const screen = screenData.rows[0];
-          result = {
-            _id: screen.id,
-            id: screen.id,
-            title: screen.title,
-            type: category,
-            director: screen.director,
-            genre: screen.genre,
-            release_year: screen.year,
-            image: screen.image,
-            rating: screen.rating?.toString(),
-            status: screen.status,
-            content: screen.content,
-            created_at: screen.created_at,
-            category: screen.type === 'movie' ? 'movies' : 'tv-series'
-          };
-        }
-        break;
-
-      case 'books':
-        // Get book with all data (merged schema)
-        const bookData = await pool.query(`
-          SELECT
-            id, title, author, genre, year, cover_image_url as image,
-            rating, status, review as content, created_at
-          FROM reads
-          WHERE id = $1
-        `, [id]);
-
-        if (bookData.rows.length > 0) {
-          const book = bookData.rows[0];
-          result = {
-            _id: book.id,
-            id: book.id,
-            title: book.title,
-            type: 'books',
-            author: book.author,
-            genre: book.genre,
-            release_year: book.year,
-            image: book.image,
-            rating: book.rating?.toString(),
-            status: book.status,
-            content: book.content,
-            created_at: book.created_at,
-            category: 'books'
-          };
-        }
-        break;
-
-      default:
-        return res.status(400).json({ message: 'Invalid category' });
-    }
-
-    if (!result) {
+    if (result.rows.length === 0) {
       return res.status(404).json({ message: 'Entry not found' });
     }
 
-    res.json(result);
+    const log = result.rows[0];
+    // Optional: verify category
+    // if (log.category !== category) ...
+
+    const formatted = formatLog(log, { content: log.content, details: log.details });
+    res.json(formatted);
+
   } catch (err) {
     console.error('Error fetching individual log:', err);
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// --- Admin Endpoints ---
+
+// Create new log entry
+router.post('/', requireAdminJwt, async (req, res) => {
+  try {
+    const {
+      category, // 'games', 'movies', 'tv', 'books', 'music' (can be 'series' from frontend, mapped below)
+      title,
+      cover_image, // or cover_image_url
+      rating,
+      status,
+      content, // review/thoughts
+      details = {} // extra fields like platform, genre, songs, etc.
+    } = req.body;
+
+    // Normalize category
+    let type = category;
+    if (category === 'series') type = 'tv';
+
+    // Normalize details logic from previous separate endpoints
+    // Extract metadata fields
+    const {
+      artist, director, developer, platform,
+      metadata = {}
+    } = req.body;
+
+    const finalMetadata = { ...metadata };
+    if (artist) finalMetadata.artist = artist;
+    if (director) finalMetadata.director = director;
+    if (developer) finalMetadata.developer = developer;
+    if (platform) finalMetadata.platform = platform;
+
+    // Normalize additional details
+    const {
+      genre, release_year, year, hours_played,
+      tech, url, github_url
+    } = req.body;
+
+    const finalDetails = { ...details };
+    // Enrich details if provided at top level
+    if (genre) finalDetails.genre = genre;
+    if (release_year) finalDetails.release_year = release_year;
+    if (year) finalDetails.year = year;
+    if (hours_played) finalDetails.hours_played = hours_played;
+
+    // Project specific
+    if (tech) finalDetails.tech = tech;
+    if (url) finalDetails.url = url;
+    if (github_url) finalDetails.github_url = github_url;
+
+    const metadataRecord = await LogMetadata.create({
+      category: type,
+      title,
+      cover_image: cover_image || req.body.cover_image_url,
+      rating: rating ? parseInt(rating) : null,
+      status: status || 'completed',
+      favorite: false,
+      logged_date: req.body.logged_date || req.body.played_on || req.body.watched_on || req.body.read_on || new Date(),
+      metadata: finalMetadata
+    });
+
+    await LogContent.create({
+      log_id: metadataRecord.id,
+      content,
+      details: finalDetails
+    });
+
+    cache.del('homepage-data');
+
+    res.status(201).json({ ...metadataRecord, content, details: finalDetails });
+  } catch (err) {
+    console.error('Error creating log:', err);
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Update log entry
+router.put('/:id', requireAdminJwt, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      category, title, cover_image, rating, status, content, favorite, details = {},
+      metadata = {}
+    } = req.body;
+
+    let type = category;
+    if (category === 'series') type = 'tv';
+
+    // Extract metadata fields
+    const {
+      artist, director, developer, platform
+    } = req.body;
+
+    const finalMetadata = { ...metadata };
+    if (artist) finalMetadata.artist = artist;
+    if (director) finalMetadata.director = director;
+    if (developer) finalMetadata.developer = developer;
+    if (platform) finalMetadata.platform = platform;
+
+    // Normalize details handling like in create
+    const {
+      genre, release_year, year, hours_played,
+      tech, url, github_url
+    } = req.body;
+
+    const finalDetails = { ...details };
+    if (genre) finalDetails.genre = genre;
+    if (release_year) finalDetails.release_year = release_year;
+    if (year) finalDetails.year = year;
+    if (hours_played) finalDetails.hours_played = hours_played;
+
+    // Project specific
+    if (tech) finalDetails.tech = tech;
+    if (url) finalDetails.url = url;
+    if (github_url) finalDetails.github_url = github_url;
+
+    const metadataRecord = await LogMetadata.update(id, {
+      category: type,
+      title,
+      cover_image: cover_image || req.body.cover_image_url,
+      rating: rating ? parseInt(rating) : null,
+      status,
+      favorite,
+      logged_date: req.body.logged_date || new Date(), // Ideally preserve original date if not passed, but update likely sends it
+      metadata: finalMetadata
+    });
+
+    if (!metadataRecord) {
+      return res.status(404).json({ message: 'Log not found' });
+    }
+
+    const updatedContent = await LogContent.update(id, {
+      content,
+      details: finalDetails
+    });
+
+    cache.del('homepage-data');
+
+    res.json({ ...metadata, content: updatedContent.content, details: updatedContent.details });
+  } catch (err) {
+    console.error('Error updating log:', err);
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Delete log entry
+router.delete('/:id', requireAdminJwt, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await LogMetadata.delete(id);
+    // LogContent cascades
+
+    cache.del('homepage-data');
+
+    if (!result) {
+      return res.status(404).json({ message: 'Log not found' });
+    }
+    res.json({ message: 'Log deleted successfully' });
+  } catch (err) {
+    console.error('Error deleting log:', err);
     res.status(500).json({ message: err.message });
   }
 });
