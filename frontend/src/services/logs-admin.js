@@ -8,38 +8,27 @@ const authHeaders = () => {
   return token ? { Authorization: `Bearer ${token}` } : {};
 };
 
-export const adminCreateLog = async ({ title, type, director, genre, year, cover_image_url, author, rating, content }) => {
-  let endpoint;
-  let body;
+export const adminCreateLog = async ({ title, type, director, genre, year, cover_image_url, author, rating, content, tech, url, github_url, status }) => {
+  const body = {
+    title,
+    category: type,
+    cover_image_url,
+    rating: rating ? String(rating) : null,
+    content,
+    content,
+    // Pass other fields at top level, backend will merge into details
+    director,
+    genre,
+    year,
+    author,
+    // Project fields
+    tech,
+    url,
+    github_url,
+    status
+  };
 
-  if (type === 'movies' || type === 'series') {
-    endpoint = `${API}/screens/admin/create-with-log`;
-    body = {
-      title,
-      type: type === 'movies' ? 'movie' : 'series',
-      director,
-      genre,
-      year,
-      cover_image_url,
-      rating,
-      content
-    };
-  } else if (type === 'books') {
-    endpoint = `${API}/reads/admin/create-with-log`;
-    body = {
-      title,
-      author,
-      genre,
-      year,
-      cover_image_url,
-      rating,
-      content
-    };
-  } else {
-    throw new Error(`Unsupported log type: ${type}`);
-  }
-
-  const res = await fetch(endpoint, {
+  const res = await fetch(`${API}/logs`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify(body),
@@ -63,19 +52,20 @@ export const adminCreateGame = async ({
   review,
   played_on
 }) => {
-  const res = await fetch(`${API}/games/admin/create-with-log`, {
+  const res = await fetch(`${API}/logs`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify({
       title,
+      category: 'games',
       platform,
       genre,
       release_year,
       cover_image_url,
-      rating,
+      rating: rating ? String(rating) : null,
       hours_played,
       status,
-      review,
+      content: review, // map review to content
       played_on
     }),
   });

@@ -5,6 +5,8 @@ import { clearStoredAuthToken, getStoredAuthToken, getUserAlias, isAdminUser, ha
 import AuthRequiredModal from './AuthRequiredModal';
 
 export default function Sidebar() {
+  const apiBase = (import.meta.env.VITE_API_URL || '/api').replace(/\/$/, '');
+  const rssHref = `${apiBase}/rss.xml`;
   const token = getStoredAuthToken();
   const alias = getUserAlias();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -68,8 +70,18 @@ export default function Sidebar() {
         <h3 className="widget-title">Connect</h3>
         <nav className="sidebar-nav">
           <a className="sidebar-link" href="https://x.com/karthi9003" target="_blank" rel="noreferrer">Twitter/X</a>
-          <a className="sidebar-link" href="/rss.xml">RSS feed</a>
-          <a className="sidebar-link" href="mailto:karthikeyan14june@gmail.com">Email</a>
+          <a className="sidebar-link" href={`${apiBase}/rss.xml`}>RSS feed</a>
+          <a
+            className="sidebar-link"
+            href="mailto:karthikeyan14june@gmail.com"
+            target="_blank"
+            rel="noreferrer"
+            onClick={(e) => {
+              e.stopPropagation();
+            }}
+          >
+            Email Me
+          </a>
         </nav>
       </div>
 

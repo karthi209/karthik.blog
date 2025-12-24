@@ -1,0 +1,441 @@
+/* ============================================
+   ANIMATIONS & MICRO-INTERACTIONS
+   Inspired by: cyanbanister.com, shopify editions, itkomet.no
+   ============================================ */
+
+/* Scroll-triggered fade-in animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes gentlePulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* Link underline animation */
+@keyframes underlineExpand {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+/* Smooth entrance classes - fast, snappy */
+.animate-fade-in {
+  animation: fadeIn 0.3s var(--ease-out-expo) forwards;
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.3s var(--ease-out-expo) forwards;
+}
+
+.animate-slide-in-left {
+  animation: slideInLeft 0.25s var(--ease-out-expo) forwards;
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.25s var(--ease-out-expo) forwards;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.2s var(--ease-out-expo) forwards;
+}
+
+/* Staggered children animation - minimal delay */
+.stagger-children > * {
+  opacity: 0;
+  animation: fadeInUp 0.25s var(--ease-out-expo) forwards;
+}
+
+.stagger-children > *:nth-child(1) { animation-delay: 0.02s; }
+.stagger-children > *:nth-child(2) { animation-delay: 0.04s; }
+.stagger-children > *:nth-child(3) { animation-delay: 0.06s; }
+.stagger-children > *:nth-child(4) { animation-delay: 0.08s; }
+.stagger-children > *:nth-child(5) { animation-delay: 0.1s; }
+.stagger-children > *:nth-child(6) { animation-delay: 0.12s; }
+.stagger-children > *:nth-child(7) { animation-delay: 0.14s; }
+.stagger-children > *:nth-child(8) { animation-delay: 0.16s; }
+.stagger-children > *:nth-child(9) { animation-delay: 0.18s; }
+.stagger-children > *:nth-child(10) { animation-delay: 0.2s; }
+
+/* ============================================
+   MICRO-INTERACTIONS - Links
+   ============================================ */
+
+/* Animated underline link style */
+.link-underline {
+  position: relative;
+  text-decoration: none;
+  color: var(--color-text);
+  transition: color var(--transition-speed) var(--ease-out-quart);
+}
+
+.link-underline::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: var(--color-accent);
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform 0.3s var(--ease-out-expo);
+}
+
+.link-underline:hover {
+  color: var(--color-accent);
+}
+
+.link-underline:hover::after {
+  transform: scaleX(1);
+  transform-origin: left;
+}
+
+/* Bracket link style - personal/human feel */
+.link-bracket {
+  position: relative;
+  text-decoration: none;
+  color: var(--color-text);
+  padding: 0 0.15em;
+  transition: color var(--transition-speed) var(--ease-out-quart);
+}
+
+.link-bracket::before,
+.link-bracket::after {
+  position: absolute;
+  opacity: 0;
+  transition: all 0.25s var(--ease-out-expo);
+  color: var(--color-accent);
+  font-weight: 400;
+}
+
+.link-bracket::before {
+  content: '[';
+  left: -0.4em;
+  transform: translateX(0.3em);
+}
+
+.link-bracket::after {
+  content: ']';
+  right: -0.4em;
+  transform: translateX(-0.3em);
+}
+
+.link-bracket:hover {
+  color: var(--color-accent);
+}
+
+.link-bracket:hover::before,
+.link-bracket:hover::after {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* ============================================
+   MICRO-INTERACTIONS - Buttons
+   ============================================ */
+
+/* Smooth button press effect */
+.btn-press {
+  transition: 
+    transform var(--transition-fast) var(--ease-out-quart),
+    box-shadow var(--transition-fast) var(--ease-out-quart);
+}
+
+.btn-press:hover {
+  transform: translateY(var(--hover-lift));
+}
+
+.btn-press:active {
+  transform: translateY(1px) scale(var(--active-scale));
+}
+
+/* Glow button on hover */
+.btn-glow {
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-glow::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    var(--color-hover-soft) 0%,
+    transparent 60%
+  );
+  opacity: 0;
+  transition: opacity 0.3s var(--ease-out-quart);
+}
+
+.btn-glow:hover::before {
+  opacity: 1;
+}
+
+/* ============================================
+   MICRO-INTERACTIONS - Cards
+   ============================================ */
+
+/* Lift card on hover */
+.card-lift {
+  transition: 
+    transform var(--transition-speed) var(--ease-out-expo),
+    box-shadow var(--transition-speed) var(--ease-out-expo);
+}
+
+.card-lift:hover {
+  transform: translateY(var(--hover-lift));
+  box-shadow: var(--shadow-soft);
+}
+
+/* Scale card slightly */
+.card-scale {
+  transition: transform var(--transition-speed) var(--ease-out-expo);
+}
+
+.card-scale:hover {
+  transform: scale(var(--hover-scale));
+}
+
+/* Border highlight card */
+.card-border-highlight {
+  position: relative;
+}
+
+.card-border-highlight::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 2px solid transparent;
+  transition: border-color var(--transition-speed) var(--ease-out-quart);
+  pointer-events: none;
+}
+
+.card-border-highlight:hover::before {
+  border-color: var(--color-accent);
+}
+
+/* ============================================
+   MICRO-INTERACTIONS - List Items
+   ============================================ */
+
+/* Slide indicator on hover */
+.list-item-slide {
+  position: relative;
+  transition: 
+    padding-left var(--transition-speed) var(--ease-out-expo),
+    color var(--transition-speed) var(--ease-out-quart);
+}
+
+.list-item-slide::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%) scaleX(0);
+  width: 3px;
+  height: 60%;
+  background: var(--color-accent);
+  transform-origin: left;
+  transition: transform var(--transition-speed) var(--ease-out-expo);
+}
+
+.list-item-slide:hover {
+  padding-left: 0.75rem;
+  color: var(--color-accent);
+}
+
+.list-item-slide:hover::before {
+  transform: translateY(-50%) scaleX(1);
+}
+
+/* ============================================
+   FOCUS STATES - Accessibility
+   ============================================ */
+
+.focus-ring:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+  transition: outline-offset 0.15s var(--ease-out-quart);
+}
+
+.focus-ring:focus-visible:active {
+  outline-offset: 1px;
+}
+
+/* ============================================
+   LOADING STATES
+   ============================================ */
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--color-surface) 25%,
+    var(--color-surface-hover) 50%,
+    var(--color-surface) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* Smooth image loading */
+.img-loading {
+  opacity: 0;
+  transition: opacity 0.4s var(--ease-out-quart);
+}
+
+.img-loaded {
+  opacity: 1;
+}
+
+/* ============================================
+   PAGE TRANSITIONS
+   ============================================ */
+
+.page-enter {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.page-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: 
+    opacity 0.3s var(--ease-out-expo),
+    transform 0.3s var(--ease-out-expo);
+}
+
+.page-exit {
+  opacity: 1;
+}
+
+.page-exit-active {
+  opacity: 0;
+  transition: opacity 0.2s var(--ease-out-quart);
+}
+
+/* ============================================
+   SCROLL PROGRESS
+   ============================================ */
+
+.scroll-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 3px;
+  background: linear-gradient(90deg,
+    #E54B4B 0%, #E54B4B 14.28%,
+    #FFA630 14.28%, #FFA630 28.56%,
+    #F9E74A 28.56%, #F9E74A 42.84%,
+    #7BC950 42.84%, #7BC950 57.12%,
+    #4ECDC4 57.12%, #4ECDC4 71.4%,
+    #5B7FFF 71.4%, #5B7FFF 85.68%,
+    #9B5DE5 85.68%, #9B5DE5 100%);
+  transform-origin: left;
+  z-index: 9999;
+  transition: transform 0.1s linear;
+}
+
+/* ============================================
+   TOOLTIP
+   ============================================ */
+
+.tooltip {
+  position: relative;
+}
+
+.tooltip::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-4px);
+  padding: 0.5rem 0.75rem;
+  background: var(--color-text);
+  color: var(--color-background);
+  font-size: 0.75rem;
+  font-family: var(--font-mono);
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: 
+    opacity 0.2s var(--ease-out-quart),
+    transform 0.2s var(--ease-out-expo);
+}
+
+.tooltip:hover::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(-8px);
+}
+
+/* ============================================
+   SMOOTH SCROLLING
+   ============================================ */
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/* Respect reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

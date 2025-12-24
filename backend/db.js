@@ -32,24 +32,25 @@ export const initDatabase = async () => {
   try {
     // Import models
     const { Blog } = await import('./models/Blog.js');
-    const { Playlist } = await import('./models/Playlist.js');
-    const { PlaylistSong } = await import('./models/PlaylistSong.js');
-    const { Game } = await import('./models/Game.js');
-    const { Screen } = await import('./models/Screen.js');
-    const { Read } = await import('./models/Read.js');
     const { Note } = await import('./models/Note.js');
     const { View } = await import('./models/View.js');
     const { Reaction } = await import('./models/Reaction.js');
     const { BlogComment } = await import('./models/BlogComment.js');
     const { BlogLike } = await import('./models/BlogLike.js');
+    const { Anthology } = await import('./models/Anthology.js');
+    // New simplified library models
+    const { LogMetadata } = await import('./models/LogMetadata.js');
+    const { LogContent } = await import('./models/LogContent.js');
 
     // Initialize all tables
     await Blog.init();
-    await Playlist.init();
-    await PlaylistSong.init();
-    await Game.init();
-    await Screen.init();
-    await Read.init();
+    await Anthology.init();
+
+    // Initialize new library tables
+    await LogMetadata.init();
+    await LogContent.init();
+
+    // Other features
     await Note.init();
     await View.init();
     await Reaction.init();
@@ -71,33 +72,43 @@ export const runMigrations = async () => {
   try {
     console.log('Running database migrations...');
 
-    // Add missing columns to games table if they don't exist
-    const gameColumns = await pool.query(`
-      SELECT column_name
-      FROM information_schema.columns
-      WHERE table_name = 'games' AND table_schema = 'public'
+    // Check if games table exists before trying to migrate it
+    const listTables = await pool.query(`
+      SELECT table_name FROM information_schema.tables 
+      WHERE table_schema = 'public' AND table_name = 'games'
     `);
 
-    const existingGameColumns = gameColumns.rows.map(row => row.column_name);
+    const gamesTableExists = listTables.rows.length > 0;
 
-    if (!existingGameColumns.includes('platform')) {
-      await pool.query(`ALTER TABLE games ADD COLUMN platform VARCHAR(100)`);
-      console.log('Added platform column to games table');
-    }
+    if (gamesTableExists) {
+      // Add missing columns to games table if they don't exist
+      const gameColumns = await pool.query(`
+        SELECT column_name
+        FROM information_schema.columns
+        WHERE table_name = 'games' AND table_schema = 'public'
+      `);
 
-    if (!existingGameColumns.includes('genre')) {
-      await pool.query(`ALTER TABLE games ADD COLUMN genre VARCHAR(100)`);
-      console.log('Added genre column to games table');
-    }
+      const existingGameColumns = gameColumns.rows.map(row => row.column_name);
 
-    if (!existingGameColumns.includes('release_year')) {
-      await pool.query(`ALTER TABLE games ADD COLUMN release_year INTEGER`);
-      console.log('Added release_year column to games table');
-    }
+      if (!existingGameColumns.includes('platform')) {
+        await pool.query(`ALTER TABLE games ADD COLUMN platform VARCHAR(100)`);
+        console.log('Added platform column to games table');
+      }
 
-    if (!existingGameColumns.includes('cover_image_url')) {
-      await pool.query(`ALTER TABLE games ADD COLUMN cover_image_url TEXT`);
-      console.log('Added cover_image_url column to games table');
+      if (!existingGameColumns.includes('genre')) {
+        await pool.query(`ALTER TABLE games ADD COLUMN genre VARCHAR(100)`);
+        console.log('Added genre column to games table');
+      }
+
+      if (!existingGameColumns.includes('release_year')) {
+        await pool.query(`ALTER TABLE games ADD COLUMN release_year INTEGER`);
+        console.log('Added release_year column to games table');
+      }
+
+      if (!existingGameColumns.includes('cover_image_url')) {
+        await pool.query(`ALTER TABLE games ADD COLUMN cover_image_url TEXT`);
+        console.log('Added cover_image_url column to games table');
+      }
     }
 
     // Update rating constraints from 1-5 to 1-10 across library tables

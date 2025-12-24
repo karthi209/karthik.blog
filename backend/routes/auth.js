@@ -132,6 +132,10 @@ router.get(
   }
 );
 
+router.get('/verify', requireUserJwt, (req, res) => {
+  res.json({ ok: true, user: req.user || null });
+});
+
 router.get('/me', requireUserJwt, (req, res) => {
   res.json({ ok: true, user: req.user || null });
 });

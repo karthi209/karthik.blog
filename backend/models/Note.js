@@ -7,7 +7,6 @@ export const Note = {
         id SERIAL PRIMARY KEY,
         title VARCHAR(255) NOT NULL,
         content TEXT,
-        tags TEXT[],
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
@@ -15,16 +14,15 @@ export const Note = {
 
     await pool.query(`
       CREATE INDEX IF NOT EXISTS idx_notes_created_at ON notes(created_at DESC);
-      CREATE INDEX IF NOT EXISTS idx_notes_tags ON notes USING GIN (tags);
     `);
   },
 
-  async create({ title, content = null, tags = null }) {
+  async create({ title, content = null }) {
     const result = await pool.query(
-      `INSERT INTO notes (title, content, tags)
-       VALUES ($1, $2, $3)
+      `INSERT INTO notes (title, content)
+       VALUES ($1, $2)
        RETURNING *`,
-      [title, content, tags]
+      [title, content]
     );
     return result.rows[0];
   },
@@ -41,13 +39,13 @@ export const Note = {
     return result.rows[0];
   },
 
-  async update(id, { title, content = null, tags = null }) {
+  async update(id, { title, content = null }) {
     const result = await pool.query(
       `UPDATE notes
-       SET title = $1, content = $2, tags = $3, updated_at = CURRENT_TIMESTAMP
-       WHERE id = $4
+       SET title = $1, content = $2, updated_at = CURRENT_TIMESTAMP
+       WHERE id = $3
        RETURNING *`,
-      [title, content, tags, id]
+      [title, content, id]
     );
     return result.rows[0];
   },

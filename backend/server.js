@@ -14,15 +14,14 @@ import passport from 'passport';
 import blogRoutes from './routes/blogs.js';
 import blogApiRoutes from './routes/blogs-api.js';
 import logRoutes from './routes/logs.js';
-import playlistRoutes from './routes/playlists.js';
-import gameRoutes from './routes/games.js';
-import screenRoutes from './routes/screens.js';
-import readRoutes from './routes/reads.js';
 import uploadRoutes from './routes/upload.js';
 import noteRoutes from './routes/notes.js';
 import viewRoutes from './routes/views.js';
 import reactionRoutes from './routes/reactions.js';
 import authRoutes from './routes/auth.js';
+import anthologyRoutes from './routes/anthologies.js';
+import projectRoutes from './routes/projects.js';
+import { Blog } from './models/Blog.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -55,7 +54,7 @@ app.use(compression());
 app.use(passport.initialize());
 
 // CORS configuration - restrict to allowed origins
-const allowedOrigins = process.env.ALLOWED_ORIGINS 
+const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',')
   : ['http://localhost:5173'];
 
@@ -221,13 +220,56 @@ app.use('/api/auth', authRoutes);
 app.use('/api/blogs', blogRoutes);
 app.use('/api/blogs', adminLimiter, blogApiRoutes); // API routes with authentication and rate limiting
 app.use('/api/logs', logRoutes);
-app.use('/api/playlists', playlistRoutes);
-app.use('/api/games', gameRoutes);
-app.use('/api/screens', screenRoutes);
-app.use('/api/reads', readRoutes);
 app.use('/api/notes', noteRoutes);
 app.use('/api/views', viewRoutes);
 app.use('/api/reactions', reactionsLimiter, reactionRoutes);
+app.use('/api/anthologies', anthologyRoutes);
+app.use('/api/projects', projectRoutes);
+
+const rssHandler = async (req, res) => {
+  try {
+    const siteUrl = process.env.SITE_URL || `${req.protocol}://${req.get('host')}`;
+    const rows = await Blog.findAll({ sortBy: 'created_at', order: 'DESC' });
+    const blogs = Array.isArray(rows) ? rows.slice(0, 25) : [];
+
+    const escapeXml = (s) => String(s || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&apos;');
+
+    const stripHtml = (html) => String(html || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+
+    const items = blogs.map((b) => {
+      const link = `${siteUrl}/blogs/${b.id}`;
+      const title = escapeXml(b.title);
+      const description = escapeXml(stripHtml(b.content).slice(0, 240));
+      const pubDate = b.created_at ? new Date(b.created_at).toUTCString() : new Date().toUTCString();
+      return `\n      <item>\n        <title>${title}</title>\n        <link>${link}</link>\n        <guid>${link}</guid>\n        <pubDate>${pubDate}</pubDate>\n        <description>${description}</description>\n      </item>`;
+    }).join('');
+
+    const xml = `<?xml version="1.0" encoding="UTF-8" ?>
+<rss version="2.0">
+  <channel>
+    <title>Karthik.blog</title>
+    <link>${siteUrl}</link>
+    <description>Personal blog</description>
+    <language>en</language>
+    ${items}
+  </channel>
+</rss>`;
+
+    res.set('Content-Type', 'application/rss+xml; charset=utf-8');
+    res.send(xml);
+  } catch (err) {
+    console.error('RSS error:', err);
+    res.status(500).send('RSS generation failed');
+  }
+};
+
+app.get('/rss.xml', rssHandler);
+app.get('/api/rss.xml', rssHandler);
 
 const PORT = 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`)); 

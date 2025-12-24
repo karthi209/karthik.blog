@@ -1,42 +1,59 @@
-import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
-import { adminCreateBlog, getStoredAdminToken, setStoredAdminToken, clearStoredAdminToken, adminUploadImage, adminListBlogs, adminUpdateBlog, adminDeleteBlog } from '../services/admin';
-import { adminCreateLog, adminCreateGame } from '../services/logs-admin';
-import { adminCreatePlaylist, adminUpdatePlaylist, adminDeletePlaylist, adminAddSong, adminAddSongsBulk, adminDeleteSong, fetchPlaylists } from '../services/playlists-admin';
+import { useEffect, useState, useCallback, useRef } from 'react';
+import { adminCreateBlog, getStoredAdminToken, clearStoredAdminToken, adminListBlogs, adminUpdateBlog, adminDeleteBlog } from '../services/admin';
 import { adminListNotes, adminCreateNote, adminUpdateNote, adminDeleteNote } from '../services/notes-admin';
+import { adminCreatePlaylist, adminUpdatePlaylist, adminDeletePlaylist, adminAddSong, adminAddSongsBulk, adminDeleteSong, fetchPlaylists } from '../services/playlists-admin';
+import { adminListAnthologies, adminCreateAnthology, adminUpdateAnthology, adminDeleteAnthology } from '../services/anthologies-admin';
 import ReactQuill from 'react-quill';
 import "quill/dist/quill.snow.css";
-import './BlogsPage.css';
-import Sidebar from './Sidebar';
+import './AdminPanel.css';
 import AuthRequiredModal from './AuthRequiredModal';
 import { hasSeenAuthDisclaimer, markAuthDisclaimerSeen } from '../services/auth';
 
 const API = import.meta.env.VITE_API_URL || '/api';
 
+const LIBRARY_CATEGORIES = [
+  { value: 'games', label: 'Games' },
+  { value: 'movies', label: 'Movies' },
+  { value: 'tv', label: 'TV Series' },
+  { value: 'books', label: 'Books' },
+  { value: 'music', label: 'Music' }
+];
+
+const ITEMS_PER_PAGE = 10;
+
 export default function AdminPanel() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loginError, setLoginError] = useState('');
-  const [contentType, setContentType] = useState('blogs'); // blogs, notes, library, music
-  const [libraryType, setLibraryType] = useState('games'); // games, screen_movie, screen_series, books
-  const [activeTab, setActiveTab] = useState('blogs'); // blogs, notes, games, movies, series, books, music
-  
+  const [activeTab, setActiveTab] = useState('blogs');
+  const [subTab, setSubTab] = useState('blogs_list');
   const [status, setStatus] = useState('');
   const [loginModalOpen, setLoginModalOpen] = useState(false);
 
   const quillRef = useRef(null);
 
-  // Blog/Thought form
-  const [title, setTitle] = useState('');
-  const [category, setCategory] = useState('');
-  const [tags, setTags] = useState('');
-  const [content, setContent] = useState('');
-  const [isDraft, setIsDraft] = useState(false);
-
-  // Blog management
+  // === BLOG STATE ===
+  const [blogTitle, setBlogTitle] = useState('');
+  const [blogCategory, setBlogCategory] = useState('');
+  const [blogTags, setBlogTags] = useState('');
+  const [blogContent, setBlogContent] = useState('');
+  const [blogIsDraft, setBlogIsDraft] = useState(false);
   const [blogs, setBlogs] = useState([]);
   const [editingBlog, setEditingBlog] = useState(null);
   const [showManageBlogs, setShowManageBlogs] = useState(false);
+  const [blogSearchTerm, setBlogSearchTerm] = useState('');
+  const [blogCurrentPage, setBlogCurrentPage] = useState(1);
+  const [selectedAnthologyForBlog, setSelectedAnthologyForBlog] = useState('');
 
-  // Notes form + management
+  // === ANTHOLOGY STATE ===
+  const [anthologies, setAnthologies] = useState([]);
+  const [editingAnthology, setEditingAnthology] = useState(null);
+  const [showManageAnthologies, setShowManageAnthologies] = useState(false);
+  const [anthologyTitle, setAnthologyTitle] = useState('');
+  const [anthologySlug, setAnthologySlug] = useState('');
+  const [anthologyDesc, setAnthologyDesc] = useState('');
+  const [anthologyPublic, setAnthologyPublic] = useState(true);
+
+  // === NOTE STATE ===
   const [noteTitle, setNoteTitle] = useState('');
   const [noteContent, setNoteContent] = useState('');
   const [noteTags, setNoteTags] = useState('');
@@ -44,191 +61,81 @@ export default function AdminPanel() {
   const [editingNote, setEditingNote] = useState(null);
   const [showManageNotes, setShowManageNotes] = useState(false);
 
-  // Log form (games, movies, series, books)
-  const [logTitle, setLogTitle] = useState('');
-  const [logContent, setLogContent] = useState('');
-  const [logRating, setLogRating] = useState(10);
-  const [logType, setLogType] = useState('games');
+  // === LIBRARY STATE (UNIFIED) ===
+  const [libraryCategory, setLibraryCategory] = useState('games');
+  const [libraryTitle, setLibraryTitle] = useState('');
+  const [libraryContent, setLibraryContent] = useState('');
+  const [libraryRating, setLibraryRating] = useState(10);
+  const [libraryCoverFile, setLibraryCoverFile] = useState(null);
+  const [libraryCoverPreview, setLibraryCoverPreview] = useState(null);
+  const [libraryStatus, setLibraryStatus] = useState('completed');
 
-  // Game-specific fields
-  const [gamePlatform, setGamePlatform] = useState('');
-  const [gameGenre, setGameGenre] = useState('');
-  const [gameReleaseYear, setGameReleaseYear] = useState('');
-  const [gameCoverImageFile, setGameCoverImageFile] = useState(null);
-  const [gameStatus, setGameStatus] = useState('completed');
-  const [gameHoursPlayed, setGameHoursPlayed] = useState('');
-
-  // Movie/Series-specific fields
-  const [screenDirector, setScreenDirector] = useState('');
-  const [screenGenre, setScreenGenre] = useState('');
-  const [screenYear, setScreenYear] = useState('');
-  const [screenCoverImageFile, setScreenCoverImageFile] = useState(null);
-
-  // Book-specific fields
-  const [bookAuthor, setBookAuthor] = useState('');
-  const [bookGenre, setBookGenre] = useState('');
-  const [bookYear, setBookYear] = useState('');
-  const [bookCoverImageFile, setBookCoverImageFile] = useState(null);
-
-  // Playlists management
-  const [playlists, setPlaylists] = useState([]);
-  const [playlistName, setPlaylistName] = useState('');
-  const [playlistDescription, setPlaylistDescription] = useState('');
+  // Category-specific fields
+  const [libraryPlatform, setLibraryPlatform] = useState('');
+  const [libraryGenre, setLibraryGenre] = useState('');
+  const [libraryReleaseYear, setLibraryReleaseYear] = useState('');
+  const [libraryHoursPlayed, setLibraryHoursPlayed] = useState('');
+  const [libraryDirector, setLibraryDirector] = useState('');
+  const [libraryDeveloper, setLibraryDeveloper] = useState(''); // New
+  const [libraryArtist, setLibraryArtist] = useState('');       // New
+  const [libraryYear, setLibraryYear] = useState('');
+  const [libraryAuthor, setLibraryAuthor] = useState('');
+  const [libraryDescription, setLibraryDescription] = useState('');
   const [spotifyUrl, setSpotifyUrl] = useState('');
   const [youtubeMusicUrl, setYoutubeMusicUrl] = useState('');
-  const [playlistCoverFile, setPlaylistCoverFile] = useState(null);
-  const [playlistCoverPreview, setPlaylistCoverPreview] = useState(null);
+
+  // Project specific
+  const [projectTech, setProjectTech] = useState('');
+  const [projectUrl, setProjectUrl] = useState('');
+  const [projectGithubUrl, setProjectGithubUrl] = useState('');
+
+  // Music (playlist) specific
   const [activePlaylist, setActivePlaylist] = useState(null);
-  const [editingPlaylist, setEditingPlaylist] = useState(null);
   const [songTitle, setSongTitle] = useState('');
-  const [songAlbum, setSongAlbum] = useState('');
   const [songArtist, setSongArtist] = useState('');
+  const [songAlbum, setSongAlbum] = useState('');
   const [songYear, setSongYear] = useState('');
   const [bulkSongs, setBulkSongs] = useState('');
   const [showBulkInput, setShowBulkInput] = useState(false);
 
-  // Quill modules configuration - simplified for mobile
-  const handleImageUpload = useCallback(() => {
-    const input = document.createElement('input');
-    input.setAttribute('type', 'file');
-    input.setAttribute('accept', 'image/*');
-    input.click();
+  // Library management
+  const [libraryItems, setLibraryItems] = useState([]);
+  const [showManageLibrary, setShowManageLibrary] = useState(false);
+  const [editingLibraryItem, setEditingLibraryItem] = useState(null);
 
-    input.onchange = async () => {
-      const file = input.files && input.files[0];
-      if (!file) return;
-      try {
-        setStatus('Uploading image...');
-        const { filePath } = await adminUploadImage(file);
-        const apiBase = import.meta.env.VITE_API_URL || '';
-        // If API ends with /api, strip it to get the asset host; fallback to same-origin
-        const assetBase = apiBase.startsWith('http')
-          ? apiBase.replace(/\/?api$/, '')
-          : '';
-        const publicUrl = `${assetBase}${filePath}`;
-        const editor = quillRef.current?.getEditor();
-        const range = editor?.getSelection(true);
-        if (editor && range) {
-          editor.insertEmbed(range.index, 'image', publicUrl);
-          editor.setSelection(range.index + 1);
-        }
-        setStatus('Image uploaded');
-        setTimeout(() => setStatus(''), 1500);
-      } catch (error) {
-        setStatus('Image upload failed');
-        setTimeout(() => setStatus(''), 2000);
+  // Check authentication on mount
+  useEffect(() => {
+    const token = getStoredAdminToken();
+    if (token) {
+      verifyToken(token);
+    } else {
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlToken = urlParams.get('token');
+      if (urlToken) {
+        setStoredAdminToken(urlToken);
+        verifyToken(urlToken);
+        window.history.replaceState({}, document.title, '/admin');
+      } else {
+        setLoginModalOpen(true);
       }
-    };
+    }
   }, []);
 
-  useEffect(() => {
-    if (isAuthenticated && activeTab === 'blogs' && showManageBlogs) {
-      loadBlogs();
-    }
-  }, [isAuthenticated, activeTab, showManageBlogs]);
-
-  useEffect(() => {
-    if (isAuthenticated && activeTab === 'notes' && showManageNotes) {
-      loadNotes();
-    }
-  }, [isAuthenticated, activeTab, showManageNotes]);
-
-  const modules = useMemo(() => ({
-    toolbar: {
-      container: [
-        [{ 'header': [1, 2, 3, false] }],
-        ['bold', 'italic', 'underline', 'strike'],
-        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-        [{ 'align': [] }],
-        ['blockquote', 'code-block'],
-        ['link', 'image'],
-        ['clean']
-      ],
-      handlers: {
-        image: handleImageUpload
-      }
-    },
-    clipboard: {
-      matchVisual: false,
-    }
-  }), [handleImageUpload]);
-
-  const formats = [
-    'header',
-    'bold', 'italic', 'underline', 'strike',
-    'list', 'bullet',
-    'align',
-    'blockquote', 'code-block',
-    'link', 'image'
-  ];
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const token = params.get('token');
-    const error = params.get('error');
-
-    if (token) {
-      setStoredAdminToken(token);
-      setIsAuthenticated(true);
-      setLoginError('');
-      // Remove token from URL
-      params.delete('token');
-      const next = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ''}`;
-      window.history.replaceState({}, '', next);
-    }
-
-    if (error) {
-      setLoginError(String(error));
-      params.delete('error');
-      const next = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ''}`;
-      window.history.replaceState({}, '', next);
-    }
-
-    const stored = getStoredAdminToken();
-    if (stored) setIsAuthenticated(true);
-
-    // Load playlists if on music tab
-    if (activeTab === 'music' && isAuthenticated) {
-      loadPlaylists();
-    }
-  }, [activeTab, isAuthenticated]);
-
-  useEffect(() => {
-    if (contentType === 'blogs') {
-      setActiveTab('blogs');
-      return;
-    }
-    if (contentType === 'notes') {
-      setActiveTab('notes');
-      return;
-    }
-    if (contentType === 'music') {
-      setActiveTab('music');
-      return;
-    }
-
-    // Library
-    if (libraryType === 'games') {
-      setActiveTab('games');
-      setLogType('games');
-    } else if (libraryType === 'screen_movie') {
-      setActiveTab('movies');
-      setLogType('movies');
-    } else if (libraryType === 'screen_series') {
-      setActiveTab('series');
-      setLogType('series');
-    } else if (libraryType === 'books') {
-      setActiveTab('books');
-      setLogType('books');
-    }
-  }, [contentType, libraryType]);
-
-  const loadPlaylists = async () => {
+  const verifyToken = async (token) => {
     try {
-      const data = await fetchPlaylists();
-      setPlaylists(data);
-    } catch (error) {
-      // Silently fail
+      const response = await fetch(`${API}/auth/verify`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (response.ok) {
+        setIsAuthenticated(true);
+      } else {
+        clearStoredAdminToken();
+        setLoginError('Session expired. Please login again.');
+        setLoginModalOpen(true);
+      }
+    } catch {
+      clearStoredAdminToken();
+      setLoginModalOpen(true);
     }
   };
 
@@ -244,64 +151,141 @@ export default function AdminPanel() {
     clearStoredAdminToken();
   };
 
-  const canSubmitBlog = useMemo(() => title && category && content, [title, category, content]);
+  // === IMAGE UPLOAD ===
+  const handleImageUpload = useCallback(() => {
+    const input = document.createElement('input');
+    input.setAttribute('type', 'file');
+    input.setAttribute('accept', 'image/*');
+    input.click();
+
+    input.onchange = async () => {
+      const file = input.files && input.files[0];
+      if (!file) return;
+      try {
+        setStatus('Uploading image...');
+        const formData = new FormData();
+        formData.append('image', file);
+        const token = getStoredAdminToken();
+        const response = await fetch(`${API}/upload/image`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData
+        });
+
+        if (!response.ok) throw new Error('Upload failed');
+        const data = await response.json();
+        const imageUrl = data.filePath;
+
+        const quill = quillRef.current?.getEditor();
+        if (quill) {
+          const range = quill.getSelection();
+          quill.insertEmbed(range?.index || 0, 'image', imageUrl);
+        }
+        setStatus('Image uploaded!');
+        setTimeout(() => setStatus(''), 2000);
+      } catch (err) {
+        setStatus(`Upload error: ${err.message}`);
+      }
+    };
+  }, []);
+
+  const quillModules = {
+    toolbar: {
+      container: [
+        [{ header: [1, 2, 3, false] }],
+        ['bold', 'italic', 'underline', 'strike'],
+        [{ list: 'ordered' }, { list: 'bullet' }],
+        ['blockquote', 'code-block'],
+        ['link', 'image'],
+        ['clean']
+      ],
+      handlers: { image: handleImageUpload }
+    }
+  };
 
   const uploadCoverImage = async (file) => {
     const formData = new FormData();
     formData.append('cover', file);
-
     const token = getStoredAdminToken();
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
-
     const res = await fetch(`${API}/upload/cover`, {
       method: 'POST',
       headers,
       body: formData,
     });
-
-    if (!res.ok) {
-      const errorData = await res.json().catch(() => ({}));
-      throw new Error(errorData.message || `HTTP ${res.status}`);
-    }
-
+    if (!res.ok) throw new Error('Cover upload failed');
     const data = await res.json();
-    return data.filePath;
+    return data.cover_image_url;
+  };
+
+  // === BLOG FUNCTIONS ===
+
+
+  // === ANTHOLOGY FUNCTIONS ===
+  const loadAnthologies = async () => {
+    try {
+      const data = await adminListAnthologies();
+      setAnthologies(data || []);
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   const submitBlog = async (e, saveAsDraft = false) => {
     e.preventDefault();
     try {
-      const isDraftValue = saveAsDraft || isDraft;
-      const tagsArray = tags ? tags.split(',').map((t) => t.trim()).filter(Boolean) : null;
-      
+      const isDraftValue = saveAsDraft || blogIsDraft;
+      const tagsArray = blogTags ? blogTags.split(',').map((t) => t.trim()).filter(Boolean) : null;
+
+      let blogResult;
       if (editingBlog) {
         setStatus('Updating blog...');
-        await adminUpdateBlog(editingBlog.id, { 
-          title, 
-          content, 
-          category: category?.toUpperCase(), 
+        blogResult = await adminUpdateBlog(editingBlog.id, {
+          title: blogTitle,
+          content: blogContent,
+          category: blogCategory?.toUpperCase(),
           tags: tagsArray,
           is_draft: isDraftValue
         });
-        setStatus('Blog updated successfully!');
+        setStatus('Blog updated!');
         setEditingBlog(null);
       } else {
         setStatus(isDraftValue ? 'Saving draft...' : 'Publishing blog...');
-        await adminCreateBlog({ 
-          title, 
-          content, 
-          category: category?.toUpperCase(), 
+        blogResult = await adminCreateBlog({
+          title: blogTitle,
+          content: blogContent,
+          category: blogCategory?.toUpperCase(),
           tags: tagsArray,
           is_draft: isDraftValue
         });
         setStatus(isDraftValue ? 'Draft saved!' : 'Blog published!');
       }
-      
-      setTitle(''); 
-      setCategory(''); 
-      setTags(''); 
-      setContent('');
-      setIsDraft(false);
+
+      // Handle Anthology Association
+      if (selectedAnthologyForBlog) {
+        setStatus('Linking to anthology...');
+        const anthology = anthologies.find(a => a.id === parseInt(selectedAnthologyForBlog));
+        if (anthology) {
+          const currentBlogs = anthology.blogs || [];
+          // Extract ID from response (which wraps it in 'blog' property) or direct object
+          const newBlogId = blogResult.blog ? (blogResult.blog.id || blogResult.blog._id) : (blogResult.id || blogResult._id);
+
+          if (newBlogId && !currentBlogs.includes(newBlogId)) {
+            await adminUpdateAnthology(anthology.id, {
+              ...anthology,
+              blogs: [...currentBlogs, newBlogId]
+            });
+            setStatus('Linked to anthology!');
+          }
+        }
+      }
+
+      setBlogTitle('');
+      setBlogCategory('');
+      setBlogTags('');
+      setBlogContent('');
+      setBlogIsDraft(false);
+      setSelectedAnthologyForBlog('');
       if (showManageBlogs) loadBlogs();
       setTimeout(() => setStatus(''), 2000);
     } catch (err) {
@@ -318,24 +302,15 @@ export default function AdminPanel() {
     }
   };
 
-  const loadNotes = async () => {
-    try {
-      const data = await adminListNotes();
-      setNotes(Array.isArray(data) ? data : []);
-    } catch (error) {
-      setStatus('Failed to load notes');
-    }
-  };
-
   const handleEditBlog = async (blog) => {
     try {
       const response = await fetch(`${API}/blogs/${blog.id}`);
       const fullBlog = await response.json();
-      setTitle(fullBlog.title);
-      setCategory(fullBlog.category);
-      setTags(fullBlog.tags ? fullBlog.tags.join(', ') : '');
-      setContent(fullBlog.content);
-      setIsDraft(fullBlog.is_draft || false);
+      setBlogTitle(fullBlog.title);
+      setBlogCategory(fullBlog.category);
+      setBlogTags(fullBlog.tags ? fullBlog.tags.join(', ') : '');
+      setBlogContent(fullBlog.content);
+      setBlogIsDraft(fullBlog.is_draft || false);
       setEditingBlog(blog);
       setShowManageBlogs(false);
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -345,9 +320,9 @@ export default function AdminPanel() {
   };
 
   const handleDeleteBlog = async (id) => {
-    if (!confirm('Are you sure you want to delete this blog?')) return;
+    if (!confirm('Delete this blog?')) return;
     try {
-      setStatus('Deleting blog...');
+      setStatus('Deleting...');
       await adminDeleteBlog(id);
       setStatus('Blog deleted!');
       loadBlogs();
@@ -357,22 +332,94 @@ export default function AdminPanel() {
     }
   };
 
-  const cancelEdit = () => {
+  const cancelEditBlog = () => {
     setEditingBlog(null);
-    setTitle('');
-    setCategory('');
-    setTags('');
-    setContent('');
-    setIsDraft(false);
+    setBlogTitle('');
+    setBlogCategory('');
+    setBlogTags('');
+    setBlogContent('');
+    setBlogIsDraft(false);
   };
 
-  const cancelEditNote = () => {
-    setEditingNote(null);
-    setNoteTitle('');
-    setNoteContent('');
-    setNoteTags('');
+  // Filter and paginate blogs
+  const filteredBlogs = blogs.filter(blog =>
+    blog.title.toLowerCase().includes(blogSearchTerm.toLowerCase()) ||
+    blog.category?.toLowerCase().includes(blogSearchTerm.toLowerCase())
+  );
+
+  const totalBlogPages = Math.ceil(filteredBlogs.length / ITEMS_PER_PAGE);
+  const paginatedBlogs = filteredBlogs.slice(
+    (blogCurrentPage - 1) * ITEMS_PER_PAGE,
+    blogCurrentPage * ITEMS_PER_PAGE
+  );
+
+  const submitAnthology = async (e) => {
+    e.preventDefault();
+    if (!anthologyTitle || !anthologySlug) {
+      setStatus('Title and Slug required');
+      return;
+    }
+    try {
+      if (editingAnthology) {
+        setStatus('Updating anthology...');
+        await adminUpdateAnthology(editingAnthology.id, {
+          title: anthologyTitle,
+          slug: anthologySlug,
+          description: anthologyDesc,
+          is_public: anthologyPublic,
+          blogs: editingAnthology.blogs
+        });
+        setStatus('Anthology updated!');
+      } else {
+        setStatus('Creating anthology...');
+        await adminCreateAnthology({
+          title: anthologyTitle,
+          slug: anthologySlug,
+          description: anthologyDesc,
+          is_public: anthologyPublic,
+          blogs: []
+        });
+        setStatus('Anthology created!');
+      }
+      resetAnthologyForm();
+      loadAnthologies();
+      setTimeout(() => setStatus(''), 2000);
+    } catch (err) {
+      setStatus(`Error: ${err.message}`);
+    }
   };
 
+  const resetAnthologyForm = () => {
+    setEditingAnthology(null);
+    setAnthologyTitle('');
+    setAnthologySlug('');
+    setAnthologyDesc('');
+    setAnthologyPublic(true);
+  };
+
+  const handleEditAnthology = (anth) => {
+    setEditingAnthology(anth);
+    setAnthologyTitle(anth.title);
+    setAnthologySlug(anth.slug);
+    setAnthologyDesc(anth.description || '');
+    setAnthologyPublic(anth.is_public);
+    setShowManageAnthologies(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleDeleteAnthology = async (id) => {
+    if (!confirm('Delete this anthology?')) return;
+    try {
+      await adminDeleteAnthology(id);
+      setStatus('Anthology deleted');
+      loadAnthologies();
+      setTimeout(() => setStatus(''), 2000);
+    } catch (err) {
+      setStatus(`Error: ${err.message}`);
+    }
+  };
+
+  // === NOTE FUNCTIONS ===
   const submitNote = async (e) => {
     e.preventDefault();
     try {
@@ -381,9 +428,7 @@ export default function AdminPanel() {
         return;
       }
 
-      const tagsArray = noteTags
-        ? noteTags.split(',').map(t => t.trim()).filter(Boolean)
-        : null;
+      const tagsArray = noteTags ? noteTags.split(',').map(t => t.trim()).filter(Boolean) : null;
 
       if (editingNote) {
         setStatus('Updating note...');
@@ -414,6 +459,15 @@ export default function AdminPanel() {
     }
   };
 
+  const loadNotes = async () => {
+    try {
+      const data = await adminListNotes();
+      setNotes(Array.isArray(data) ? data : []);
+    } catch (error) {
+      setStatus('Failed to load notes');
+    }
+  };
+
   const handleEditNote = (note) => {
     setEditingNote(note);
     setNoteTitle(note.title || '');
@@ -424,7 +478,7 @@ export default function AdminPanel() {
   };
 
   const handleDeleteNote = async (id) => {
-    if (!confirm('Are you sure you want to delete this note?')) return;
+    if (!confirm('Delete this note?')) return;
     try {
       setStatus('Deleting note...');
       await adminDeleteNote(id);
@@ -436,172 +490,250 @@ export default function AdminPanel() {
     }
   };
 
-  const submitLog = async (e) => {
+  const cancelEditNote = () => {
+    setEditingNote(null);
+    setNoteTitle('');
+    setNoteContent('');
+    setNoteTags('');
+  };
+
+  // === LIBRARY FUNCTIONS ===
+  const handleLibraryCoverChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setLibraryCoverFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => setLibraryCoverPreview(reader.result);
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const submitLibrary = async (e) => {
     e.preventDefault();
     try {
-      setStatus(`Creating ${logType} entry...`);
+      const isEditing = !!editingLibraryItem;
+      setStatus(isEditing ? `Updating ${libraryCategory} entry...` : `Creating ${libraryCategory} entry...`);
 
-      if (logType === 'games') {
-        // Upload cover image first if selected
-        let coverImageUrl = null;
-        if (gameCoverImageFile) {
-          setStatus('Uploading cover image...');
-          try {
-            coverImageUrl = await uploadCoverImage(gameCoverImageFile);
-          } catch (uploadError) {
-            setStatus(`Upload failed: ${uploadError.message}`);
-            return;
-          }
+      let coverImageUrl = null;
+      if (libraryCoverFile) {
+        setStatus('Uploading cover...');
+        coverImageUrl = await uploadCoverImage(libraryCoverFile);
+      } else if (isEditing && libraryCoverPreview) {
+        // Keep existing cover if preview exists but no new file
+        // (Logic handled by backend usually, but here we might need to pass the existing URL if we had it stored)
+        // For simplicity, if no new file is uploaded, we don't send cover_image_url unless we want to change it.
+        // But our API might expect it. Let's see. 
+        // Actually, if we don't send it, it might nullify it or keep it depending on backend.
+        // Let's assume backend keeps it if undefined, or we should have stored the original URL.
+        // We'll see how handleEdit populates it.
+        if (editingLibraryItem.cover_image_url) {
+          coverImageUrl = editingLibraryItem.cover_image_url;
         }
+      }
 
-        setStatus('Creating game entry...');
-        // Use the enhanced game creation function
-        await adminCreateGame({
-          title: logTitle,
-          platform: gamePlatform,
-          genre: gameGenre,
-          release_year: gameReleaseYear,
-          cover_image_url: coverImageUrl,
-          rating: logRating ? String(logRating) : null,
-          hours_played: gameHoursPlayed,
-          status: gameStatus,
-          review: logContent,
-          played_on: new Date().toISOString().split('T')[0]
-        });
-      } else if (logType === 'movies' || logType === 'series') {
-        // Upload cover image first if selected
-        let coverImageUrl = null;
-        if (screenCoverImageFile) {
-          setStatus('Uploading cover image...');
-          try {
-            coverImageUrl = await uploadCoverImage(screenCoverImageFile);
-          } catch (uploadError) {
-            setStatus(`Upload failed: ${uploadError.message}`);
-            return;
-          }
-        }
-        await adminCreateLog({
-          title: logTitle,
-          type: logType,
-          director: screenDirector,
-          genre: screenGenre,
-          year: screenYear,
-          cover_image_url: coverImageUrl,
-          rating: logRating ? String(logRating) : null,
-          content: logContent
+      const token = getStoredAdminToken();
+      const headers = {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+      };
+
+      const payload = {
+        title: libraryTitle,
+        category: libraryCategory, // Changed from type to category for consistency with backend
+        // Common fields
+        rating: libraryRating ? String(libraryRating) : null,
+        content: libraryContent, // mapped to Review/Thoughts
+        cover_image_url: coverImageUrl,
+
+        // Category specific (will be merged into metadata by backend)
+        platform: libraryCategory === 'games' ? libraryPlatform : undefined,
+        developer: libraryCategory === 'games' ? libraryDeveloper : undefined, // New
+        genre: libraryGenre,
+        release_year: libraryReleaseYear,
+        hours_played: libraryHoursPlayed,
+        status: libraryStatus,
+        played_on: libraryCategory === 'games' ? new Date().toISOString().split('T')[0] : undefined,
+
+        director: (libraryCategory === 'movies' || libraryCategory === 'tv') ? libraryDirector : undefined,
+        year: (libraryCategory === 'movies' || libraryCategory === 'tv' || libraryCategory === 'books') ? libraryYear : undefined,
+
+        author: libraryCategory === 'books' ? libraryAuthor : undefined,
+
+        // Music specific
+        artist: libraryCategory === 'music' ? libraryArtist : undefined, // New
+        description: libraryCategory === 'music' ? libraryDescription : undefined,
+        spotify_url: libraryCategory === 'music' ? spotifyUrl : undefined,
+        youtube_music_url: libraryCategory === 'music' ? youtubeMusicUrl : undefined,
+
+        // Project specific
+        tech: libraryCategory === 'projects' ? projectTech.split(',').map(t => t.trim()).filter(Boolean) : undefined,
+        url: libraryCategory === 'projects' ? projectUrl : undefined,
+        github_url: libraryCategory === 'projects' ? projectGithubUrl : undefined
+      };
+
+      // Clean undefined
+      Object.keys(payload).forEach(key => payload[key] === undefined && delete payload[key]);
+
+      let response;
+      if (isEditing) {
+        // Update
+        const endpoint = libraryCategory === 'music'
+          // Music might still be special if playlists table used? No, migrated.
+          // But generic endpoint should be PUT /api/logs/:id
+          ? `${API}/logs/${editingLibraryItem.log_id || editingLibraryItem.id}`
+          : `${API}/logs/${editingLibraryItem.log_id || editingLibraryItem.id}`;
+
+        response = await fetch(endpoint, {
+          method: 'PUT',
+          headers,
+          body: JSON.stringify(payload)
         });
       } else {
-        // Use the regular log creation for books
-        await adminCreateLog({ 
-          title: logTitle, 
-          type: logType, 
-          content: logContent, 
-          rating: logRating ? String(logRating) : null
+        // Create
+        // Unified creation using payload directly
+        response = await fetch(`${API}/logs`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            category: libraryCategory,
+            ...payload
+          })
         });
       }
 
-      setStatus(`${logType.charAt(0).toUpperCase() + logType.slice(1)} entry created successfully!`);
-      
-      // Reset all form fields
-      setLogTitle(''); 
-      setLogContent(''); 
-      setLogRating(10);
-      setGamePlatform('');
-      setGameGenre('');
-      setGameReleaseYear('');
-      setGameCoverImageFile(null);
-      setGameStatus('completed');
-      setGameHoursPlayed('');
-      setScreenDirector('');
-      setScreenGenre('');
-      setScreenYear('');
-      setScreenCoverImageFile(null);
-      setBookAuthor('');
-      setBookGenre('');
-      setBookYear('');
-      setBookCoverImageFile(null);
-      
-      setTimeout(() => setStatus(''), 2000);
-    } catch (err) {
-      setStatus(`Error: ${err.message || 'Failed'}`);
-    }
-  };
+      if (response && !response.ok) throw new Error('Operation failed');
 
-  const submitMusic = async (e) => {
-    e.preventDefault();
-    try {
-      setStatus('Creating album...');
-      let coverImageUrl = null;
-      if (playlistCoverFile) {
-        setStatus('Uploading cover image...');
-        try {
-          coverImageUrl = await uploadCoverImage(playlistCoverFile);
-        } catch (uploadError) {
-          setStatus(`Upload failed: ${uploadError.message}`);
-          return;
-        }
+      setStatus(`${libraryCategory} entry ${isEditing ? 'updated' : 'created'}!`);
+      resetLibraryForm();
+      setEditingLibraryItem(null);
+      if (showManageLibrary) {
+        if (libraryCategory === 'music') loadPlaylists();
+        else loadLibraryItems();
       }
-      await adminCreatePlaylist({
-        name: playlistName.trim(),
-        description: playlistDescription.trim(),
-        cover_image_url: coverImageUrl
-      });
-      setStatus('Album created successfully!');
-      setPlaylistName('');
-      setPlaylistDescription('');
-      setPlaylistCoverFile(null);
-      setPlaylistCoverPreview(null);
-      await loadPlaylists();
       setTimeout(() => setStatus(''), 2000);
     } catch (err) {
+      console.error(err);
       setStatus(`Error: ${err.message || 'Failed'}`);
     }
   };
 
-  const handleDeletePlaylist = async (id) => {
-    if (!confirm('Delete this album and all its songs?')) return;
+  const resetLibraryForm = () => {
+    setLibraryTitle('');
+    setLibraryContent('');
+    setLibraryRating(10);
+    setLibraryCoverFile(null);
+    setLibraryCoverPreview(null);
+    setLibraryStatus('completed');
+    setLibraryPlatform('');
+    setLibraryGenre('');
+    setLibraryReleaseYear('');
+    setLibraryHoursPlayed('');
+    setLibraryDirector('');
+    setLibraryDeveloper(''); // New
+    setLibraryArtist('');    // New
+    setLibraryYear('');
+    setLibraryAuthor('');
+    setLibraryDescription('');
+    setSpotifyUrl('');
+    setYoutubeMusicUrl('');
+    setProjectTech('');
+    setProjectUrl('');
+    setProjectGithubUrl('');
+    setEditingLibraryItem(null);
+  };
+
+  const handleEditLibraryItem = (item) => {
+    setEditingLibraryItem(item);
+    setLibraryTitle(item.title || '');
+    // Fix preview URL handling
+    const imgUrl = item.image || item.cover_image || item.cover_image_url;
+    let previewUrl = imgUrl;
+    if (imgUrl && imgUrl.startsWith('/') && !imgUrl.startsWith('http')) {
+      const apiBase = (import.meta.env.VITE_API_URL || '').replace(/\/api\/?$/, '');
+      previewUrl = `${apiBase}${imgUrl}`;
+    }
+    setLibraryCoverPreview(previewUrl || null);
+    setLibraryRating(item.rating ? parseInt(item.rating) : 10);
+
+    // Details might be flattened or in details object depending on how we fetched it
+    // The list endpoint likely returns flattened structure from view or raw columns
+    // Let's assume flattened for now based on previous code
+
+    const details = item.details || {}; // Fallback if fields are inside details
+    setLibraryContent(item.content || item.description || details.review || '');
+    setLibraryPlatform(item.platform || details.platform || '');
+    setLibraryGenre(item.genre || details.genre || '');
+    setLibraryReleaseYear(item.release_year || details.release_year || '');
+    setLibraryHoursPlayed(item.hours_played || details.hours_played || '');
+    setLibraryStatus(item.status || details.status || 'completed');
+
+    setLibraryDirector(item.director || details.director || (item.metadata && item.metadata.director) || '');
+    setLibraryYear(item.year || details.year || '');
+
+    setLibraryAuthor(item.author || details.author || '');
+
+    setLibraryDeveloper(item.developer || details.developer || (item.metadata && item.metadata.developer) || ''); // New
+    setLibraryArtist(item.artist || details.artist || (item.metadata && item.metadata.artist) || '');       // New
+
+    // Music
+    setLibraryDescription(item.description || details.description || '');
+    setSpotifyUrl(item.spotify_url || details.spotify_url || '');
+    setYoutubeMusicUrl(item.youtube_music_url || details.youtube_music_url || '');
+
+    setProjectTech(item.tech ? (Array.isArray(item.tech) ? item.tech.join(', ') : item.tech) : (details.tech ? (Array.isArray(details.tech) ? details.tech.join(', ') : details.tech) : ''));
+    setProjectUrl(item.url || details.url || '');
+    setProjectGithubUrl(item.github_url || details.github_url || '');
+
+    setShowManageLibrary(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const cancelEditLibrary = () => {
+    resetLibraryForm();
+  };
+
+  const loadLibraryItems = async (category) => {
     try {
-      setStatus('Deleting album...');
-      await adminDeletePlaylist(id);
-      setStatus('Album deleted!');
-      await loadPlaylists();
-      if (activePlaylist === id) setActivePlaylist(null);
-      if (editingPlaylist === id) setEditingPlaylist(null);
-      setTimeout(() => setStatus(''), 2000);
-    } catch (err) {
-      setStatus(`Error: ${err.message || 'Failed'}`);
+      const cat = category || libraryCategory;
+      const response = await fetch(`${API}/logs/${cat}`);
+      const data = await response.json();
+      setLibraryItems(data);
+    } catch (error) {
+      setStatus('Failed to load library items');
     }
   };
 
-  const handleUpdatePlaylist = async (id, name, description, spotifyUrl, youtubeMusicUrl, coverImageUrl) => {
-    if (!name.trim()) {
-      setStatus('Album name is required');
-      setTimeout(() => setStatus(''), 2000);
-      return;
-    }
+  const loadPlaylists = async () => {
     try {
-      setStatus('Updating album...');
-      await adminUpdatePlaylist(id, { 
-        name: name.trim(), 
-        description: description.trim(),
-        spotify_url: spotifyUrl?.trim() || null,
-        youtube_music_url: youtubeMusicUrl?.trim() || null,
-        cover_image_url: coverImageUrl || null
-      });
-      setStatus('Album updated!');
-      await loadPlaylists();
-      setEditingPlaylist(null);
-      setPlaylistCoverFile(null);
-      setPlaylistCoverPreview(null);
-      setTimeout(() => setStatus(''), 2000);
-    } catch (err) {
-      setStatus(`Error: ${err.message || 'Failed'}`);
+      const data = await fetchPlaylists();
+      setLibraryItems(data);
+    } catch (error) {
+      // Silent fail
     }
   };
+
+  const handleDeleteLibraryItem = async (logId) => {
+    if (!confirm('Delete this library item?')) return;
+    try {
+      setStatus('Deleting...');
+      const token = getStoredAdminToken();
+      const response = await fetch(`${API}/logs/${logId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!response.ok) throw new Error('Delete failed');
+      setStatus('Library item deleted!');
+      loadLibraryItems();
+      setTimeout(() => setStatus(''), 2000);
+    } catch (error) {
+      setStatus(`Error: ${error.message}`);
+    }
+  };
+
 
   const handleAddSong = async (playlistId) => {
     if (!songTitle.trim() || !songArtist.trim()) {
-      setStatus('Song title and artist are required');
+      setStatus('Song title and artist required');
       setTimeout(() => setStatus(''), 2000);
       return;
     }
@@ -649,7 +781,7 @@ export default function AdminPanel() {
         .filter(s => s !== null);
 
       if (songs.length === 0) {
-        setStatus('No valid songs found. Format: Title | Artist | Album | Year');
+        setStatus('No valid songs. Format: Title | Artist | Album | Year');
         setTimeout(() => setStatus(''), 3000);
         return;
       }
@@ -666,7 +798,7 @@ export default function AdminPanel() {
   };
 
   const handleDeleteSong = async (playlistId, songId) => {
-    if (!confirm('Remove this song from the playlist?')) return;
+    if (!confirm('Remove this song?')) return;
     try {
       setStatus('Removing song...');
       await adminDeleteSong(playlistId, songId);
@@ -681,7 +813,7 @@ export default function AdminPanel() {
   // Login screen
   if (!isAuthenticated) {
     return (
-      <div className="container">
+      <div className="admin-panel">
         <AuthRequiredModal
           open={loginModalOpen}
           title="Admin Login"
@@ -690,1077 +822,815 @@ export default function AdminPanel() {
           onClose={() => setLoginModalOpen(false)}
           onLogin={() => {
             if (!hasSeenAuthDisclaimer()) markAuthDisclaimerSeen();
-            handleLogin({ preventDefault: () => {} });
+            handleLogin({ preventDefault: () => { } });
           }}
         />
-        <div className="post" style={{ maxWidth: '480px', margin: '4rem auto', padding: '2rem' }}>
-          <h2 className="post-title" style={{ textAlign: 'center', marginBottom: '2rem' }}>Admin Login</h2>
-          {loginError ? (
-            <div style={{ color: 'var(--color-accent)', marginBottom: '1rem', textAlign: 'center' }}>
+        <div style={{ maxWidth: '400px', margin: '4rem auto', padding: '2rem', border: '1px solid var(--color-border)', borderRadius: '6px' }}>
+          <h2 style={{ textAlign: 'center', marginBottom: '2rem' }}>Admin Login</h2>
+          {loginError && (
+            <div style={{ color: 'var(--color-accent)', marginBottom: '1rem', textAlign: 'center', fontSize: '0.9rem' }}>
               {loginError}
             </div>
-          ) : null}
-
-          <div className="form-actions" style={{ justifyContent: 'center' }}>
-            <button className="form-button form-button-primary" type="button" onClick={() => setLoginModalOpen(true)}>
-              Login with Google
-            </button>
-          </div>
+          )}
+          <button onClick={handleLogin} className="admin-btn admin-btn-primary" style={{ width: '100%' }}>
+            Login with Google
+          </button>
         </div>
       </div>
     );
   }
 
+  // Main admin panel
   return (
-    <div className="home-layout">
-      <Sidebar />
-      
-      <div className="home-main">
-        <div className="admin-wrapper">
-          <div className="blog-header">
-            <h1 className="page-title">Admin Panel</h1>
-            <button 
-              className="form-button admin-logout"
-              onClick={handleLogout}
+    <div className="admin-panel">
+      <div className="admin-header">
+        <h1 className="admin-title">Admin Panel</h1>
+        <button onClick={handleLogout} className="admin-btn">Logout</button>
+      </div>
+
+      {status && (
+        <div className="admin-status">{status}</div>
+      )}
+
+      {/* Tabs */}
+      <div className="admin-tabs">
+        {['blogs', 'notes', 'projects', 'library'].map(tab => (
+          <button
+            key={tab}
+            onClick={() => {
+              setActiveTab(tab);
+              if (tab === 'blogs') setSubTab('blogs_list');
+            }}
+            className={`admin-tab ${activeTab === tab ? 'active' : ''}`}
+          >
+            {tab.charAt(0).toUpperCase() + tab.slice(1)}
+          </button>
+        ))}
+      </div>
+
+      {/* BLOGS TAB */}
+      {activeTab === 'blogs' && (
+        <div>
+          {/* Sub Tabs for Blogs */}
+          <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--color-border)', paddingBottom: '0.5rem' }}>
+            <button
+              onClick={() => setSubTab('blogs_list')}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: subTab === 'blogs_list' ? 'var(--color-primary)' : 'var(--color-text-muted)',
+                fontWeight: subTab === 'blogs_list' ? 'bold' : 'normal',
+                cursor: 'pointer',
+                fontSize: '1rem'
+              }}
             >
-              Logout
+              Posts
+            </button>
+            <button
+              onClick={() => setSubTab('anthologies')}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: subTab === 'anthologies' ? 'var(--color-primary)' : 'var(--color-text-muted)',
+                fontWeight: subTab === 'anthologies' ? 'bold' : 'normal',
+                cursor: 'pointer',
+                fontSize: '1rem'
+              }}
+            >
+              Anthology
             </button>
           </div>
 
-          <div className="admin-tabs-grid" style={{ gridTemplateColumns: '1fr', gap: '0.75rem' }}>
-            <div className="form-group" style={{ margin: 0 }}>
-              <label className="form-label">Content Type</label>
-              <select
-                className="form-input"
-                value={contentType}
-                onChange={(e) => {
-                  setContentType(e.target.value);
-                  setStatus('');
-                  setShowManageBlogs(false);
-                  setShowManageNotes(false);
-                }}
-              >
-                <option value="blogs">Blogs</option>
-                <option value="notes">Notes</option>
-                <option value="library">Library</option>
-                <option value="music">Music</option>
-              </select>
-            </div>
+          {subTab === 'anthologies' ? (
+            <div>
+              {showManageAnthologies ? (
+                <div className="admin-manage">
+                  <div className="admin-manage-header">
+                    <h3 className="admin-manage-title">Manage Series</h3>
+                    <div>
+                      <button onClick={loadAnthologies} className="admin-btn" style={{ marginRight: '0.5rem' }}>Refresh</button>
+                      <button onClick={() => setShowManageAnthologies(false)} className="admin-btn">Hide</button>
+                    </div>
+                  </div>
+                  <div className="admin-item-list">
+                    {anthologies.map(anth => (
+                      <div key={anth.id} className="admin-item">
+                        <div className="admin-item-info">
+                          <div className="admin-item-title">{anth.title}</div>
+                          <div className="admin-item-meta">{anth.slug} ({anth.blogs?.length || 0} blogs)</div>
+                        </div>
+                        <div className="admin-item-actions">
+                          <button onClick={() => handleEditAnthology(anth)} className="admin-link-btn">Edit</button>
+                          <button onClick={() => handleDeleteAnthology(anth.id)} className="admin-link-btn danger">Delete</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <button onClick={() => { setShowManageAnthologies(true); loadAnthologies(); }} className="admin-btn" style={{ marginBottom: '2rem' }}>
+                  Manage Series ({anthologies.length})
+                </button>
+              )}
 
-            {contentType === 'library' ? (
-              <div className="form-group" style={{ margin: 0 }}>
-                <label className="form-label">Library Type</label>
-                <select
-                  className="form-input"
-                  value={libraryType}
-                  onChange={(e) => {
-                    setLibraryType(e.target.value);
-                    setStatus('');
-                  }}
-                >
-                  <option value="games">Games</option>
-                  <option value="screen_movie">Screen: Movie</option>
-                  <option value="screen_series">Screen: TV</option>
-                  <option value="books">Books</option>
-                </select>
+              <form onSubmit={submitAnthology} className="admin-form">
+                {editingAnthology && (
+                  <div style={{ marginBottom: '1rem', padding: '0.75rem', background: 'var(--color-accent-bg)', borderRadius: '4px', fontSize: '0.9rem' }}>
+                    Editing: <strong>{editingAnthology.title}</strong>
+                    <button type="button" onClick={resetAnthologyForm} className="admin-link-btn" style={{ marginLeft: '1rem' }}>Cancel</button>
+                  </div>
+                )}
+                <div className="admin-form-group">
+                  <label className="admin-label">Title *</label>
+                  <input
+                    type="text"
+                    value={anthologyTitle}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setAnthologyTitle(val);
+                      if (!editingAnthology) {
+                        const slug = val.toLowerCase().trim()
+                          .replace(/[^\w\s-]/g, '')
+                          .replace(/[\s_-]+/g, '-')
+                          .replace(/^-+|-+$/g, '');
+                        setAnthologySlug(slug);
+                      }
+                    }}
+                    required
+                    className="admin-input"
+                    placeholder="Series Title"
+                  />
+                </div>
+
+                <div className="admin-form-group">
+                  <label className="admin-label">Description</label>
+                  <textarea value={anthologyDesc} onChange={(e) => setAnthologyDesc(e.target.value)} rows="3" className="admin-textarea" placeholder="Optional description..." />
+                </div>
+                <div className="admin-form-group">
+                  <label className="admin-label">
+                    <input type="checkbox" checked={anthologyPublic} onChange={(e) => setAnthologyPublic(e.target.checked)} style={{ marginRight: '0.5rem' }} />
+                    Publicly Visible
+                  </label>
+                </div>
+                <div className="admin-btn-group">
+                  <button type="submit" className="admin-btn admin-btn-primary">
+                    {editingAnthology ? 'Update Series' : 'Create Series'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          ) : (
+            <div>
+              {editingBlog && (
+                <div style={{ marginBottom: '1rem', padding: '0.75rem', background: 'var(--color-accent-bg)', borderRadius: '4px', fontSize: '0.9rem' }}>
+                  Editing: <strong>{editingBlog.title}</strong>
+                  <button onClick={cancelEditBlog} className="admin-link-btn" style={{ marginLeft: '1rem' }}>Cancel</button>
+                </div>
+              )}
+              {/* REST OF BLOG FORM (hidden/shown by subTab check implictly by else block) */}
+
+              {/* Move existing blog list/form here... */}
+
+
+              {showManageBlogs && (
+                <div className="admin-manage">
+                  <div className="admin-manage-header">
+                    <h3 className="admin-manage-title">Manage Blogs</h3>
+                    <button onClick={() => setShowManageBlogs(false)} className="admin-btn">Hide</button>
+                  </div>
+
+                  <div className="admin-search">
+                    <input
+                      type="text"
+                      placeholder="Search blogs by title or category..."
+                      value={blogSearchTerm}
+                      onChange={(e) => {
+                        setBlogSearchTerm(e.target.value);
+                        setBlogCurrentPage(1);
+                      }}
+                      className="admin-search-input"
+                    />
+                  </div>
+
+                  {filteredBlogs.length === 0 ? (
+                    <p style={{ textAlign: 'center', color: 'var(--color-text-muted)', padding: '2rem' }}>
+                      {blogSearchTerm ? 'No blogs found matching your search.' : 'No blogs yet. Create your first one!'}
+                    </p>
+                  ) : (
+                    <>
+                      <div className="admin-item-list">
+                        {paginatedBlogs.map(blog => (
+                          <div key={blog.id} className="admin-item">
+                            <div className="admin-item-info">
+                              <div className="admin-item-title">
+                                {blog.title}
+                                {blog.is_draft && <span style={{ marginLeft: '0.5rem', fontSize: '0.75rem', color: 'var(--color-accent)' }}>(Draft)</span>}
+                              </div>
+                              <div className="admin-item-meta">
+                                {blog.category} • {new Date(blog.created_at).toLocaleDateString()}
+                              </div>
+                            </div>
+                            <div className="admin-item-actions">
+                              <button onClick={() => handleEditBlog(blog)} className="admin-link-btn">Edit</button>
+                              <button onClick={() => handleDeleteBlog(blog.id)} className="admin-link-btn danger">Delete</button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {totalBlogPages > 1 && (
+                        <div className="admin-pagination">
+                          <button
+                            onClick={() => setBlogCurrentPage(p => Math.max(1, p - 1))}
+                            disabled={blogCurrentPage === 1}
+                            className="admin-page-btn"
+                          >
+                            Previous
+                          </button>
+                          <span style={{ fontSize: '0.9rem', color: 'var(--color-text-muted)' }}>
+                            Page {blogCurrentPage} of {totalBlogPages}
+                          </span>
+                          <button
+                            onClick={() => setBlogCurrentPage(p => Math.min(totalBlogPages, p + 1))}
+                            disabled={blogCurrentPage === totalBlogPages}
+                            className="admin-page-btn"
+                          >
+                            Next
+                          </button>
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  <button onClick={loadBlogs} className="admin-btn" style={{ marginTop: '1rem' }}>Refresh List</button>
+                </div>
+              )}
+
+              {!showManageBlogs && (
+                <button onClick={() => { setShowManageBlogs(true); loadBlogs(); }} className="admin-btn" style={{ marginBottom: '2rem' }}>
+                  Manage Blogs ({blogs.length})
+                </button>
+              )}
+
+              <form onSubmit={submitBlog} className="admin-form">
+                <div className="admin-form-group">
+                  <label className="admin-label">Title *</label>
+                  <input
+                    type="text"
+                    value={blogTitle}
+                    onChange={(e) => setBlogTitle(e.target.value)}
+                    required
+                    className="admin-input"
+                    placeholder="Enter blog title"
+                  />
+                </div>
+
+                <div className="admin-form-group">
+                  <label className="admin-label">Category *</label>
+                  <input
+                    type="text"
+                    value={blogCategory}
+                    onChange={(e) => setBlogCategory(e.target.value)}
+                    required
+                    placeholder="e.g., TECH, PERSONAL, THOUGHTS"
+                    className="admin-input"
+                  />
+                </div>
+
+                <div className="admin-form-group">
+                  <label className="admin-label">Add to Anthology (Optional)</label>
+                  <select
+                    value={selectedAnthologyForBlog}
+                    onChange={(e) => setSelectedAnthologyForBlog(e.target.value)}
+                    className="admin-select"
+                  >
+                    <option value="">-- None --</option>
+                    {anthologies.map(a => (
+                      <option key={a.id} value={a.id}>{a.title}</option>
+                    ))}
+                  </select>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', marginTop: '0.25rem' }}>
+                    Append this blog to the selected anthology.
+                  </p>
+                </div>
+
+                <div className="admin-form-group">
+                  <label className="admin-label">Content *</label>
+                  <div className="admin-editor">
+                    <ReactQuill
+                      ref={quillRef}
+                      theme="snow"
+                      value={blogContent}
+                      onChange={setBlogContent}
+                      modules={quillModules}
+                    />
+                  </div>
+                </div>
+
+                <div className="admin-btn-group">
+                  <button type="submit" className="admin-btn admin-btn-primary">
+                    {editingBlog ? 'Update Blog' : 'Publish Blog'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* NOTES TAB */}
+      {activeTab === 'notes' && (
+        <div>
+          {editingNote && (
+            <div style={{ marginBottom: '1rem', padding: '0.75rem', background: 'var(--color-accent-bg)', borderRadius: '4px', fontSize: '0.9rem' }}>
+              Editing: <strong>{editingNote.title}</strong>
+              <button onClick={cancelEditNote} className="admin-link-btn" style={{ marginLeft: '1rem' }}>Cancel</button>
+            </div>
+          )}
+
+          {showManageNotes && (
+            <div className="admin-manage">
+              <div className="admin-manage-header">
+                <h3 className="admin-manage-title">Manage Notes</h3>
+                <button onClick={() => setShowManageNotes(false)} className="admin-btn">Hide</button>
               </div>
-            ) : null}
-          </div>
 
-      {/* Blogs Form */}
-      {activeTab === 'blogs' && (
-        <section className="admin-section">
-          <h3 className="twitter-sidebar-title" style={{ marginBottom: 'var(--space-md)', fontSize: 'clamp(1rem, 3vw, 1.25rem)' }}>
-            {editingBlog ? 'Edit Blog' : 'Create Blog'}
-          </h3>
-          <form onSubmit={submitBlog} className="add-content-form">
-            <div className="form-group">
-              <label className="form-label">Title</label>
-              <input className="form-input" value={title} onChange={(e) => setTitle(e.target.value)} required />
+              {notes.length === 0 ? (
+                <p style={{ textAlign: 'center', color: 'var(--color-text-muted)', padding: '2rem' }}>
+                  No notes yet. Create your first one!
+                </p>
+              ) : (
+                <div className="admin-item-list">
+                  {notes.map(note => (
+                    <div key={note.id} className="admin-item">
+                      <div className="admin-item-info">
+                        <div className="admin-item-title">{note.title}</div>
+                        <div className="admin-item-meta">
+                          {new Date(note.created_at).toLocaleDateString()}
+                        </div>
+                      </div>
+                      <div className="admin-item-actions">
+                        <button onClick={() => handleEditNote(note)} className="admin-link-btn">Edit</button>
+                        <button onClick={() => handleDeleteNote(note.id)} className="admin-link-btn danger">Delete</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <button onClick={loadNotes} className="admin-btn" style={{ marginTop: '1rem' }}>Refresh List</button>
             </div>
-            <div className="form-group">
-              <label className="form-label">Category (UPPERCASE)</label>
-              <input 
-                className="form-input" 
-                value={category}
-                onChange={(e) => setCategory(e.target.value.toUpperCase())}
-                placeholder="TECH, LIFE, TRAVEL, ..."
+          )}
+
+          {!showManageNotes && (
+            <button onClick={() => { setShowManageNotes(true); loadNotes(); }} className="admin-btn" style={{ marginBottom: '2rem' }}>
+              Manage Notes ({notes.length})
+            </button>
+          )}
+
+          <form onSubmit={submitNote} className="admin-form">
+            <div className="admin-form-group">
+              <label className="admin-label">Title *</label>
+              <input
+                type="text"
+                value={noteTitle}
+                onChange={(e) => setNoteTitle(e.target.value)}
                 required
+                className="admin-input"
+                placeholder="Enter note title"
               />
             </div>
-            <div className="form-group">
-              <label className="form-label">Tags (comma separated)</label>
-              <input 
-                className="form-input" 
-                value={tags} 
-                onChange={(e) => setTags(e.target.value)} 
-                placeholder="react, javascript, webdev"
-              />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Content</label>
-              <div className="quill-wrapper" style={{ 
-                borderRadius: '12px',
-                overflow: 'hidden'
-              }}>
+
+            <div className="admin-form-group">
+              <label className="admin-label">Content</label>
+              <div className="admin-editor">
                 <ReactQuill
                   ref={quillRef}
                   theme="snow"
-                  value={content}
-                  onChange={setContent}
-                  modules={modules}
-                  formats={formats}
-                  placeholder="Write your blog content here..."
-                />
-              </div>
-              <p style={{ 
-                fontSize: '0.875rem', 
-                color: 'var(--color-text-light)', 
-                marginTop: '0.5rem' 
-              }}>
-                Essential formatting tools: Headers, Bold, Lists, Links, Code blocks
-              </p>
-            </div>
-            <div className="form-group">
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-                <input 
-                  type="checkbox" 
-                  checked={isDraft} 
-                  onChange={(e) => setIsDraft(e.target.checked)}
-                  style={{ width: '1.125rem', height: '1.125rem', cursor: 'pointer' }}
-                />
-                <span>Save as draft (won't be published)</span>
-              </label>
-            </div>
-            <div className="form-actions" style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-              <button className="form-button form-button-primary" type="submit" disabled={!canSubmitBlog}>
-                {editingBlog ? 'Update Blog' : (isDraft ? 'Save Draft' : 'Publish Blog')}
-              </button>
-              {editingBlog && (
-                <button 
-                  type="button"
-                  className="form-button" 
-                  onClick={cancelEdit}
-                  style={{ background: 'var(--color-bg-secondary)' }}
-                >
-                  Cancel Edit
-                </button>
-              )}
-              {!editingBlog && (
-                <button 
-                  type="button"
-                  className="form-button" 
-                  onClick={() => setShowManageBlogs(!showManageBlogs)}
-                  style={{ background: 'var(--color-bg-secondary)' }}
-                >
-                  {showManageBlogs ? 'Hide' : 'Manage'} Blogs
-                </button>
-              )}
-            </div>
-            {status && (
-              <div style={{ 
-                marginTop: '1rem', 
-                padding: '1rem', 
-                background: status.includes('Error') ? 'rgba(255, 0, 0, 0.1)' : 'rgba(0, 255, 0, 0.1)',
-                border: `1px solid ${status.includes('Error') ? 'rgba(255, 0, 0, 0.3)' : 'rgba(0, 255, 0, 0.3)'}`,
-                borderRadius: '8px',
-                color: 'var(--color-text)',
-                fontSize: '0.95rem',
-                textAlign: 'center'
-              }}>
-                {status}
-              </div>
-            )}
-          </form>
-
-          {showManageBlogs && (
-            <div style={{ marginTop: '2rem' }}>
-              <h3 className="twitter-sidebar-title" style={{ marginBottom: 'var(--space-md)', fontSize: 'clamp(1rem, 3vw, 1.25rem)' }}>
-                Manage Blogs
-              </h3>
-              {blogs.length === 0 ? (
-                <p style={{ color: 'var(--color-text-light)', textAlign: 'center', padding: '2rem' }}>
-                  No blogs yet. Create your first one above!
-                </p>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  {blogs.map(blog => (
-                    <div 
-                      key={blog.id}
-                      style={{
-                        padding: '1rem',
-                        border: '2px solid var(--color-border)',
-                        borderRadius: '8px',
-                        background: 'var(--color-bg-secondary)',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        gap: '1rem',
-                        flexWrap: 'wrap'
-                      }}
-                    >
-                      <div style={{ flex: 1, minWidth: '200px' }}>
-                        <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>
-                          {blog.title}
-                          {blog.is_draft && (
-                            <span style={{ 
-                              marginLeft: '0.5rem', 
-                              fontSize: '0.75rem', 
-                              padding: '0.125rem 0.5rem',
-                              background: 'orange',
-                              color: 'black',
-                              borderRadius: '4px',
-                              fontWeight: 700
-                            }}>
-                              DRAFT
-                            </span>
-                          )}
-                        </div>
-                        <div style={{ fontSize: '0.875rem', color: 'var(--color-text-light)' }}>
-                          {blog.category} • {new Date(blog.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                        </div>
-                      </div>
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <button
-                          onClick={() => handleEditBlog(blog)}
-                          className="form-button"
-                          style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleDeleteBlog(blog.id)}
-                          className="form-button"
-                          style={{ padding: '0.5rem 1rem', fontSize: '0.875rem', background: 'rgba(255, 0, 0, 0.2)' }}
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-        </section>
-      )}
-
-      {activeTab === 'notes' && (
-        <section className="admin-section">
-          <h3 className="twitter-sidebar-title" style={{ marginBottom: 'var(--space-md)', fontSize: 'clamp(1rem, 3vw, 1.25rem)' }}>
-            {editingNote ? 'Edit Note' : 'Create Note'}
-          </h3>
-
-          <form onSubmit={submitNote} className="add-content-form">
-            <div className="form-group">
-              <label className="form-label">Title</label>
-              <input className="form-input" value={noteTitle} onChange={(e) => setNoteTitle(e.target.value)} required />
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Tags (comma separated, optional)</label>
-              <input className="form-input" value={noteTags} onChange={(e) => setNoteTags(e.target.value)} placeholder="raw, idea, life" />
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Content (raw, optional)</label>
-              <textarea
-                className="form-textarea"
-                value={noteContent}
-                onChange={(e) => setNoteContent(e.target.value)}
-                placeholder="Write anything. This is a raw note."
-                rows="10"
-                style={{ minHeight: '220px' }}
-              />
-            </div>
-
-            <div className="form-actions" style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-              <button className="form-button form-button-primary" type="submit">
-                {editingNote ? 'Update Note' : 'Publish Note'}
-              </button>
-              {editingNote ? (
-                <button type="button" className="form-button" onClick={cancelEditNote} style={{ background: 'var(--color-bg-secondary)' }}>
-                  Cancel Edit
-                </button>
-              ) : (
-                <button type="button" className="form-button" onClick={() => setShowManageNotes(!showManageNotes)} style={{ background: 'var(--color-bg-secondary)' }}>
-                  {showManageNotes ? 'Hide' : 'Manage'} Notes
-                </button>
-              )}
-            </div>
-
-            {status && (
-              <div style={{
-                marginTop: '1rem',
-                padding: '1rem',
-                background: status.includes('Error') ? 'rgba(255, 0, 0, 0.1)' : 'rgba(0, 255, 0, 0.1)',
-                border: `1px solid ${status.includes('Error') ? 'rgba(255, 0, 0, 0.3)' : 'rgba(0, 255, 0, 0.3)'}`,
-                borderRadius: '8px',
-                color: 'var(--color-text)',
-                fontSize: '0.95rem',
-                textAlign: 'center'
-              }}>
-                {status}
-              </div>
-            )}
-          </form>
-
-          {showManageNotes && (
-            <div style={{ marginTop: '2rem' }}>
-              <h3 className="twitter-sidebar-title" style={{ marginBottom: 'var(--space-md)', fontSize: 'clamp(1rem, 3vw, 1.25rem)' }}>
-                Manage Notes
-              </h3>
-              {notes.length === 0 ? (
-                <p style={{ color: 'var(--color-text-light)', textAlign: 'center', padding: '2rem' }}>
-                  No notes yet. Create your first one above!
-                </p>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  {notes.map(n => (
-                    <div
-                      key={n.id}
-                      style={{
-                        padding: '1rem',
-                        border: '2px solid var(--color-border)',
-                        borderRadius: '8px',
-                        background: 'var(--color-bg-secondary)',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        gap: '1rem',
-                        flexWrap: 'wrap'
-                      }}
-                    >
-                      <div style={{ flex: 1, minWidth: '200px' }}>
-                        <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>{n.title}</div>
-                        <div style={{ fontSize: '0.875rem', color: 'var(--color-text-light)' }}>
-                          {new Date(n.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                        </div>
-                      </div>
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <button onClick={() => handleEditNote(n)} className="form-button" style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }}>
-                          Edit
-                        </button>
-                        <button onClick={() => handleDeleteNote(n.id)} className="form-button" style={{ padding: '0.5rem 1rem', fontSize: '0.875rem', background: 'rgba(255, 0, 0, 0.2)' }}>
-                          Delete
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-        </section>
-      )}
-
-      {/* Games Form */}
-      {activeTab === 'games' && (
-        <section className="admin-section">
-          <h3 className="twitter-sidebar-title" style={{ marginBottom: 'var(--space-md)', fontSize: 'clamp(1rem, 3vw, 1.25rem)' }}>
-            Add Game Entry
-          </h3>
-          <form onSubmit={submitLog} className="add-content-form">
-            <div className="form-group">
-              <label className="form-label">Game Title</label>
-              <input 
-                className="form-input" 
-                value={logTitle} 
-                onChange={(e) => setLogTitle(e.target.value)} 
-                placeholder="The Legend of Zelda: Breath of the Wild"
-                required 
-              />
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
-              <div className="form-group">
-                <label className="form-label">Platform</label>
-                <select 
-                  className="form-input" 
-                  value={gamePlatform} 
-                  onChange={(e) => setGamePlatform(e.target.value)}
-                >
-                  <option value="">Select Platform</option>
-                  <option value="PC">PC</option>
-                  <option value="PlayStation 5">PlayStation 5</option>
-                  <option value="PlayStation 4">PlayStation 4</option>
-                  <option value="Xbox Series X/S">Xbox Series X/S</option>
-                  <option value="Xbox One">Xbox One</option>
-                  <option value="Nintendo Switch">Nintendo Switch</option>
-                  <option value="Nintendo 3DS">Nintendo 3DS</option>
-                  <option value="Mobile">Mobile</option>
-                  <option value="Other">Other</option>
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Genre</label>
-                <select 
-                  className="form-input" 
-                  value={gameGenre} 
-                  onChange={(e) => setGameGenre(e.target.value)}
-                >
-                  <option value="">Select Genre</option>
-                  <option value="Action">Action</option>
-                  <option value="Adventure">Adventure</option>
-                  <option value="RPG">RPG</option>
-                  <option value="Strategy">Strategy</option>
-                  <option value="Simulation">Simulation</option>
-                  <option value="Sports">Sports</option>
-                  <option value="Racing">Racing</option>
-                  <option value="Puzzle">Puzzle</option>
-                  <option value="Horror">Horror</option>
-                  <option value="Platformer">Platformer</option>
-                  <option value="Fighting">Fighting</option>
-                  <option value="Shooter">Shooter</option>
-                  <option value="Other">Other</option>
-                </select>
-              </div>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
-              <div className="form-group">
-                <label className="form-label">Release Year</label>
-                <input 
-                  className="form-input" 
-                  type="number"
-                  value={gameReleaseYear} 
-                  onChange={(e) => setGameReleaseYear(e.target.value)} 
-                  placeholder="2023"
-                  min="1950"
-                  max={new Date().getFullYear() + 2}
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Status</label>
-                <select 
-                  className="form-input" 
-                  value={gameStatus} 
-                  onChange={(e) => setGameStatus(e.target.value)}
-                >
-                  <option value="completed">Completed</option>
-                  <option value="playing">Playing</option>
-                  <option value="dropped">Dropped</option>
-                  <option value="on-hold">On Hold</option>
-                  <option value="wishlist">Wishlist</option>
-                </select>
-              </div>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
-              <div className="form-group">
-                <label className="form-label">Rating (1-10)</label>
-                <input 
-                  className="form-input" 
-                  type="number" 
-                  min="1" 
-                  max="10" 
-                  value={logRating} 
-                  onChange={(e) => setLogRating(e.target.value)} 
-                  required 
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Hours Played</label>
-                <input 
-                  className="form-input" 
-                  type="number"
-                  step="0.5"
-                  value={gameHoursPlayed} 
-                  onChange={(e) => setGameHoursPlayed(e.target.value)} 
-                  placeholder="25.5"
-                  min="0"
+                  value={noteContent}
+                  onChange={setNoteContent}
+                  modules={quillModules}
                 />
               </div>
             </div>
 
-            <div className="form-group">
-              <label className="form-label">Cover Image</label>
-              <input 
-                className="form-input" 
-                type="file"
-                accept="image/*"
-                onChange={(e) => setGameCoverImageFile(e.target.files[0])}
-              />
-              <p style={{ 
-                fontSize: '0.875rem', 
-                color: 'var(--color-text-light)', 
-                marginTop: '0.25rem' 
-              }}>
-                Upload a cover image (optional, max 5MB)
-              </p>
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Review / Notes</label>
-              <textarea 
-                className="form-textarea" 
-                value={logContent} 
-                onChange={(e) => setLogContent(e.target.value)}
-                placeholder="Your thoughts, review, or notes about this game..."
-                rows="6"
-                style={{ minHeight: '120px' }}
-              />
-            </div>
-
-            <div className="form-actions">
-              <button className="form-button form-button-primary" type="submit">
-                Add Game
+            <div className="admin-btn-group">
+              <button type="submit" className="admin-btn admin-btn-primary">
+                {editingNote ? 'Update Note' : 'Create Note'}
               </button>
             </div>
-            {status && (
-              <div style={{ 
-                marginTop: '1rem', 
-                padding: '1rem', 
-                background: status.includes('Error') ? 'rgba(255, 0, 0, 0.1)' : 'rgba(0, 255, 0, 0.1)',
-                border: `1px solid ${status.includes('Error') ? 'rgba(255, 0, 0, 0.3)' : 'rgba(0, 255, 0, 0.3)'}`,
-                borderRadius: '8px',
-                color: 'var(--color-text)',
-                fontSize: '0.95rem',
-                textAlign: 'center'
-              }}>
-                {status}
-              </div>
-            )}
           </form>
-        </section>
-      )}
-
-      {/* Movies, Series Form */}
-      {['movies', 'series'].includes(activeTab) && (
-        <section className="admin-section">
-          <h3 className="twitter-sidebar-title" style={{ marginBottom: 'var(--space-md)', fontSize: 'clamp(1rem, 3vw, 1.25rem)' }}>
-            Add {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} Entry
-          </h3>
-          <form onSubmit={submitLog} className="add-content-form">
-            <div className="form-group">
-              <label className="form-label">Title</label>
-              <input 
-                className="form-input" 
-                value={logTitle} 
-                onChange={(e) => setLogTitle(e.target.value)} 
-                placeholder={`Name of the ${activeTab === 'series' ? 'TV series' : 'movie'}`}
-                required 
-              />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Director</label>
-              <input 
-                className="form-input" 
-                value={screenDirector} 
-                onChange={(e) => setScreenDirector(e.target.value)} 
-                placeholder="Director name"
-              />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Genre</label>
-              <input 
-                className="form-input" 
-                value={screenGenre} 
-                onChange={(e) => setScreenGenre(e.target.value)} 
-                placeholder="Action, Drama, Sci-Fi, etc."
-              />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Release Year</label>
-              <input 
-                className="form-input" 
-                type="number" 
-                value={screenYear} 
-                onChange={(e) => setScreenYear(e.target.value)} 
-                placeholder="2024"
-                min="1900"
-                max="2100"
-              />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Cover Image</label>
-              <input 
-                className="form-input" 
-                type="file" 
-                accept="image/*"
-                onChange={(e) => setScreenCoverImageFile(e.target.files[0])}
-                style={{
-                  padding: '0.5rem',
-                  fontSize: '0.9rem',
-                  cursor: 'pointer'
-                }}
-              />
-              <small style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem', display: 'block', marginTop: '0.25rem' }}>
-                Upload a cover image (optional, max 5MB)
-              </small>
-            </div>
-            <div className="form-group">
-              <label className="form-label">Rating (1-10)</label>
-              <input 
-                className="form-input" 
-                type="number" 
-                min="1" 
-                max="10" 
-                value={logRating} 
-                onChange={(e) => setLogRating(e.target.value)} 
-                required 
-              />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Review / Notes</label>
-              <textarea 
-                className="form-textarea" 
-                value={logContent} 
-                onChange={(e) => setLogContent(e.target.value)}
-                placeholder="Your thoughts, review, or notes..."
-                rows="8"
-                style={{ minHeight: '200px' }}
-              />
-            </div>
-            <div className="form-actions">
-              <button className="form-button form-button-primary" type="submit">
-                Add {activeTab.charAt(0).toUpperCase() + activeTab.slice(0, -1)}
-              </button>
-            </div>
-            {status && (
-              <div style={{ 
-                marginTop: '1rem', 
-                padding: '1rem', 
-                background: status.includes('Error') ? 'rgba(255, 0, 0, 0.1)' : 'rgba(0, 255, 0, 0.1)',
-                border: `1px solid ${status.includes('Error') ? 'rgba(255, 0, 0, 0.3)' : 'rgba(0, 255, 0, 0.3)'}`,
-                borderRadius: '8px',
-                color: 'var(--color-text)',
-                fontSize: '0.95rem',
-                textAlign: 'center'
-              }}>
-                {status}
-              </div>
-            )}
-          </form>
-        </section>
-      )}
-
-      {/* Books Form */}
-      {activeTab === 'books' && (
-        <section className="admin-section">
-          <h3 className="twitter-sidebar-title" style={{ marginBottom: 'var(--space-md)', fontSize: 'clamp(1rem, 3vw, 1.25rem)' }}>
-            Add Book Entry
-          </h3>
-          <form onSubmit={submitLog} className="add-content-form">
-            <div className="form-group">
-              <label className="form-label">Title</label>
-              <input 
-                className="form-input" 
-                value={logTitle} 
-                onChange={(e) => setLogTitle(e.target.value)} 
-                placeholder="Name of the book"
-                required 
-              />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Author</label>
-              <input 
-                className="form-input" 
-                value={bookAuthor} 
-                onChange={(e) => setBookAuthor(e.target.value)} 
-                placeholder="Author name"
-              />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Genre</label>
-              <input 
-                className="form-input" 
-                value={bookGenre} 
-                onChange={(e) => setBookGenre(e.target.value)} 
-                placeholder="Fiction, Non-fiction, Mystery, etc."
-              />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Publication Year</label>
-              <input 
-                className="form-input" 
-                type="number" 
-                value={bookYear} 
-                onChange={(e) => setBookYear(e.target.value)} 
-                placeholder="2024"
-                min="1000"
-                max="2100"
-              />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Cover Image</label>
-              <input 
-                className="form-input" 
-                type="file" 
-                accept="image/*"
-                onChange={(e) => setBookCoverImageFile(e.target.files[0])}
-                style={{
-                  padding: '0.5rem',
-                  fontSize: '0.9rem',
-                  cursor: 'pointer'
-                }}
-              />
-              <small style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem', display: 'block', marginTop: '0.25rem' }}>
-                Upload a cover image (optional, max 5MB)
-              </small>
-            </div>
-            <div className="form-group">
-              <label className="form-label">Rating (1-10)</label>
-              <input 
-                className="form-input" 
-                type="number" 
-                min="1" 
-                max="10" 
-                value={logRating} 
-                onChange={(e) => setLogRating(e.target.value)} 
-                required 
-              />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Review / Notes</label>
-              <textarea 
-                className="form-textarea" 
-                value={logContent} 
-                onChange={(e) => setLogContent(e.target.value)}
-                placeholder="Your thoughts, review, or notes..."
-                rows="8"
-                style={{ minHeight: '200px' }}
-              />
-            </div>
-            <div className="form-actions">
-              <button className="form-button form-button-primary" type="submit">
-                Add {activeTab.charAt(0).toUpperCase() + activeTab.slice(0, -1)}
-              </button>
-            </div>
-            {status && (
-              <div style={{ 
-                marginTop: '1rem', 
-                padding: '1rem', 
-                background: status.includes('Error') ? 'rgba(255, 0, 0, 0.1)' : 'rgba(0, 255, 0, 0.1)',
-                border: `1px solid ${status.includes('Error') ? 'rgba(255, 0, 0, 0.3)' : 'rgba(0, 255, 0, 0.3)'}`,
-                borderRadius: '8px',
-                color: 'var(--color-text)',
-                fontSize: '0.95rem',
-                textAlign: 'center'
-              }}>
-                {status}
-              </div>
-            )}
-          </form>
-        </section>
-      )}
-
-      {/* Albums Management */}
-      {activeTab === 'music' && (
-        <>
-          <section className="admin-section">
-            <h3 className="twitter-sidebar-title" style={{ marginBottom: 'var(--space-md)', fontSize: 'clamp(1rem, 3vw, 1.25rem)' }}>
-              Create Album
-            </h3>
-            <form onSubmit={submitMusic} className="add-content-form">
-              <div className="form-group">
-                <label className="form-label">Album Name</label>
-                <input 
-                  className="form-input" 
-                  value={playlistName} 
-                  onChange={(e) => setPlaylistName(e.target.value)} 
-                  placeholder="Summer Vibes, 90s Classics, etc."
-                  required 
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Description (optional)</label>
-                <textarea 
-                  className="form-textarea" 
-                  value={playlistDescription} 
-                  onChange={(e) => setPlaylistDescription(e.target.value)}
-                  placeholder="A short description of the album"
-                  rows="3"
-                  style={{ minHeight: '80px' }}
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Cover Image (optional)</label>
-                <input
-                  className="form-input"
-                  type="file"
-                  accept="image/*"
-                  onChange={e => {
-                    const file = e.target.files[0];
-                    setPlaylistCoverFile(file);
-                    setPlaylistCoverPreview(file ? URL.createObjectURL(file) : null);
-                  }}
-                  style={{ padding: '0.5rem', fontSize: '0.9rem', cursor: 'pointer' }}
-                />
-                {playlistCoverPreview && (
-                  <img src={playlistCoverPreview} alt="Cover Preview" style={{ marginTop: 8, maxWidth: 120, borderRadius: 8 }} />
-                )}
-                <small style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem', display: 'block', marginTop: '0.25rem' }}>
-                  Upload a cover image (optional, max 5MB)
-                </small>
-              </div>
-              <div className="form-group">
-                <label className="form-label">Spotify URL (optional)</label>
-                <input 
-                  className="form-input" 
-                  type="url"
-                  value={spotifyUrl} 
-                  onChange={(e) => setSpotifyUrl(e.target.value)} 
-                  placeholder="https://open.spotify.com/playlist/..."
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">YouTube Music URL (optional)</label>
-                <input 
-                  className="form-input" 
-                  type="url"
-                  value={youtubeMusicUrl} 
-                  onChange={(e) => setYoutubeMusicUrl(e.target.value)} 
-                  placeholder="https://music.youtube.com/playlist?list=..."
-                />
-              </div>
-              <div className="form-actions">
-                <button className="form-button form-button-primary" type="submit">
-                  Create Album
-                </button>
-              </div>
-            </form>
-          </section>
-
-          <section className="admin-section">
-            <h3 className="twitter-sidebar-title" style={{ marginBottom: 'var(--space-md)', fontSize: 'clamp(1rem, 3vw, 1.25rem)' }}>
-              Manage Albums
-            </h3>
-            {playlists.length === 0 ? (
-              <p className="post-content">No albums yet. Create one above.</p>
-            ) : (
-              playlists.map(p => (
-                <div key={p.id} style={{ marginBottom: 'var(--space-lg)', padding: 'var(--space-md)', border: '1px solid var(--color-border)' }}>
-                  {editingPlaylist === p.id ? (
-                    <div style={{ marginBottom: 'var(--space-sm)' }}>
-                      <input 
-                        className="form-input" 
-                        defaultValue={p.name}
-                        id={`edit-name-${p.id}`}
-                        style={{ marginBottom: '0.5rem' }}
-                      />
-                      <textarea 
-                        className="form-textarea" 
-                        defaultValue={p.description}
-                        id={`edit-desc-${p.id}`}
-                        rows="2"
-                        style={{ minHeight: '60px', marginBottom: '0.5rem' }}
-                      />
-                      <input 
-                        className="form-input" 
-                        type="url"
-                        defaultValue={p.spotify_url || ''}
-                        id={`edit-spotify-${p.id}`}
-                        placeholder="Spotify URL"
-                        style={{ marginBottom: '0.5rem' }}
-                      />
-                      <input 
-                        className="form-input" 
-                        type="url"
-                        defaultValue={p.youtube_music_url || ''}
-                        id={`edit-youtube-${p.id}`}
-                        placeholder="YouTube Music URL"
-                        style={{ marginBottom: '0.5rem' }}
-                      />
-                      <div className="form-group" style={{ marginBottom: '0.5rem' }}>
-                        <label className="form-label">Cover Image (optional)</label>
-                        <input
-                          className="form-input"
-                          type="file"
-                          accept="image/*"
-                          id={`edit-cover-${p.id}`}
-                          onChange={e => {
-                            const file = e.target.files[0];
-                            setPlaylistCoverFile(file);
-                            setPlaylistCoverPreview(file ? URL.createObjectURL(file) : null);
-                          }}
-                          style={{ padding: '0.5rem', fontSize: '0.9rem', cursor: 'pointer' }}
-                        />
-                        {(playlistCoverPreview || p.cover_image_url) && (
-                          <img src={playlistCoverPreview || p.cover_image_url} alt="Cover Preview" style={{ marginTop: 8, maxWidth: 120, borderRadius: 8 }} />
-                        )}
-                        <small style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem', display: 'block', marginTop: '0.25rem' }}>
-                          Upload a cover image (optional, max 5MB)
-                        </small>
-                      </div>
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <button 
-                          className="form-button" 
-                          onClick={async () => {
-                            const name = document.getElementById(`edit-name-${p.id}`).value;
-                            const desc = document.getElementById(`edit-desc-${p.id}`).value;
-                            const spotify = document.getElementById(`edit-spotify-${p.id}`).value;
-                            const youtube = document.getElementById(`edit-youtube-${p.id}`).value;
-                            let coverImageUrl = p.cover_image_url;
-                            if (playlistCoverFile) {
-                              setStatus('Uploading cover image...');
-                              try {
-                                coverImageUrl = await uploadCoverImage(playlistCoverFile);
-                              } catch (uploadError) {
-                                setStatus(`Upload failed: ${uploadError.message}`);
-                                return;
-                              }
-                            }
-                            handleUpdatePlaylist(p.id, name, desc, spotify, youtube, coverImageUrl);
-                            setPlaylistCoverFile(null);
-                            setPlaylistCoverPreview(null);
-                          }}
-                          style={{ fontSize: '0.875rem' }}
-                        >
-                          Save
-                        </button>
-                        <button 
-                          className="form-button" 
-                          onClick={() => { setEditingPlaylist(null); setPlaylistCoverFile(null); setPlaylistCoverPreview(null); }}
-                          style={{ fontSize: '0.875rem' }}
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-sm)' }}>
-                      <div style={{ flex: 1 }}>
-                        <h4 style={{ margin: 0, fontSize: '1.125rem' }}>{p.name}</h4>
-                        {p.description && <p style={{ margin: '0.25rem 0 0', fontSize: '0.875rem', color: 'var(--color-text-light)' }}>{p.description}</p>}
-                      </div>
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <button 
-                          className="form-button" 
-                          onClick={() => setEditingPlaylist(p.id)}
-                          style={{ fontSize: '0.875rem' }}
-                        >
-                          Edit
-                        </button>
-                        <button 
-                          className="form-button" 
-                          onClick={() => handleDeletePlaylist(p.id)}
-                          style={{ fontSize: '0.875rem' }}
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  <button 
-                    className="form-button" 
-                    onClick={() => setActivePlaylist(activePlaylist === p.id ? null : p.id)}
-                    style={{ marginBottom: 'var(--space-sm)', fontSize: '0.875rem' }}
-                  >
-                    {activePlaylist === p.id ? '▾ Hide Songs' : '▸ Manage Songs'}
-                  </button>
-
-                  {activePlaylist === p.id && (
-                    <div style={{ marginTop: 'var(--space-md)' }}>
-                      {!showBulkInput ? (
-                        <>
-                          <div className="form-group">
-                            <label className="form-label" style={{ fontSize: '0.875rem' }}>Add Single Song</label>
-                            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.5fr 1.5fr 0.8fr', gap: 'var(--space-sm)', marginBottom: 'var(--space-sm)' }}>
-                              <input className="form-input" placeholder="Song title" value={songTitle} onChange={(e) => setSongTitle(e.target.value)} />
-                              <input className="form-input" placeholder="Album" value={songAlbum} onChange={(e) => setSongAlbum(e.target.value)} />
-                              <input className="form-input" placeholder="Artist" value={songArtist} onChange={(e) => setSongArtist(e.target.value)} />
-                              <input className="form-input" placeholder="Year" value={songYear} onChange={(e) => setSongYear(e.target.value)} />
-                            </div>
-                            <div style={{ display: 'flex', gap: '0.5rem' }}>
-                              <button className="form-button" onClick={() => handleAddSong(p.id)} style={{ fontSize: '0.875rem' }}>
-                                Add Song
-                              </button>
-                              <button className="form-button" onClick={() => setShowBulkInput(true)} style={{ fontSize: '0.875rem' }}>
-                                Add Multiple Songs
-                              </button>
-                            </div>
-                          </div>
-                        </>
-                      ) : (
-                        <div className="form-group">
-                          <label className="form-label" style={{ fontSize: '0.875rem' }}>
-                            Add Multiple Songs (one per line: Title | Artist | Album | Year)
-                          </label>
-                          <textarea 
-                            className="form-textarea"
-                            value={bulkSongs}
-                            onChange={(e) => setBulkSongs(e.target.value)}
-                            placeholder="Bohemian Rhapsody | Queen | A Night at the Opera | 1975&#10;Stairway to Heaven | Led Zeppelin | Led Zeppelin IV | 1971&#10;Hotel California | Eagles | Hotel California | 1976"
-                            rows="6"
-                            style={{ minHeight: '150px', fontFamily: 'monospace', fontSize: '0.875rem' }}
-                          />
-                          <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
-                            <button className="form-button" onClick={() => handleAddSongsBulk(p.id)} style={{ fontSize: '0.875rem' }}>
-                              Add All Songs
-                            </button>
-                            <button className="form-button" onClick={() => { setShowBulkInput(false); setBulkSongs(''); }} style={{ fontSize: '0.875rem' }}>
-                              Cancel
-                            </button>
-                          </div>
-                        </div>
-                      )}
-
-                      {p.songs && p.songs.length > 0 && (
-                        <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 'var(--space-md)', fontSize: '0.875rem' }}>
-                          <thead>
-                            <tr>
-                              <th style={{ border: '1px solid var(--color-border)', padding: '0.5rem', textAlign: 'left', background: 'var(--color-hover)' }}>Title</th>
-                              <th style={{ border: '1px solid var(--color-border)', padding: '0.5rem', textAlign: 'left', background: 'var(--color-hover)' }}>Album</th>
-                              <th style={{ border: '1px solid var(--color-border)', padding: '0.5rem', textAlign: 'left', background: 'var(--color-hover)' }}>Artist</th>
-                              <th style={{ border: '1px solid var(--color-border)', padding: '0.5rem', textAlign: 'left', background: 'var(--color-hover)' }}>Year</th>
-                              <th style={{ border: '1px solid var(--color-border)', padding: '0.5rem', background: 'var(--color-hover)' }}></th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {p.songs.map(s => (
-                              <tr key={s.id}>
-                                <td style={{ border: '1px solid var(--color-border)', padding: '0.5rem' }}>{s.title}</td>
-                                <td style={{ border: '1px solid var(--color-border)', padding: '0.5rem' }}>{s.album || '—'}</td>
-                                <td style={{ border: '1px solid var(--color-border)', padding: '0.5rem' }}>{s.artist}</td>
-                                <td style={{ border: '1px solid var(--color-border)', padding: '0.5rem' }}>{s.year || '—'}</td>
-                                <td style={{ border: '1px solid var(--color-border)', padding: '0.5rem', textAlign: 'center' }}>
-                                  <button className="form-button" onClick={() => handleDeleteSong(p.id, s.id)} style={{ fontSize: '0.75rem' }}>
-                                    Remove
-                                  </button>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ))
-            )}
-
-            {status && (
-              <div style={{ 
-                marginTop: '1rem', 
-                padding: '1rem', 
-                background: status.includes('Error') ? 'rgba(255, 0, 0, 0.1)' : 'rgba(0, 255, 0, 0.1)',
-                border: `1px solid ${status.includes('Error') ? 'rgba(255, 0, 0, 0.3)' : 'rgba(0, 255, 0, 0.3)'}`,
-                borderRadius: '8px',
-                color: 'var(--color-text)',
-                fontSize: '0.95rem',
-                textAlign: 'center'
-              }}>
-                {status}
-              </div>
-            )}
-          </section>
-        </>
-      )}
         </div>
-      </div>
+      )}
+
+      {/* PROJECTS TAB */}
+      {activeTab === 'projects' && (
+        <div>
+          <div style={{ marginBottom: '1.5rem' }}>
+            <h2 style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>Manage Projects</h2>
+            <p style={{ fontSize: '0.9rem', color: 'var(--color-text-muted)' }}>Showcase your experiments and builds on the /lab page.</p>
+          </div>
+
+          <div style={{ marginBottom: '2rem' }}>
+            <button
+              onClick={async () => {
+                setShowManageLibrary(!showManageLibrary);
+                if (!showManageLibrary) {
+                  try {
+                    const response = await fetch(`${API}/projects`);
+                    const data = await response.json();
+                    setLibraryItems(data);
+                  } catch (error) {
+                    setStatus('Failed to load projects');
+                  }
+                }
+              }}
+              className="admin-btn"
+            >
+              {showManageLibrary ? 'Hide' : 'Manage'} Projects
+            </button>
+          </div>
+
+          {showManageLibrary && (
+            <div className="admin-manage">
+              <h3 className="admin-manage-title" style={{ marginBottom: '1rem' }}>
+                Manage Projects
+              </h3>
+
+              {libraryItems.length === 0 ? (
+                <p style={{ textAlign: 'center', color: 'var(--color-text-muted)', padding: '2rem' }}>
+                  No projects found.
+                </p>
+              ) : (
+                <div className="admin-item-list">
+                  {libraryItems.map(item => (
+                    <div key={item.id} className="admin-item">
+                      <div className="admin-item-info">
+                        <div className="admin-item-title">{item.title}</div>
+                        <div className="admin-item-meta">{item.status || 'project'}</div>
+                      </div>
+                      <div className="admin-item-actions">
+                        <button onClick={() => {
+                          handleEditLibraryItem(item);
+                        }} className="admin-link-btn">
+                          Edit
+                        </button>
+                        <button onClick={async () => {
+                          if (!confirm('Delete this project?')) return;
+                          try {
+                            setStatus('Deleting...');
+                            const token = getStoredAdminToken();
+                            const response = await fetch(`${API}/projects/${item.id}`, {
+                              method: 'DELETE',
+                              headers: { Authorization: `Bearer ${token}` }
+                            });
+                            if (!response.ok) throw new Error('Delete failed');
+                            setStatus('Project deleted!');
+                            const refreshResponse = await fetch(`${API}/projects`);
+                            const data = await refreshResponse.json();
+                            setLibraryItems(data);
+                            setTimeout(() => setStatus(''), 2000);
+                          } catch (error) {
+                            setStatus(`Error: ${error.message}`);
+                          }
+                        }} className="admin-link-btn danger">
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <button onClick={async () => {
+                try {
+                  const response = await fetch(`${API}/projects`);
+                  const data = await response.json();
+                  setLibraryItems(data);
+                } catch (error) {
+                  setStatus('Failed to load projects');
+                }
+              }} className="admin-btn" style={{ marginTop: '1rem' }}>
+                Refresh
+              </button>
+            </div>
+          )}
+
+          <form onSubmit={async (e) => {
+            e.preventDefault();
+            try {
+              const isEditing = !!editingLibraryItem;
+              setStatus(isEditing ? 'Updating project...' : 'Creating project...');
+
+              const token = getStoredAdminToken();
+              const payload = {
+                title: libraryTitle,
+                description: libraryContent,
+                tech: projectTech ? projectTech.split(',').map(t => t.trim()).filter(Boolean) : [],
+                url: projectUrl || null,
+                github_url: projectGithubUrl || null,
+                status: libraryStatus
+              };
+
+              const response = await fetch(
+                isEditing ? `${API}/projects/${editingLibraryItem.id}` : `${API}/projects`,
+                {
+                  method: isEditing ? 'PUT' : 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
+                  },
+                  body: JSON.stringify(payload)
+                }
+              );
+
+              if (!response.ok) throw new Error('Operation failed');
+
+              setStatus(`Project ${isEditing ? 'updated' : 'created'}!`);
+              resetLibraryForm();
+              setEditingLibraryItem(null);
+
+              if (showManageLibrary) {
+                const refreshResponse = await fetch(`${API}/projects`);
+                const data = await refreshResponse.json();
+                setLibraryItems(data);
+              }
+              setTimeout(() => setStatus(''), 2000);
+            } catch (err) {
+              console.error(err);
+              setStatus(`Error: ${err.message || 'Failed'}`);
+            }
+          }} className="admin-form">
+            {editingLibraryItem && (
+              <div style={{ marginBottom: '1rem', padding: '0.75rem', background: 'var(--color-accent-bg)', borderRadius: '4px', fontSize: '0.9rem' }}>
+                Editing: <strong>{editingLibraryItem.title}</strong>
+                <button type="button" onClick={cancelEditLibrary} className="admin-link-btn" style={{ marginLeft: '1rem' }}>Cancel</button>
+              </div>
+            )}
+
+            <div className="admin-form-group">
+              <label className="admin-label">Project Title *</label>
+              <input
+                type="text"
+                value={libraryTitle}
+                onChange={(e) => setLibraryTitle(e.target.value)}
+                required
+                className="admin-input"
+                placeholder="Enter project title"
+              />
+            </div>
+
+            <div className="admin-form-group">
+              <label className="admin-label">Tech Stack (comma-separated)</label>
+              <input type="text" value={projectTech} onChange={(e) => setProjectTech(e.target.value)} placeholder="e.g. React, Node.js, AI" className="admin-input" />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div className="admin-form-group">
+                <label className="admin-label">Project URL</label>
+                <input type="url" value={projectUrl} onChange={(e) => setProjectUrl(e.target.value)} placeholder="https://..." className="admin-input" />
+              </div>
+              <div className="admin-form-group">
+                <label className="admin-label">GitHub URL</label>
+                <input type="url" value={projectGithubUrl} onChange={(e) => setProjectGithubUrl(e.target.value)} placeholder="https://github.com/..." className="admin-input" />
+              </div>
+            </div>
+
+            <div className="admin-form-group">
+              <label className="admin-label">Status</label>
+              <select value={libraryStatus} onChange={(e) => setLibraryStatus(e.target.value)} className="admin-select">
+                <option value="work_in_progress">Work in Progress</option>
+                <option value="idea">Idea</option>
+                <option value="maintained">Maintained</option>
+                <option value="archived">Archived</option>
+              </select>
+            </div>
+
+            <div className="admin-form-group">
+              <label className="admin-label">Description *</label>
+              <textarea
+                value={libraryContent}
+                onChange={(e) => setLibraryContent(e.target.value)}
+                rows="6"
+                className="admin-textarea"
+                placeholder="Enter project description"
+                required
+              />
+            </div>
+
+
+
+            <div className="admin-btn-group">
+              <button type="submit" className="admin-btn admin-btn-primary">
+                {editingLibraryItem ? 'Update' : 'Create'} Project
+              </button>
+              {editingLibraryItem && (
+                <button type="button" onClick={cancelEditLibrary} className="admin-btn">
+                  Cancel
+                </button>
+              )}
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* LIBRARY TAB */}
+      {activeTab === 'library' && (
+        <div>
+          <div style={{ marginBottom: '2rem', display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            <select
+              value={libraryCategory}
+              onChange={(e) => {
+                setLibraryCategory(e.target.value);
+                resetLibraryForm();
+                if (e.target.value === 'music') loadPlaylists();
+              }}
+              className="admin-select"
+              style={{ maxWidth: '200px' }}
+            >
+              {LIBRARY_CATEGORIES.map(cat => (
+                <option key={cat.value} value={cat.value}>{cat.label}</option>
+              ))}
+            </select>
+
+            <button
+              onClick={() => {
+                setShowManageLibrary(!showManageLibrary);
+                if (!showManageLibrary) {
+                  loadLibraryItems();
+                }
+              }}
+              className="admin-btn"
+            >
+              {showManageLibrary ? 'Hide' : 'Manage'} {LIBRARY_CATEGORIES.find(c => c.value === libraryCategory)?.label}
+            </button>
+          </div>
+
+          {showManageLibrary && (
+            <div className="admin-manage">
+              <h3 className="admin-manage-title" style={{ marginBottom: '1rem' }}>
+                Manage {LIBRARY_CATEGORIES.find(c => c.value === libraryCategory)?.label}
+              </h3>
+
+              {libraryItems.length === 0 ? (
+                <p style={{ textAlign: 'center', color: 'var(--color-text-muted)', padding: '2rem' }}>
+                  No items found.
+                </p>
+              ) : (
+                <div className="admin-item-list">
+                  {libraryItems.map(item => (
+                    <div key={item.id} className="admin-item">
+                      <div className="admin-item-info">
+                        <div className="admin-item-title">{item.title}</div>
+                        {item.rating && <div className="admin-item-meta">★ {item.rating}/10</div>}
+                      </div>
+                      <div className="admin-item-actions">
+                        <button onClick={() => handleEditLibraryItem(item)} className="admin-link-btn">
+                          Edit
+                        </button>
+                        <button onClick={() => handleDeleteLibraryItem(item.log_id || item.id)} className="admin-link-btn danger">
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <button onClick={() => loadLibraryItems()} className="admin-btn" style={{ marginTop: '1rem' }}>
+                Refresh
+              </button>
+            </div>
+          )}
+
+          <form onSubmit={submitLibrary} className="admin-form">
+            {editingLibraryItem && (
+              <div style={{ marginBottom: '1rem', padding: '0.75rem', background: 'var(--color-accent-bg)', borderRadius: '4px', fontSize: '0.9rem' }}>
+                Editing: <strong>{editingLibraryItem.title}</strong>
+                <button type="button" onClick={cancelEditLibrary} className="admin-link-btn" style={{ marginLeft: '1rem' }}>Cancel</button>
+              </div>
+            )}
+
+            <div className="admin-form-group">
+              <label className="admin-label">Title *</label>
+              <input
+                type="text"
+                value={libraryTitle}
+                onChange={(e) => setLibraryTitle(e.target.value)}
+                required
+                className="admin-input"
+                placeholder={`Enter ${libraryCategory} title`}
+              />
+            </div>
+
+            {libraryCategory === 'music' && (
+              <div className="admin-form-group">
+                <label className="admin-label">Artist</label>
+                <input
+                  type="text"
+                  value={libraryArtist}
+                  onChange={(e) => setLibraryArtist(e.target.value)}
+                  placeholder="Artist Name"
+                  className="admin-input"
+                />
+              </div>
+            )}
+
+            {libraryCategory === 'games' && (
+              <div className="admin-form-group">
+                <label className="admin-label">Developer</label>
+                <input
+                  type="text"
+                  value={libraryDeveloper}
+                  onChange={(e) => setLibraryDeveloper(e.target.value)}
+                  placeholder="Developer Studio"
+                  className="admin-input"
+                />
+              </div>
+            )}
+            {libraryCategory === 'games' && (
+              <div className="admin-form-group">
+                <label className="admin-label">Platform</label>
+                <input
+                  type="text"
+                  value={libraryPlatform}
+                  onChange={(e) => setLibraryPlatform(e.target.value)}
+                  placeholder="e.g. PC, PS5, Switch"
+                  className="admin-input"
+                />
+              </div>
+            )}
+
+            {(libraryCategory === 'movies' || libraryCategory === 'tv') && (
+              <div className="admin-form-group">
+                <label className="admin-label">Director</label>
+                <input
+                  type="text"
+                  value={libraryDirector}
+                  onChange={(e) => setLibraryDirector(e.target.value)}
+                  placeholder="Director Name"
+                  className="admin-input"
+                />
+              </div>
+            )}
+
+            <div className="admin-form-group">
+              <label className="admin-label">Year of Release</label>
+              <input
+                type="text"
+                value={libraryYear}
+                onChange={(e) => setLibraryYear(e.target.value)}
+                placeholder="e.g., 2023"
+                className="admin-input"
+              />
+            </div>
+
+            <div className="admin-form-group">
+              <label className="admin-label">Rating (1-10)</label>
+              <input
+                type="number"
+                min="1"
+                max="10"
+                value={libraryRating}
+                onChange={(e) => setLibraryRating(parseInt(e.target.value))}
+                className="admin-input"
+              />
+            </div>
+
+            <div className="admin-form-group">
+              <label className="admin-label">Review / Thoughts</label>
+              <div className="admin-editor">
+                <ReactQuill
+                  ref={quillRef}
+                  theme="snow"
+                  value={libraryContent}
+                  onChange={setLibraryContent}
+                  modules={quillModules}
+                />
+              </div>
+            </div>
+
+            <div className="admin-form-group">
+              <label className="admin-label">Cover Image</label>
+              <input type="file" accept="image/*" onChange={handleLibraryCoverChange} style={{ display: 'block', marginBottom: '0.5rem' }} />
+              {libraryCoverPreview && (
+                <img src={libraryCoverPreview} alt="Preview" style={{ maxWidth: '200px', maxHeight: '300px', border: '1px solid var(--color-border)', borderRadius: '4px', marginTop: '0.5rem' }} />
+              )}
+            </div>
+
+            <div className="admin-btn-group">
+              <button type="submit" className="admin-btn admin-btn-primary">
+                {editingLibraryItem ? 'Update' : 'Create'} {LIBRARY_CATEGORIES.find(c => c.value === libraryCategory)?.label} Entry
+              </button>
+              {editingLibraryItem && (
+                <button type="button" onClick={cancelEditLibrary} className="admin-btn">
+                  Cancel
+                </button>
+              )}
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 }
-
-
-
-
-
-
-
-

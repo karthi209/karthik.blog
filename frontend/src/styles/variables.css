@@ -1,27 +1,34 @@
 :root {
-  /* Font families - Univers */
-  --font-heading: "Univers", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-title: "Univers", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-body: "Univers", -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  --font-ui: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  /* Font families - Unique, Creative Open Source Fonts
+   * 
+   * Syne: Creative variable font designed for Synesthésie art center
+   * Instrument Serif: Elegant condensed display serif for large headings
+   * Literata: Highly readable serif designed for e-books, unique letterforms
+   * IBM Plex Mono: Classic monospace with personality
+   * Bricolage Grotesque: Variable font with French attitude for brand
+   */
+  --font-brand: "Bricolage Grotesque", "Arial Black", sans-serif;  /* Unique variable font for site title */
+  --font-heading: "Syne", "Helvetica Neue", sans-serif;            /* Creative condensed for post titles */
+  --font-title: "Instrument Serif", "Georgia", serif;              /* Elegant serif for display */
+  --font-body: "Literata", "Georgia", serif;                       /* Highly readable serif for content */
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;    /* Classic mono with personality */
+  --font-ui: "Inter", system-ui, sans-serif;                       /* Clean UI elements */
 
   /* Font weights */
   --weight-normal: 400;
-  --weight-medium: 400;
-  --weight-semibold: 700;
-  --size-body: 15px; /* per request */
-  --weight-extra-bold: 700;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+  --weight-extra-bold: 800;
 
-  /* Font sizes - modern responsive scale */
+  /* Font sizes */
   --size-title-large: clamp(2rem, 4vw, 2.5rem);
   --size-title: clamp(1.75rem, 3.2vw, 2rem);
-  --line-height-body: 23px; /* per request */
-  --size-body: 1.0625rem; /* ~17px */
-  --size-small: 0.9375rem; /* ~15px */
-  --size-caption: 0.875rem; /* ~14px */
-  --weight-normal: 450; /* requested body weight */
-  /* Proportions - generous line height for readability */
+  --size-body: 1.0625rem;
+  --size-small: 0.9375rem;
+  --size-caption: 0.875rem;
+
+  /* Line heights */
   --line-height-title: 1.25;
   --line-height-body: 1.7;
   --paragraph-spacing: 1.5rem;
@@ -31,24 +38,49 @@
   --spacing-heading: 0;
   --spacing-body: 0;
 
-  /* Night Plum Theme - unique, modern, highly readable */
-  --color-text: #f0eef8;
-  --color-text-light: #cfcce0;
-  --color-text-muted: #9d99b8;
-  --color-text-dark: #1c1928;
-  --color-border: #28263a;
-  --color-border-light: #3a3651;
-  --color-background: #0b0a10;
-  --color-surface: #13121a;
-  --color-surface-hover: #171625;
-  --color-hover: rgba(162, 109, 242, 0.08);
-  --color-accent: #a26df2;
-  --color-accent-hover: #b586f7;
-  --color-success: #4dd4a1;
-  --color-warning: #f1b561;
-  --color-error: #ef6a6a;
-  --color-info: #7bb8ff;
-  --color-secondary: #8aa2c5;
+  /* 
+   * COZY DARK THEME - Lighter background for better detail visibility
+   */
+  --color-text: #F5F3F0;
+  /* Warm white */
+  --color-text-light: #E0DCD6;
+  /* Secondary text */
+  --color-text-muted: #9A958E;
+  /* Muted text */
+  --color-text-dark: #1A1816;
+
+  --color-border: #44404a;
+  /* Lifted warm border - more visible */
+  --color-border-light: #5A554E;
+
+  --color-background: #121213;
+  /* Lifted charcoal - better for details */
+  --color-surface: #121213;
+  /* More visible surface */
+  --color-surface-hover: #3D3A35;
+
+  --color-hover: rgba(94, 190, 180, 0.12);
+  --color-accent: #6BCEC4;
+  --color-accent-hover: #8EDED6;
+  --color-success: #8DC89C;
+  --color-warning: #E4B86A;
+  --color-error: #D48A8A;
+  --color-info: #8AAED4;
+  --color-secondary: #B0AAA2;
+
+  /* Category Colors - Brighter for dark theme visibility */
+  --color-blog: #FF5A5E;      /* Brighter red */
+  --color-blog-bg: rgba(255, 90, 94, 0.18);
+  --color-notes: #F5B82E;     /* Brighter amber */
+  --color-notes-bg: rgba(245, 184, 46, 0.18);
+  --color-library: #B85DBB;   /* Brighter purple */
+  --color-library-bg: rgba(184, 93, 187, 0.18);
+  --color-projects: #4FC868;  /* Brighter green */
+  --color-projects-bg: rgba(79, 200, 104, 0.18);
+  --color-music: #FF9A3E;     /* Brighter orange */
+  --color-music-bg: rgba(255, 154, 62, 0.18);
+  --color-games: #5A7AEE;     /* Brighter blue */
+  --color-games-bg: rgba(90, 122, 238, 0.18);
 
   /* Spacing */
   --space-3xs: 0.25rem;
@@ -59,61 +91,102 @@
   --space-lg: 2rem;
   --space-xl: 3rem;
   --space-2xl: 4rem;
-  
+
   /* Layout */
   --container-padding: var(--space-md);
   --section-spacing: var(--space-2xl);
   --item-spacing: var(--space-lg);
   --page-margin: 1.5rem;
-  
-  /* Borders */
+
+  --content-max: 1200px;
+  --content-gutter: 1.5rem;
+
+  /* Borders - sharp edges for retro feel */
   --border-thin: 1px;
   --border-regular: 2px;
   --border-thick: 3px;
-  --border-radius: 10px;
-  --border-radius-sm: 8px;
-  --border-radius-lg: 14px;
+  --border-radius: 0;
+  /* Sharp corners = retro */
+  --border-radius-sm: 0;
+  --border-radius-lg: 0;
 
-  /* Transitions */
-  --transition-speed: 0.12s;
+  /* Transitions - snappy, instant-feeling */
+  --transition-speed: 0.15s;
+  --transition-fast: 0.08s;
+  --transition-slow: 0.25s;
   --transition-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-in-out-quart: cubic-bezier(0.76, 0, 0.24, 1);
+  --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  
+  /* Animation timing - subtle, fast */
+  --hover-lift: -2px;
+  --hover-scale: 1.01;
+  --active-scale: 0.99;
 
-  /* Shadows */
-  --shadow-sm: 0 10px 24px rgba(10, 8, 20, 0.35);
-  --shadow-md: 0 16px 36px rgba(10, 8, 20, 0.45);
+  /* Shadows - subtle ambient occlusion */
+  --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.8);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.9);
 
-  /* Offset "3D" shadow used across bordered UI elements */
-  --shadow-3d-sm: 1px 1px 0 0 rgba(240, 238, 248, 0.18);
-  --shadow-3d: 2px 2px 0 0 rgba(240, 238, 248, 0.18);
+  --shadow-soft: 0 10px 30px rgba(0, 0, 0, 0.45);
+  --shadow-soft-sm: 0 6px 18px rgba(0, 0, 0, 0.35);
+
+  /* 3D offset shadows - retro hard edge */
+  --shadow-3d-sm: 2px 2px 0 0 var(--color-text-muted);
+  /* Softer 3D edge */
+  --shadow-3d: 3px 3px 0 0 var(--color-text-muted);
+  /* Softer 3D edge */
+
+  --underline-color: color-mix(in srgb, var(--color-accent) 55%, transparent);
+  --color-hover-soft: color-mix(in srgb, var(--color-accent) 14%, transparent);
 }
 
-/* Light Theme inspired by minimalist blog aesthetics */
+/* 
+ * COZY LIGHT THEME - Warm cream, teal accent
+ */
 [data-theme="light"] {
-  --color-text: #1b1b1f;
-  --color-text-light: #35363a;
-  --color-text-muted: #5f6067;
-  --color-text-dark: #0f1115;
-  --color-border: #e6e8eb;
-  --color-border-light: #f0f1f3;
-  --color-background: #ffffff;
-  --color-surface: #ffffff;
-  --color-surface-hover: #fafbfc;
-  --color-hover: rgba(52, 87, 235, 0.08);
-  --color-accent: #335dff; /* calm blue */
-  --color-accent-hover: #2448d6;
-  --color-success: #0f9d58;
-  --color-warning: #e9b04a;
-  --color-error: #d93025;
-  --color-info: #2f7df6;
-  --color-secondary: #667085;
+  --color-text: #2A2622;
+  /* Warm dark */
+  --color-text-light: #4A4540;
+  --color-text-muted: #7A756E;
+  --color-text-dark: #1A1816;
 
-  --border-radius: 10px;
-  --border-radius-sm: 8px;
-  --border-radius-lg: 14px;
+  --color-border: #D5D0CA;
+  /* Warm neutral border */
+  --color-border-light: #E5E0DA;
 
-  --shadow-sm: 0 2px 10px rgba(17, 24, 39, 0.05);
-  --shadow-md: 0 8px 24px rgba(17, 24, 39, 0.08);
+  --color-background: #FAF8F5;
+  /* Warm off-white */
+  --color-surface: #FFFFFF;
+  --color-surface-hover: #F5F2EE;
 
-  --shadow-3d-sm: 1px 1px 0 0 rgba(17, 24, 39, 0.12);
-  --shadow-3d: 2px 2px 0 0 rgba(17, 24, 39, 0.12);
+  --color-hover: rgba(58, 140, 132, 0.08);
+  --color-accent: #3A8C84;
+  /* Deeper teal for light mode */
+  --color-accent-hover: #2D6E68;
+  --color-success: #4A8A5A;
+  /* Forest green */
+  --color-warning: #B8923A;
+  --color-error: #B85A5A;
+  --color-info: #4A7AA8;
+  --color-secondary: #6A655E;
+
+  /* Softer corners for cozy feel */
+  --border-radius: 2px;
+  --border-radius-sm: 2px;
+  --border-radius-lg: 4px;
+
+  --shadow-sm: 0 2px 8px rgba(45, 36, 25, 0.06);
+  --shadow-md: 0 4px 16px rgba(45, 36, 25, 0.08);
+
+  --shadow-soft: 0 14px 34px rgba(45, 36, 25, 0.10);
+  --shadow-soft-sm: 0 8px 20px rgba(45, 36, 25, 0.08);
+
+  /* 3D shadows using warm color */
+  --shadow-3d-sm: 2px 2px 0 0 #5C4F3D;
+  --shadow-3d: 3px 3px 0 0 #5C4F3D;
+
+  --underline-color: color-mix(in srgb, var(--color-accent) 50%, transparent);
+  --color-hover-soft: color-mix(in srgb, var(--color-accent) 10%, transparent);
 }

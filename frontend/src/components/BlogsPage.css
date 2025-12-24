@@ -1,7 +1,7 @@
 .blogs-container {
-  max-width: 1200px;
+  max-width: var(--content-max);
   margin: 0 auto;
-  padding: 2rem 1.5rem;
+  padding: 2rem var(--content-gutter);
 }
 
 .blog-main {
@@ -202,48 +202,31 @@
   flex: 1;
   height: 100%;
   border-radius: 0;
-  animation: colorPulse 2.4s infinite ease-in-out both;
+  animation: none;
 }
 
 .loading-dots span:nth-child(1) {
-  background: #FF6B9D;
-  animation-delay: 0s;
+  background: #E54B4B;
 }
 
 .loading-dots span:nth-child(2) {
-  background: #FEC46D;
-  animation-delay: 0.4s;
+  background: #FFA630;
 }
 
 .loading-dots span:nth-child(3) {
-  background: #C3F584;
-  animation-delay: 0.8s;
+  background: #F9E74A;
 }
 
 .loading-dots span:nth-child(4) {
-  background: #5ECFFF;
-  animation-delay: 1.2s;
+  background: #7BC950;
 }
 
 .loading-dots span:nth-child(5) {
-  background: #B19CD9;
-  animation-delay: 1.6s;
+  background: #4ECDC4;
 }
 
 .loading-dots span:nth-child(6) {
-  background: #FF8FB1;
-  animation-delay: 2s;
-}
-
-@keyframes colorPulse {
-  0%, 100% {
-    opacity: 0.3;
-    transform: scaleY(0.6);
-  }
-  50% {
-    opacity: 1;
-    transform: scaleY(1);
-  }
+  background: #5B7FFF;
 }
 
 .loading-text {
@@ -293,12 +276,157 @@
     gap: 1.25rem;
     padding: 1.25rem 0;
   }
-  
+
   .filter-group {
     width: 100%;
   }
-  
+
   .filter-select {
     width: 100%;
   }
+}
+
+/* ============================================
+   RETRO 3D TABS - Timeline/Anthologies Switch
+   ============================================ */
+.blog-tabs {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  margin-bottom: 0;
+}
+
+.blog-tab {
+  background: var(--color-background);
+  border: 2px solid var(--color-text);
+  color: var(--color-text);
+  padding: 0.5rem 1rem;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  position: relative;
+  box-shadow: 3px 3px 0 0 var(--color-text);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 500;
+}
+
+.blog-tab:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  box-shadow: 3px 3px 0 0 var(--color-accent),
+    0 0 12px rgba(107, 206, 196, 0.3);
+}
+
+.blog-tab:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 0 var(--color-text);
+}
+
+.blog-tab.active {
+  background: var(--color-background);
+  color: var(--color-text);
+  border-color: var(--color-text);
+  box-shadow: 3px 3px 0 0 var(--color-text);
+  border-bottom: 3px solid;
+  border-image: linear-gradient(to right, #61BB46, #FDB827, #F5821F, #E03A3E, #963D97, #009DDC) 1;
+}
+
+.blog-tab.active:hover {
+  box-shadow: 3px 3px 0 0 var(--color-text),
+    0 0 12px rgba(107, 206, 196, 0.25);
+}
+
+/* ============================================
+   ANTHOLOGIES GRID & CARDS
+   ============================================ */
+.anthologies-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin-top: 0.5rem;
+}
+
+.anthology-card {
+  background: var(--color-surface);
+  border: 2px solid var(--color-border);
+  padding: 1.25rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  box-shadow: var(--shadow-3d);
+}
+
+.anthology-card:hover {
+  border-color: var(--color-accent);
+  box-shadow: var(--shadow-3d);
+}
+
+.anthology-title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.anthology-count {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-accent);
+  margin: 0;
+}
+
+.anthology-schema-desc {
+  margin: 0.25rem 0 0 0;
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  line-clamp: 3;
+  overflow: hidden;
+}
+
+.anthology-desc {
+  font-size: 1rem;
+  color: var(--color-text-light);
+  margin-bottom: 1.5rem;
+  max-width: 60ch;
+  line-height: 1.6;
+}
+
+/* Retro Back Button */
+.retro-button-sm {
+  background: var(--color-background);
+  border: 2px solid var(--color-text);
+  padding: 0.35rem 0.75rem;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: border-color 0.12s ease, color 0.12s ease, background 0.12s ease;
+  color: var(--color-text);
+  margin-right: 1rem;
+  box-shadow: 2px 2px 0 0 var(--color-text);
+}
+
+.retro-button-sm:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.retro-button-sm:active {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+/* Fade In Animation */
+.fade-in {
+  animation: none;
 }
