@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
 import DOMPurify from 'dompurify';
 import { fetchViewCount } from '../services/views';
-import './BlogPost.css';
+import '../styles/components/BlogPost.css';
 
 export default function NoteDetail() {
   const { id: paramId } = useParams();
@@ -32,8 +32,10 @@ export default function NoteDetail() {
         if (!res.ok) {
           throw new Error(res.status === 404 ? 'Note not found' : 'Failed to fetch note');
         }
-        const data = await res.json();
-        setNote(data);
+        const result = await res.json();
+        // Backend returns {success: true, data: {...}}
+        const noteData = result.data || result;
+        setNote(noteData);
       } catch (e) {
         setError(e.message);
       } finally {

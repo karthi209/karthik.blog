@@ -43,7 +43,7 @@
    */
   --color-text: #F5F3F0;
   /* Warm white */
-  --color-text-light: #E0DCD6;
+  --color-text-light: #d6d6e0;
   /* Secondary text */
   --color-text-muted: #9A958E;
   /* Muted text */
@@ -60,7 +60,7 @@
   --color-surface-hover: #3D3A35;
 
   --color-hover: rgba(94, 190, 180, 0.12);
-  --color-accent: #6BCEC4;
+  --color-accent: #80f4e8;
   --color-accent-hover: #8EDED6;
   --color-success: #8DC89C;
   --color-warning: #E4B86A;
@@ -162,7 +162,7 @@
   --color-surface-hover: #F5F2EE;
 
   --color-hover: rgba(58, 140, 132, 0.08);
-  --color-accent: #3A8C84;
+  --color-accent: #264946;
   /* Deeper teal for light mode */
   --color-accent-hover: #2D6E68;
   --color-success: #4A8A5A;

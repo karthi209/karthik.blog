@@ -13,7 +13,9 @@ export const adminListNotes = async () => {
     headers: { ...authHeaders() }
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json();
+  const result = await res.json();
+  // Backend returns {success: true, data: [...]}
+  return result.data || result;
 };
 
 export const adminCreateNote = async ({ title, content, tags }) => {

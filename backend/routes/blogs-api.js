@@ -4,20 +4,21 @@ import fs from 'fs/promises';
 import path from 'path';
 import cache from '../cache.js';
 import { authenticateApiKey } from '../middleware/auth.js';
+import { logger } from '../utils/logger.js';
+import { asyncHandler } from '../middleware/errorHandler.js';
+import { validateRequestBody, FIELD_LIMITS } from '../middleware/validation.js';
+import { createResponse, updateResponse, deleteResponse, successResponse } from '../utils/response.js';
 
 const router = Router();
 // Use shared cache instance
 
 // Create blog from markdown file upload
-router.post('/from-file', authenticateApiKey, async (req, res) => {
-  try {
-    const { title, category, markdownContent } = req.body;
-
-    if (!title || !category || !markdownContent) {
-      return res.status(400).json({
-        message: 'Title, category, and markdownContent are required'
-      });
-    }
+router.post('/from-file', authenticateApiKey, validateRequestBody({
+  title: { type: 'string', required: true, maxLength: FIELD_LIMITS.TITLE },
+  category: { type: 'string', required: true, maxLength: FIELD_LIMITS.CATEGORY, enum: ['tech', 'life', 'music', 'games', 'movies', 'tv', 'books'] },
+  markdownContent: { type: 'string', required: true, maxLength: FIELD_LIMITS.CONTENT }
+}), asyncHandler(async (req, res) => {
+  const { title, category, markdownContent } = req.body;
 
     const result = await pool.query(
       `INSERT INTO blogs (title, content, category)
@@ -28,29 +29,53 @@ router.post('/from-file', authenticateApiKey, async (req, res) => {
 
     const blog = { ...result.rows[0], _id: result.rows[0].id };
 
-    // Invalidate all blog-related caches
+    // Invalidate specific blog-related caches (more efficient than flushAll)
     cache.del('homepage-data');
     cache.del('categories');
     cache.del('archives');
-    cache.flushAll(); // Safety: clear all list caches
 
-    res.status(201).json(blog);
-  } catch (error) {
-    console.error('Error creating blog from file:', error);
-    res.status(400).json({ message: error.message });
-  }
-});
+    const { response, statusCode } = createResponse(blog, 'Blog created successfully');
+    res.status(statusCode).json(response);
+}));
 
+/**
+ * @swagger
+ * /blogs/create:
+ *   post:
+ *     summary: Create blog from direct content
+ *     tags: [Blogs]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - title
+ *               - content
+ *               - category
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 maxLength: 255
+ *               content:
+ *                 type: string
+ *               category:
+ *                 type: string
+ *                 enum: [tech, life, music, games, movies, tv, books]
+ *     responses:
+ *       201:
+ *         description: Blog created successfully
+ */
 // Create blog from direct content (simple API)
-router.post('/create', authenticateApiKey, async (req, res) => {
-  try {
+router.post('/create', authenticateApiKey, validateRequestBody({
+  title: { type: 'string', required: true, maxLength: FIELD_LIMITS.TITLE },
+  content: { type: 'string', required: true, maxLength: FIELD_LIMITS.CONTENT },
+  category: { type: 'string', required: true, maxLength: FIELD_LIMITS.CATEGORY, enum: ['tech', 'life', 'music', 'games', 'movies', 'tv', 'books'] }
+}), asyncHandler(async (req, res) => {
     const { title, content, category } = req.body;
-
-    if (!title || !content || !category) {
-      return res.status(400).json({
-        message: 'Title, content, and category are required'
-      });
-    }
 
     const result = await pool.query(
       `INSERT INTO blogs (title, content, category)
@@ -61,30 +86,23 @@ router.post('/create', authenticateApiKey, async (req, res) => {
 
     const blog = { ...result.rows[0], _id: result.rows[0].id };
 
-    // Invalidate all blog-related caches
+    // Invalidate specific blog-related caches
     cache.del('homepage-data');
     cache.del('categories');
     cache.del('archives');
-    cache.flushAll(); // Safety: clear all cached blog lists
 
-    res.status(201).json({
-      success: true,
-      message: 'Blog created successfully',
-      blog
-    });
-  } catch (error) {
-    console.error('Error creating blog:', error);
-    res.status(400).json({ message: error.message });
-  }
-});
+    const { response, statusCode } = createResponse(blog, 'Blog created successfully');
+    res.status(statusCode).json(response);
+}));
 
 // Bulk create blogs from multiple markdown files
-router.post('/bulk-create', authenticateApiKey, async (req, res) => {
-  try {
+router.post('/bulk-create', authenticateApiKey, validateRequestBody({
+  blogs: { type: 'object', required: true } // Array validation handled in route
+}), asyncHandler(async (req, res) => {
     const { blogs } = req.body; // Array of { title, content, category }
 
     if (!Array.isArray(blogs) || blogs.length === 0) {
-      return res.status(400).json({ message: 'blogs array is required' });
+      return res.status(400).json({ success: false, message: 'blogs array is required' });
     }
 
     const results = [];
@@ -108,42 +126,31 @@ router.post('/bulk-create', authenticateApiKey, async (req, res) => {
     // Invalidate homepage cache
     cache.del('homepage-data');
 
-    res.status(201).json({
-      success: true,
-      message: `Created ${results.length} blog(s)`,
-      blogs: results
-    });
-  } catch (error) {
-    console.error('Error bulk creating blogs:', error);
-    res.status(400).json({ message: error.message });
-  }
-});
+    const { response, statusCode } = createResponse(
+      { blogs: results },
+      `Created ${results.length} blog(s)`
+    );
+    res.status(statusCode).json(response);
+}));
 
 // Admin: Get all blogs including drafts
-router.get('/admin/list', authenticateApiKey, async (req, res) => {
-  try {
-    const result = await pool.query(
-      'SELECT id, title, category, created_at, updated_at FROM blogs ORDER BY created_at DESC'
-    );
-    const blogs = result.rows.map(blog => ({ ...blog, _id: blog.id }));
-    res.json(blogs);
-  } catch (error) {
-    console.error('Error fetching blogs:', error);
-    res.status(500).json({ message: error.message });
-  }
-});
+router.get('/admin/list', authenticateApiKey, asyncHandler(async (req, res) => {
+  const result = await pool.query(
+    'SELECT id, title, category, created_at, updated_at FROM blogs ORDER BY created_at DESC'
+  );
+  const blogs = result.rows.map(blog => ({ ...blog, _id: blog.id }));
+  const { response } = successResponse(blogs);
+  res.json(response);
+}));
 
 // Admin: Update blog
-router.put('/admin/:id', authenticateApiKey, async (req, res) => {
-  try {
+router.put('/admin/:id', authenticateApiKey, validateRequestBody({
+  title: { type: 'string', required: true, maxLength: FIELD_LIMITS.TITLE },
+  content: { type: 'string', required: true, maxLength: FIELD_LIMITS.CONTENT },
+  category: { type: 'string', required: true, maxLength: FIELD_LIMITS.CATEGORY, enum: ['tech', 'life', 'music', 'games', 'movies', 'tv', 'books'] }
+}), asyncHandler(async (req, res) => {
     const { id } = req.params;
     const { title, content, category } = req.body;
-
-    if (!title || !content || !category) {
-      return res.status(400).json({
-        message: 'Title, content, and category are required'
-      });
-    }
 
     const result = await pool.query(
       `UPDATE blogs 
@@ -154,38 +161,31 @@ router.put('/admin/:id', authenticateApiKey, async (req, res) => {
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ message: 'Blog not found' });
+      return res.status(404).json({ success: false, message: 'Blog not found' });
     }
 
     cache.del('homepage-data');
     const blog = { ...result.rows[0], _id: result.rows[0].id };
-    res.json({ success: true, message: 'Blog updated successfully', blog });
-  } catch (error) {
-    console.error('Error updating blog:', error);
-    res.status(400).json({ message: error.message });
-  }
-});
+    const { response } = updateResponse(blog, 'Blog updated successfully');
+    res.json(response);
+}));
 
 // Admin: Delete blog
-router.delete('/admin/:id', authenticateApiKey, async (req, res) => {
-  try {
-    const { id } = req.params;
-    const result = await pool.query(
-      'DELETE FROM blogs WHERE id = $1 RETURNING *',
-      [id]
-    );
+router.delete('/admin/:id', authenticateApiKey, asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const result = await pool.query(
+    'DELETE FROM blogs WHERE id = $1 RETURNING *',
+    [id]
+  );
 
-    if (result.rows.length === 0) {
-      return res.status(404).json({ message: 'Blog not found' });
-    }
-
-    cache.del('homepage-data');
-    res.json({ success: true, message: 'Blog deleted successfully' });
-  } catch (error) {
-    console.error('Error deleting blog:', error);
-    res.status(500).json({ message: error.message });
+  if (result.rows.length === 0) {
+    return res.status(404).json({ success: false, message: 'Blog not found' });
   }
-});
+
+  cache.del('homepage-data');
+  const { response } = deleteResponse('Blog deleted successfully');
+  res.json(response);
+}));
 
 export default router;
 

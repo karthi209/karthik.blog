@@ -33,7 +33,7 @@ export const Blog = {
     return result.rows[0];
   },
 
-  // Find all blogs with optional filters
+  // Find all blogs with optional filters and pagination
   async findAll(filters = {}) {
     let query = 'SELECT * FROM blogs WHERE 1=1';
     const params = [];
@@ -45,13 +45,40 @@ export const Blog = {
       paramCount++;
     }
 
-    // Sorting
-    const sortBy = filters.sortBy || 'created_at';
-    const order = filters.order || 'DESC';
+    // Sorting - whitelist approach to prevent SQL injection
+    const allowedSortFields = ['created_at', 'updated_at', 'title', 'category'];
+    const sortBy = allowedSortFields.includes(filters.sortBy) ? filters.sortBy : 'created_at';
+    const order = String(filters.order || 'DESC').toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
     query += ` ORDER BY ${sortBy} ${order}`;
+
+    // Pagination
+    if (filters.limit) {
+      query += ` LIMIT $${paramCount}`;
+      params.push(filters.limit);
+      paramCount++;
+    }
+    if (filters.offset) {
+      query += ` OFFSET $${paramCount}`;
+      params.push(filters.offset);
+    }
 
     const result = await pool.query(query, params);
     return result.rows;
+  },
+
+  // Count blogs with optional filters
+  async count(filters = {}) {
+    let query = 'SELECT COUNT(*) as total FROM blogs WHERE 1=1';
+    const params = [];
+    let paramCount = 1;
+
+    if (filters.category) {
+      query += ` AND category = $${paramCount}`;
+      params.push(filters.category);
+    }
+
+    const result = await pool.query(query, params);
+    return parseInt(result.rows[0].total, 10);
   },
 
   // Find blog by ID

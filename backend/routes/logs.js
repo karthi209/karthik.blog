@@ -4,6 +4,9 @@ import { LogMetadata } from '../models/LogMetadata.js';
 import { LogContent } from '../models/LogContent.js';
 import { requireAdminJwt } from '../middleware/auth.js';
 import NodeCache from 'node-cache';
+import { parsePagination, createPaginatedResponse } from '../utils/pagination.js';
+import { asyncHandler } from '../middleware/errorHandler.js';
+import { logger } from '../utils/logger.js';
 
 const router = Router();
 const cache = new NodeCache({ stdTTL: 300 }); // 5 minutes cache
@@ -52,7 +55,7 @@ router.get('/combined/homepage', async (req, res) => {
     }
 
     // Get blogs (unchanged)
-    console.log('Fetching homepage blogs...');
+    logger.debug('Fetching homepage blogs...');
     const blogsPromise = pool.query(`
       SELECT id, title, content, category, created_at
       FROM blogs
@@ -124,7 +127,7 @@ router.get('/combined/homepage', async (req, res) => {
 
     res.json(result);
   } catch (err) {
-    console.error('Error fetching combined homepage data:', err);
+    logger.error('Error fetching combined homepage data', { error: err.message });
     res.status(500).json({ message: err.message });
   }
 });
@@ -143,36 +146,42 @@ router.get('/', async (req, res) => {
     const logs = result.rows.map(row => formatLog(row, { details: row.details }));
     res.json(logs);
   } catch (err) {
-    console.error('Error fetching logs:', err);
+    logger.error('Error fetching logs', { error: err.message });
     res.status(500).json({ message: err.message });
   }
 });
 
-// Get logs by type
-router.get('/:type', async (req, res) => {
-  try {
-    let { type } = req.params;
+// Get logs by type with pagination
+router.get('/:type', asyncHandler(async (req, res) => {
+  let { type } = req.params;
+  const { page, limit, offset } = parsePagination(req, 20, 100);
 
-    // Clean up type mapping
-    let category = type;
-    if (type === 'series') category = 'tv';
-    // music, games, movies, books match.
+  // Clean up type mapping
+  let category = type;
+  if (type === 'series') category = 'tv';
+  // music, games, movies, books match.
 
-    const result = await pool.query(`
-      SELECT m.*, c.details
-      FROM log_metadata m
-      LEFT JOIN log_content c ON m.id = c.log_id
-      WHERE m.category = $1
-      ORDER BY m.logged_date DESC
-    `, [category]);
+  // Get total count
+  const countResult = await pool.query(
+    'SELECT COUNT(*) as total FROM log_metadata WHERE category = $1',
+    [category]
+  );
+  const total = parseInt(countResult.rows[0].total, 10);
 
-    const logs = result.rows.map(row => formatLog(row, { details: row.details }));
-    res.json(logs);
-  } catch (err) {
-    console.error('Error fetching logs by type:', err);
-    res.status(500).json({ message: err.message });
-  }
-});
+  // Get paginated results
+  const result = await pool.query(`
+    SELECT m.*, c.details
+    FROM log_metadata m
+    LEFT JOIN log_content c ON m.id = c.log_id
+    WHERE m.category = $1
+    ORDER BY m.logged_date DESC
+    LIMIT $2 OFFSET $3
+  `, [category, limit, offset]);
+
+  const logs = result.rows.map(row => formatLog(row, { details: row.details }));
+  const response = createPaginatedResponse(logs, total, page, limit);
+  res.json(response);
+}));
 
 // Get individual log entry by category and ID
 router.get('/:category/:id', async (req, res) => {
@@ -203,7 +212,7 @@ router.get('/:category/:id', async (req, res) => {
     res.json(formatted);
 
   } catch (err) {
-    console.error('Error fetching individual log:', err);
+    logger.error('Error fetching individual log', { error: err.message, category: req.params.category, id: req.params.id });
     res.status(500).json({ message: err.message });
   }
 });
@@ -279,7 +288,7 @@ router.post('/', requireAdminJwt, async (req, res) => {
 
     res.status(201).json({ ...metadataRecord, content, details: finalDetails });
   } catch (err) {
-    console.error('Error creating log:', err);
+    logger.error('Error creating log', { error: err.message, category: type });
     res.status(500).json({ message: err.message });
   }
 });
@@ -348,7 +357,7 @@ router.put('/:id', requireAdminJwt, async (req, res) => {
 
     res.json({ ...metadata, content: updatedContent.content, details: updatedContent.details });
   } catch (err) {
-    console.error('Error updating log:', err);
+    logger.error('Error updating log', { error: err.message, logId: req.params.id });
     res.status(500).json({ message: err.message });
   }
 });
@@ -367,7 +376,7 @@ router.delete('/:id', requireAdminJwt, async (req, res) => {
     }
     res.json({ message: 'Log deleted successfully' });
   } catch (err) {
-    console.error('Error deleting log:', err);
+    logger.error('Error deleting log', { error: err.message, logId: req.params.id });
     res.status(500).json({ message: err.message });
   }
 });

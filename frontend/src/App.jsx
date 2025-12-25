@@ -4,7 +4,6 @@ import './styles/typography.css';
 import './styles/book.css';
 import './styles/responsive.css';
 import './styles/modern.css';
-import './App.css';
 import { Routes, Route } from 'react-router-dom';
 import Home from './components/Home.jsx';
 

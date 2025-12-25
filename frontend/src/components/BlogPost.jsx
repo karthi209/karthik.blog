@@ -3,7 +3,7 @@ import { useParams, useLocation } from 'react-router-dom';
 import { fetchBlogs } from '../services/api';
 import { fetchViewCount } from '../services/views';
 import CommentsSection from './CommentsSection';
-import './BlogPost.css';
+import '../styles/components/BlogPost.css';
 import DOMPurify from 'dompurify';
 import { Heart } from 'lucide-react';
 import { getStoredAuthToken, hasSeenAuthDisclaimer, markAuthDisclaimerSeen, startGoogleLogin } from '../services/auth';
@@ -85,8 +85,10 @@ export default function BlogPost() {
               : 'Failed to fetch blog post'
           );
         }
-        const data = await response.json();
-        setPost(data);
+        const result = await response.json();
+        // Backend returns {success: true, data: {...}} or directly {...}
+        const postData = result.data || result;
+        setPost(postData);
         setError(null);
       } catch (error) {
         setError(error.message);
@@ -312,12 +314,18 @@ export default function BlogPost() {
               </div>
             </header>
 
-            <div
-              className="blog-post-body"
-              dangerouslySetInnerHTML={{
-                __html: DOMPurify.sanitize(post.content)
-              }}
-            />
+            {post.content ? (
+              <div
+                className="blog-post-body"
+                dangerouslySetInnerHTML={{
+                  __html: DOMPurify.sanitize(post.content || '')
+                }}
+              />
+            ) : (
+              <div className="blog-post-body">
+                <p>Content not available.</p>
+              </div>
+            )}
 
             <footer className="blog-post-footer">
               <div className="share-section">

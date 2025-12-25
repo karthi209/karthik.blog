@@ -1,0 +1,164 @@
+.mobile-topbar {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .mobile-topbar {
+    position: sticky;
+    top: 0;
+    z-index: 101;
+    display: flex;
+    flex-direction: column;
+    background: var(--color-surface);
+    border-bottom: 1px solid var(--color-border);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+  }
+
+  .mobile-topbar>div:first-child {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+  }
+
+  .mobile-topbar::after {
+    content: '';
+    height: 6px;
+    width: 100%;
+    display: block;
+    background: linear-gradient(to right,
+      #E54B4B 0%, #E54B4B 14.28%,
+      #FFA630 14.28%, #FFA630 28.56%,
+      #F9E74A 28.56%, #F9E74A 42.84%,
+      #7BC950 42.84%, #7BC950 57.12%,
+      #4ECDC4 57.12%, #4ECDC4 71.4%,
+      #5B7FFF 71.4%, #5B7FFF 85.68%,
+      #9B5DE5 85.68%, #9B5DE5 100%);
+  }
+
+  .mobile-brand {
+    text-decoration: none;
+    color: var(--color-text);
+    font-family: var(--font-brand);
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+  }
+
+  .mobile-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .mobile-topbar .mobile-menu-btn {
+    display: flex;
+  }
+
+  .mobile-menu-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    z-index: 102;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 4rem 1rem;
+    animation: fadeIn 0.2s var(--ease-out-quart);
+  }
+
+  .mobile-menu {
+    width: 100%;
+    max-width: 400px;
+    background: var(--color-surface);
+    border: 2px solid var(--color-text);
+    border-radius: 0;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    box-shadow: var(--shadow-3d);
+    animation: scaleIn 0.25s var(--ease-out-expo);
+  }
+
+  .mobile-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--color-surface);
+    border: 2px solid var(--color-text);
+    border-radius: 0;
+    color: var(--color-text);
+    font-weight: var(--weight-medium);
+    font-size: 1.125rem;
+    text-align: left;
+    cursor: pointer;
+    transition: 
+      transform var(--transition-speed) var(--ease-out-expo),
+      box-shadow var(--transition-speed) var(--ease-out-expo),
+      border-color var(--transition-speed) var(--ease-out-quart),
+      color var(--transition-speed) var(--ease-out-quart),
+      background var(--transition-speed) var(--ease-out-quart);
+    box-shadow: var(--shadow-3d);
+  }
+
+  .mobile-nav-item:hover {
+    border-color: var(--color-accent);
+    background: var(--color-surface-hover);
+    color: var(--color-accent);
+    transform: translate(-2px, -2px);
+    box-shadow: 5px 5px 0 0 var(--color-accent);
+  }
+
+  .mobile-nav-item:active {
+    transform: translate(1px, 1px) scale(0.98);
+    box-shadow: 2px 2px 0 0 var(--color-accent);
+  }
+
+  .mobile-nav-item.active {
+    border-color: var(--color-accent);
+    background: var(--color-surface-hover);
+    color: var(--color-accent);
+  }
+
+  /* System controls - less prominent */
+  .mobile-nav-system {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .mobile-nav-system-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background: transparent;
+    border: 1px solid var(--color-border);
+    color: var(--color-text-muted);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: color 0.2s ease, border-color 0.2s ease;
+  }
+
+  .mobile-nav-system-item:hover {
+    border-color: var(--color-text-muted);
+    color: var(--color-text);
+  }
+
+  .mobile-nav-system-item.active {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+  }
+}
+
+/* Homepage Layout */

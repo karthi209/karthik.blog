@@ -214,12 +214,15 @@ export async function adminDeleteSong(playlistId, songId) {
 export async function fetchPlaylists() {
   const response = await fetch(`${BASE_URL}/logs/music`);
   if (!response.ok) throw new Error('Failed to fetch playlists');
-  const data = await response.json();
+  const result = await response.json();
+  // Backend returns {success: true, data: [...], pagination: {...}}
+  const data = result.data || result;
+  const dataArray = Array.isArray(data) ? data : [];
   // Map fields if necessary to match old Playlist component expectations?
   // Old: id, name, description. 
   // New: id, title, content
   // AdminPanel expects: id, name, description.
-  return data.map(d => ({
+  return dataArray.map(d => ({
     ...d,
     name: d.title,
     description: d.content

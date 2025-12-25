@@ -5,6 +5,10 @@ import rateLimit from 'express-rate-limit';
 import { requireUserJwt } from '../middleware/auth.js';
 import { BlogComment } from '../models/BlogComment.js';
 import { BlogLike } from '../models/BlogLike.js';
+import { parsePagination, createPaginatedResponse } from '../utils/pagination.js';
+import { asyncHandler } from '../middleware/errorHandler.js';
+import { logger } from '../utils/logger.js';
+import { successResponse } from '../utils/response.js';
 
 const router = Router();
 // Use shared cache instance
@@ -25,46 +29,78 @@ const likesLimiter = rateLimit({
   message: 'Too many likes, please slow down'
 });
 
-// Get all blogs with filtering and sorting
-router.get('/', async (req, res) => {
-  try {
-    const { category, startDate, endDate, sortBy, order } = req.query;
-    
-    // Create cache key from query params
-    const cacheKey = `blogs-${category || 'all'}-${startDate || ''}-${endDate || ''}-${sortBy || 'created_at'}-${order || 'desc'}`;
-    const cachedBlogs = cache.get(cacheKey);
-    if (cachedBlogs) {
-      return res.json(cachedBlogs);
-    }
-    
-    const filters = {};
-    if (category) filters.category = category;
-    if (sortBy) filters.sortBy = sortBy;
-    if (order) filters.order = order;
-    
-    const blogs = await Blog.findAll(filters);
-    
-    // Apply date filters if needed (could be moved to model)
-    let filteredBlogs = blogs;
-    if (startDate) {
-      filteredBlogs = filteredBlogs.filter(blog => new Date(blog.created_at) >= new Date(startDate));
-    }
-    if (endDate) {
-      filteredBlogs = filteredBlogs.filter(blog => new Date(blog.created_at) <= new Date(endDate));
-    }
-    
-    // Map id to _id for frontend compatibility
-    const result = filteredBlogs.map(row => ({ ...row, _id: row.id }));
-    
-    // Cache the result
-    cache.set(cacheKey, result);
-    
-    res.json(result);
-  } catch (err) {
-    console.error('Error fetching blogs:', err);
-    res.status(500).json({ message: err.message });
+/**
+ * @swagger
+ * /blogs:
+ *   get:
+ *     summary: Get all blogs with filtering, sorting, and pagination
+ *     tags: [Blogs]
+ *     parameters:
+ *       - in: query
+ *         name: category
+ *         schema:
+ *           type: string
+ *         description: Filter by category
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         description: Items per page
+ *     responses:
+ *       200:
+ *         description: Paginated list of blogs
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PaginatedResponse'
+ */
+router.get('/', asyncHandler(async (req, res) => {
+  const { category, startDate, endDate, sortBy, order } = req.query;
+  const { page, limit, offset } = parsePagination(req, 20, 100);
+  
+  // Create cache key from query params
+  const cacheKey = `blogs-${category || 'all'}-${startDate || ''}-${endDate || ''}-${sortBy || 'created_at'}-${order || 'desc'}-${page}-${limit}`;
+  const cachedBlogs = cache.get(cacheKey);
+  if (cachedBlogs) {
+    return res.json(cachedBlogs);
   }
-});
+  
+  const filters = { limit, offset };
+  if (category) filters.category = category;
+  if (sortBy) filters.sortBy = sortBy;
+  if (order) filters.order = order;
+  
+  // Get total count and blogs in parallel
+  const [total, blogs] = await Promise.all([
+    Blog.count(filters),
+    Blog.findAll(filters)
+  ]);
+  
+  // Apply date filters if needed (could be moved to model)
+  let filteredBlogs = blogs;
+  if (startDate) {
+    filteredBlogs = filteredBlogs.filter(blog => new Date(blog.created_at) >= new Date(startDate));
+  }
+  if (endDate) {
+    filteredBlogs = filteredBlogs.filter(blog => new Date(blog.created_at) <= new Date(endDate));
+  }
+  
+  // Map id to _id for frontend compatibility
+  const data = filteredBlogs.map(row => ({ ...row, _id: row.id }));
+  
+  // Create paginated response
+  const result = createPaginatedResponse(data, total, page, limit);
+  
+  // Cache the result (shorter TTL for paginated results)
+  cache.set(cacheKey, result, 60);
+  
+  res.json(result);
+}));
 
 // Get all unique categories
 router.get('/categories', async (req, res) => {
@@ -78,7 +114,7 @@ router.get('/categories', async (req, res) => {
     cache.set('categories', categories, 180); // 3 minutes
     res.json(categories);
   } catch (err) {
-    console.error('Error fetching categories:', err);
+    logger.error('Error fetching categories', { error: err.message });
     res.status(500).json({ message: err.message });
   }
 });
@@ -90,7 +126,7 @@ router.get('/category/:category', async (req, res) => {
     const result = blogs.map(row => ({ ...row, _id: row.id }));
     res.json(result);
   } catch (err) {
-    console.error('Error fetching blogs by category:', err);
+    logger.error('Error fetching blogs by category', { error: err.message, category: req.params.category });
     res.status(500).json({ message: err.message });
   }
 });
@@ -116,32 +152,28 @@ router.get('/archives', async (req, res) => {
     cache.set('archives', result, 180); // 3 minutes
     res.json(result);
   } catch (err) {
-    console.error('Error fetching archives:', err);
+    logger.error('Error fetching archives', { error: err.message });
     res.status(500).json({ message: err.message });
   }
 });
 
 // Get single blog
-router.get('/:id', async (req, res) => {
-  try {
-    const id = parseInt(req.params.id);
-    
-    if (isNaN(id)) {
-      return res.status(400).json({ message: 'Invalid blog ID format' });
-    }
-
-    const blog = await Blog.findById(id);
-
-    if (!blog) {
-      return res.status(404).json({ message: 'Blog post not found' });
-    }
-
-    res.json({ ...blog, _id: blog.id });
-  } catch (err) {
-    console.error('Error fetching blog:', err);
-    res.status(500).json({ message: err.message });
+router.get('/:id', asyncHandler(async (req, res) => {
+  const id = parseInt(req.params.id);
+  
+  if (isNaN(id)) {
+    return res.status(400).json({ success: false, message: 'Invalid blog ID format' });
   }
-});
+
+  const blog = await Blog.findById(id);
+
+  if (!blog) {
+    return res.status(404).json({ success: false, message: 'Blog post not found' });
+  }
+
+  const { response } = successResponse({ ...blog, _id: blog.id });
+  res.json(response);
+}));
 
 // Comments: list for a blog (public)
 router.get('/:id/comments', async (req, res) => {
@@ -152,7 +184,7 @@ router.get('/:id/comments', async (req, res) => {
     const rows = await BlogComment.listByBlogId(blogId);
     res.json({ rows });
   } catch (err) {
-    console.error('Error fetching comments:', err);
+    logger.error('Error fetching comments', { error: err.message, blogId: req.params.id });
     res.status(500).json({ error: 'Failed to fetch comments' });
   }
 });
@@ -175,7 +207,7 @@ router.post('/:id/comments', commentsLimiter, requireUserJwt, async (req, res) =
 
     res.status(201).json({ row });
   } catch (err) {
-    console.error('Error creating comment:', err);
+    logger.error('Error creating comment', { error: err.message, blogId: req.params.id });
     res.status(500).json({ error: 'Failed to create comment' });
   }
 });
@@ -200,7 +232,7 @@ router.delete('/:id/comments/:commentId', requireUserJwt, async (req, res) => {
     await BlogComment.delete({ id: commentId });
     res.json({ ok: true });
   } catch (err) {
-    console.error('Error deleting comment:', err);
+    logger.error('Error deleting comment', { error: err.message, commentId: req.params.commentId });
     res.status(500).json({ error: 'Failed to delete comment' });
   }
 });
@@ -231,7 +263,7 @@ router.get('/:id/likes', async (req, res) => {
 
     res.json({ count, liked });
   } catch (err) {
-    console.error('Error fetching likes:', err);
+    logger.error('Error fetching likes', { error: err.message, blogId: req.params.id });
     res.status(500).json({ error: 'Failed to fetch likes' });
   }
 });
@@ -246,7 +278,7 @@ router.post('/:id/likes/toggle', likesLimiter, requireUserJwt, async (req, res) 
     const result = await BlogLike.toggle({ blogId, userEmail });
     res.json({ liked: result.liked, count: result.count });
   } catch (err) {
-    console.error('Error toggling like:', err);
+    logger.error('Error toggling like', { error: err.message, blogId: req.params.id });
     res.status(500).json({ error: 'Failed to toggle like' });
   }
 });

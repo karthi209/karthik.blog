@@ -1,0 +1,300 @@
+/* ===== FORM STYLES - RETRO THEME ===== */
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.form-label {
+  display: block;
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-text);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0;
+}
+
+.form-input,
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="date"],
+input[type="file"],
+textarea,
+select {
+  padding: 0.75rem 0.875rem;
+  background: var(--color-surface);
+  border: 2px solid var(--color-text);
+  border-radius: 0;
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  outline: none;
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow-3d);
+}
+
+.form-input::placeholder,
+input::placeholder,
+textarea::placeholder {
+  color: var(--color-text-muted);
+}
+
+.form-input:focus,
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--color-accent);
+  box-shadow: 3px 3px 0 0 color-mix(in srgb, var(--color-accent) 40%, transparent);
+}
+
+.form-input:disabled,
+input:disabled,
+textarea:disabled,
+select:disabled {
+  background: var(--color-border);
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+textarea {
+  resize: vertical;
+  min-height: 120px;
+  font-family: var(--font-body);
+}
+
+select {
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23f0eef8' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  padding-right: 2.5rem;
+  appearance: none;
+}
+
+.form-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-top: var(--space-lg);
+}
+
+.form-button {
+  padding: 0.85rem 1.5rem;
+  background: var(--color-surface);
+  border: 2px solid var(--color-text);
+  border-radius: 0;
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow-3d);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+}
+
+.form-button:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  box-shadow: 3px 3px 0 0 color-mix(in srgb, var(--color-accent) 40%, transparent);
+}
+
+.form-button:active {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 0 color-mix(in srgb, var(--color-accent) 30%, transparent);
+}
+
+.form-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  border-color: var(--color-text-muted);
+  color: var(--color-text-muted);
+}
+
+.form-button-primary {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-background);
+  box-shadow: 3px 3px 0 0 color-mix(in srgb, var(--color-accent) 40%, transparent);
+}
+
+.form-button-primary:hover {
+  background: var(--color-accent-hover);
+  border-color: var(--color-accent-hover);
+  color: var(--color-background);
+  box-shadow: 3px 3px 0 0 color-mix(in srgb, var(--color-accent) 60%, transparent);
+}
+
+.form-button-primary:disabled {
+  background: var(--color-text-muted);
+  border-color: var(--color-text-muted);
+  color: var(--color-background);
+  opacity: 0.6;
+}
+
+/* Quill editor styling */
+.quill-wrapper {
+  border: 2px solid var(--color-text);
+  border-radius: 0;
+  background: var(--color-surface);
+  overflow: hidden;
+  box-shadow: var(--shadow-3d);
+}
+
+.ql-toolbar.ql-snow {
+  background: var(--color-surface-hover);
+  border-bottom: 2px solid var(--color-text);
+  border-radius: 0;
+  padding: 0.75rem 0.5rem;
+}
+
+.ql-container.ql-snow {
+  border-radius: 0;
+  border: none;
+  font-family: var(--font-body);
+}
+
+.ql-editor {
+  min-height: 180px;
+  color: var(--color-text);
+  font-size: 0.95rem;
+  padding: 0.75rem;
+}
+
+.ql-editor.ql-blank::before {
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+.ql-toolbar.ql-snow .ql-formats {
+  margin-right: 0.75rem;
+}
+
+.ql-toolbar.ql-snow button,
+.ql-toolbar.ql-snow button:hover,
+.ql-toolbar.ql-snow button.ql-active,
+.ql-toolbar.ql-snow .ql-picker-label {
+  color: var(--color-text);
+  outline: none;
+}
+
+.ql-toolbar.ql-snow button:hover {
+  color: var(--color-accent);
+}
+
+.ql-toolbar.ql-snow .ql-stroke {
+  stroke: var(--color-text);
+}
+
+.ql-toolbar.ql-snow .ql-stroke.ql-active {
+  stroke: var(--color-accent);
+}
+
+.ql-toolbar.ql-snow .ql-fill {
+  fill: var(--color-text);
+}
+
+.ql-toolbar.ql-snow .ql-fill.ql-active {
+  fill: var(--color-accent);
+}
+
+.ql-picker {
+  color: var(--color-text);
+}
+
+/* Mobile form adjustments */
+@media (max-width: 768px) {
+
+  .form-input,
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="date"],
+  input[type="file"],
+  textarea,
+  select {
+    font-size: 16px;
+    padding: 0.75rem;
+    box-shadow: var(--shadow-3d-sm);
+  }
+
+  .form-input:focus,
+  input:focus,
+  textarea:focus,
+  select:focus {
+    box-shadow: 2px 2px 0 0 color-mix(in srgb, var(--color-accent) 30%, transparent);
+  }
+
+  .form-button {
+    width: 100%;
+    padding: 0.85rem 1rem;
+    box-shadow: var(--shadow-3d-sm);
+  }
+
+  .form-button:hover {
+    box-shadow: 2px 2px 0 0 color-mix(in srgb, var(--color-accent) 30%, transparent);
+  }
+
+  .form-button:active {
+    transform: translate(0, 0);
+    box-shadow: 1px 1px 0 0 color-mix(in srgb, var(--color-accent) 30%, transparent);
+  }
+
+  .form-actions {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .quill-wrapper {
+    box-shadow: var(--shadow-3d-sm);
+  }
+
+  .ql-editor {
+    min-height: 150px;
+    font-size: 16px;
+  }
+}
+
+.modern-button:focus {
+  outline: none;
+  border-color: var(--color-accent);
+}
+
+.modern-button.primary {
+  background: #1DB954;
+  color: #ffffff;
+  border: none;
+  box-shadow: 0 2px 8px rgba(29, 185, 84, 0.25);
+}
+
+.modern-button.primary:hover {
+  background: #1ed760;
+  box-shadow: 0 4px 12px rgba(29, 185, 84, 0.35);
+}
+
+.modern-button.secondary {
+  background: transparent;
+  border: 2px solid #FF0000;
+  color: #FF0000;
+}
+
+.modern-button.secondary:hover {
+  background: #FF0000;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(255, 0, 0, 0.25);
+}
+
+/* Log Detail Styles */

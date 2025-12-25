@@ -27,11 +27,29 @@ export const Note = {
     return result.rows[0];
   },
 
-  async findAll({ sortBy = 'created_at', order = 'DESC' } = {}) {
+  async findAll({ sortBy = 'created_at', order = 'DESC', limit, offset } = {}) {
     const safeSort = sortBy === 'created_at' || sortBy === 'updated_at' ? sortBy : 'created_at';
     const safeOrder = String(order).toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
-    const result = await pool.query(`SELECT * FROM notes ORDER BY ${safeSort} ${safeOrder}`);
+    
+    let query = `SELECT * FROM notes ORDER BY ${safeSort} ${safeOrder}`;
+    const params = [];
+    
+    if (limit) {
+      query += ` LIMIT $1`;
+      params.push(limit);
+      if (offset) {
+        query += ` OFFSET $2`;
+        params.push(offset);
+      }
+    }
+    
+    const result = await pool.query(query, params);
     return result.rows;
+  },
+
+  async count() {
+    const result = await pool.query('SELECT COUNT(*) as total FROM notes');
+    return parseInt(result.rows[0].total, 10);
   },
 
   async findById(id) {

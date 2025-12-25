@@ -11,10 +11,13 @@ export default function LabPage() {
       try {
         const res = await fetch(`${API}/projects`);
         if (!res.ok) throw new Error('Failed to load projects');
-        const data = await res.json();
-        setProjects(data);
+        const result = await res.json();
+        // Backend returns {success: true, data: [...]}
+        const projectsData = result.data || result;
+        setProjects(Array.isArray(projectsData) ? projectsData : []);
       } catch (err) {
         console.error(err);
+        setProjects([]);
       } finally {
         setLoading(false);
       }

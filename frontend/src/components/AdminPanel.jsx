@@ -5,7 +5,7 @@ import { adminCreatePlaylist, adminUpdatePlaylist, adminDeletePlaylist, adminAdd
 import { adminListAnthologies, adminCreateAnthology, adminUpdateAnthology, adminDeleteAnthology } from '../services/anthologies-admin';
 import ReactQuill from 'react-quill';
 import "quill/dist/quill.snow.css";
-import './AdminPanel.css';
+import '../styles/components/AdminPanel.css';
 import AuthRequiredModal from './AuthRequiredModal';
 import { hasSeenAuthDisclaimer, markAuthDisclaimerSeen } from '../services/auth';
 
@@ -224,8 +224,9 @@ export default function AdminPanel() {
   // === ANTHOLOGY FUNCTIONS ===
   const loadAnthologies = async () => {
     try {
-      const data = await adminListAnthologies();
-      setAnthologies(data || []);
+      const result = await adminListAnthologies();
+      // adminListAnthologies now returns data array directly
+      setAnthologies(Array.isArray(result) ? result : []);
     } catch (error) {
       console.error(error);
     }
@@ -295,8 +296,9 @@ export default function AdminPanel() {
 
   const loadBlogs = async () => {
     try {
-      const data = await adminListBlogs();
-      setBlogs(data);
+      const result = await adminListBlogs();
+      // adminListBlogs now returns data array directly
+      setBlogs(Array.isArray(result) ? result : []);
     } catch (error) {
       setStatus('Failed to load blogs');
     }
@@ -305,7 +307,10 @@ export default function AdminPanel() {
   const handleEditBlog = async (blog) => {
     try {
       const response = await fetch(`${API}/blogs/${blog.id}`);
-      const fullBlog = await response.json();
+      if (!response.ok) throw new Error('Failed to fetch blog');
+      const result = await response.json();
+      // Backend returns {success: true, data: {...}}
+      const fullBlog = result.data || result;
       setBlogTitle(fullBlog.title);
       setBlogCategory(fullBlog.category);
       setBlogTags(fullBlog.tags ? fullBlog.tags.join(', ') : '');
@@ -461,8 +466,9 @@ export default function AdminPanel() {
 
   const loadNotes = async () => {
     try {
-      const data = await adminListNotes();
-      setNotes(Array.isArray(data) ? data : []);
+      const result = await adminListNotes();
+      // adminListNotes now returns data array directly
+      setNotes(Array.isArray(result) ? result : []);
     } catch (error) {
       setStatus('Failed to load notes');
     }
@@ -696,8 +702,11 @@ export default function AdminPanel() {
     try {
       const cat = category || libraryCategory;
       const response = await fetch(`${API}/logs/${cat}`);
-      const data = await response.json();
-      setLibraryItems(data);
+      if (!response.ok) throw new Error('Failed to fetch library items');
+      const result = await response.json();
+      // Backend returns {success: true, data: [...], pagination: {...}}
+      const data = result.data || result;
+      setLibraryItems(Array.isArray(data) ? data : []);
     } catch (error) {
       setStatus('Failed to load library items');
     }
@@ -1238,8 +1247,11 @@ export default function AdminPanel() {
                 if (!showManageLibrary) {
                   try {
                     const response = await fetch(`${API}/projects`);
-                    const data = await response.json();
-                    setLibraryItems(data);
+                    if (!response.ok) throw new Error('Failed to fetch projects');
+                    const result = await response.json();
+                    // Backend returns {success: true, data: [...]}
+                    const data = result.data || result;
+                    setLibraryItems(Array.isArray(data) ? data : []);
                   } catch (error) {
                     setStatus('Failed to load projects');
                   }
@@ -1287,8 +1299,11 @@ export default function AdminPanel() {
                             if (!response.ok) throw new Error('Delete failed');
                             setStatus('Project deleted!');
                             const refreshResponse = await fetch(`${API}/projects`);
-                            const data = await refreshResponse.json();
-                            setLibraryItems(data);
+                            if (!refreshResponse.ok) throw new Error('Failed to refresh projects');
+                            const refreshResult = await refreshResponse.json();
+                            // Backend returns {success: true, data: [...]}
+                            const data = refreshResult.data || refreshResult;
+                            setLibraryItems(Array.isArray(data) ? data : []);
                             setTimeout(() => setStatus(''), 2000);
                           } catch (error) {
                             setStatus(`Error: ${error.message}`);
@@ -1305,8 +1320,11 @@ export default function AdminPanel() {
               <button onClick={async () => {
                 try {
                   const response = await fetch(`${API}/projects`);
-                  const data = await response.json();
-                  setLibraryItems(data);
+                  if (!response.ok) throw new Error('Failed to fetch projects');
+                  const result = await response.json();
+                  // Backend returns {success: true, data: [...]}
+                  const data = result.data || result;
+                  setLibraryItems(Array.isArray(data) ? data : []);
                 } catch (error) {
                   setStatus('Failed to load projects');
                 }
@@ -1352,8 +1370,11 @@ export default function AdminPanel() {
 
               if (showManageLibrary) {
                 const refreshResponse = await fetch(`${API}/projects`);
-                const data = await refreshResponse.json();
-                setLibraryItems(data);
+                if (!refreshResponse.ok) throw new Error('Failed to refresh projects');
+                const refreshResult = await refreshResponse.json();
+                // Backend returns {success: true, data: [...]}
+                const data = refreshResult.data || refreshResult;
+                setLibraryItems(Array.isArray(data) ? data : []);
               }
               setTimeout(() => setStatus(''), 2000);
             } catch (err) {
