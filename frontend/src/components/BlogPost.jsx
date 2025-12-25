@@ -85,8 +85,10 @@ export default function BlogPost() {
               : 'Failed to fetch blog post'
           );
         }
-        const data = await response.json();
-        setPost(data);
+        const result = await response.json();
+        // Backend returns {success: true, data: {...}} or directly {...}
+        const postData = result.data || result;
+        setPost(postData);
         setError(null);
       } catch (error) {
         setError(error.message);
@@ -312,12 +314,18 @@ export default function BlogPost() {
               </div>
             </header>
 
-            <div
-              className="blog-post-body"
-              dangerouslySetInnerHTML={{
-                __html: DOMPurify.sanitize(post.content)
-              }}
-            />
+            {post.content ? (
+              <div
+                className="blog-post-body"
+                dangerouslySetInnerHTML={{
+                  __html: DOMPurify.sanitize(post.content || '')
+                }}
+              />
+            ) : (
+              <div className="blog-post-body">
+                <p>Content not available.</p>
+              </div>
+            )}
 
             <footer className="blog-post-footer">
               <div className="share-section">

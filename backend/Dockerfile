@@ -20,6 +20,9 @@ COPY models ./models
 COPY routes ./routes
 COPY middleware ./middleware
 
+# Copy utils directory
+COPY utils ./utils
+
 # Create uploads directory structure with proper permissions
 RUN mkdir -p /app/uploads/covers /app/uploads/images && \
     chown -R nodejs:nodejs /app
@@ -30,9 +33,9 @@ USER nodejs
 # Expose the port the app runs on
 EXPOSE 3000
 
-# Health check
+# Health check (use /health endpoint)
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3000/api/blogs', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+  CMD node -e "require('http').get('http://localhost:3000/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
 
 # Start the application
 CMD ["node", "server.js"]

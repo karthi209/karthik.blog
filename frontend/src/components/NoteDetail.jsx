@@ -32,8 +32,10 @@ export default function NoteDetail() {
         if (!res.ok) {
           throw new Error(res.status === 404 ? 'Note not found' : 'Failed to fetch note');
         }
-        const data = await res.json();
-        setNote(data);
+        const result = await res.json();
+        // Backend returns {success: true, data: {...}}
+        const noteData = result.data || result;
+        setNote(noteData);
       } catch (e) {
         setError(e.message);
       } finally {

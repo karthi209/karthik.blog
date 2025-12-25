@@ -9,12 +9,21 @@ export const fetchBlogs = async (filters = {}) => {
   if (filters.order) queryParams.append('order', filters.order);
 
   const response = await fetch(`${API_URL}/blogs?${queryParams}`);
-  return response.json();
+  if (!response.ok) {
+    throw new Error(`Failed to fetch blogs: ${response.statusText}`);
+  }
+  const result = await response.json();
+  // Backend returns {success: true, data: [...], pagination: {...}}
+  return result.data || result;
 };
 
 export const fetchCategories = async () => {
   const response = await fetch(`${API_URL}/blogs/categories`);
-  return response.json();
+  if (!response.ok) {
+    throw new Error(`Failed to fetch categories: ${response.statusText}`);
+  }
+  const result = await response.json();
+  return Array.isArray(result) ? result : (result.data || []);
 };
 
 export const fetchBlogsByCategory = async (category) => {
@@ -24,7 +33,11 @@ export const fetchBlogsByCategory = async (category) => {
 
 export const fetchBlogArchives = async () => {
   const response = await fetch(`${API_URL}/blogs/archives`);
-  return response.json();
+  if (!response.ok) {
+    throw new Error(`Failed to fetch archives: ${response.statusText}`);
+  }
+  const result = await response.json();
+  return Array.isArray(result) ? result : (result.data || []);
 };
 
 export const fetchHomepageData = async () => {
@@ -34,7 +47,12 @@ export const fetchHomepageData = async () => {
 
 export const fetchProjects = async () => {
   const response = await fetch(`${API_URL}/projects`);
-  return response.json();
+  if (!response.ok) {
+    throw new Error(`Failed to fetch projects: ${response.statusText}`);
+  }
+  const result = await response.json();
+  // Backend returns {success: true, data: [...]}
+  return result.data || result;
 };
 
 export const fetchLogs = async (type) => {
@@ -48,7 +66,12 @@ export const fetchNotes = async (filters = {}) => {
   if (filters.order) queryParams.append('order', filters.order);
   const qs = queryParams.toString();
   const response = await fetch(`${API_URL}/notes${qs ? `?${qs}` : ''}`);
-  return response.json();
+  if (!response.ok) {
+    throw new Error(`Failed to fetch notes: ${response.statusText}`);
+  }
+  const result = await response.json();
+  // Backend returns {success: true, data: [...], pagination: {...}}
+  return result.data || result;
 };
 
 export const fetchNote = async (id) => {
@@ -94,7 +117,9 @@ export const fetchAnthologies = async () => {
   try {
     const response = await fetch(`${API_URL}/anthologies`);
     if (!response.ok) throw new Error('Failed to fetch anthologies');
-    return await response.json();
+    const result = await response.json();
+    // Backend may return array directly or wrapped in {success: true, data: [...]}
+    return Array.isArray(result) ? result : (result.data || []);
   } catch (error) {
     console.error('Error fetching anthologies:', error);
     return [];
@@ -106,7 +131,9 @@ export const fetchAnthology = async (slug) => {
   try {
     const response = await fetch(`${API_URL}/anthologies/${slug}`);
     if (!response.ok) throw new Error('Failed to fetch anthology');
-    return await response.json();
+    const result = await response.json();
+    // Backend may return object directly or wrapped in {success: true, data: {...}}
+    return result.data || result;
   } catch (error) {
     console.error('Error fetching anthology:', error);
     return null;

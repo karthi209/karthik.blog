@@ -214,17 +214,6 @@ select {
   color: var(--color-text);
 }
 
-/* Add-content form specific */
-.add-content-form {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-
-.add-content-form .form-group {
-  margin-bottom: 1.25rem;
-}
-
 /* Mobile form adjustments */
 @media (max-width: 768px) {
 

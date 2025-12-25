@@ -111,60 +111,6 @@
   outline: none;
 }
 
-/* Filters (legacy - unused) */
-.blog-filters {
-  display: flex;
-  gap: 2rem;
-  margin-bottom: 3rem;
-  padding: 1.5rem 0;
-  border-bottom: 1px solid var(--color-border);
-  align-items: flex-end;
-}
-
-.filter-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.625rem;
-  flex: 0 0 auto;
-}
-
-.filter-label {
-  font-size: 0.75rem;
-  font-family: var(--font-heading);
-  color: var(--color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  font-weight: 400;
-  display: block;
-}
-
-.filter-select {
-  padding: 0.5rem 0.75rem;
-  font-size: 1rem;
-  font-family: var(--font-body);
-  color: var(--color-text);
-  background: var(--color-background);
-  border: 1px solid var(--color-border);
-  border-radius: 0;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  min-width: 140px;
-}
-
-.filter-select option {
-  background: var(--color-background);
-  color: var(--color-text);
-}
-
-.filter-select:hover {
-  border-color: var(--color-text-light);
-}
-
-.filter-select:focus {
-  border-color: var(--color-accent);
-  outline: none;
-}
-
 /* Blog Cards */
 .blog-card-header {
   display: flex;
@@ -267,21 +213,6 @@
   }
 
   .blog-filters-dropdown .filter-select {
-    width: 100%;
-  }
-
-  .blog-filters {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 1.25rem;
-    padding: 1.25rem 0;
-  }
-
-  .filter-group {
-    width: 100%;
-  }
-
-  .filter-select {
     width: 100%;
   }
 }

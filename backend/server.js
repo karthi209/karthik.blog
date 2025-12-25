@@ -10,6 +10,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { initDatabase } from './db.js';
 import { authenticateApiKey } from './middleware/auth.js';
+import { errorHandler } from './middleware/errorHandler.js';
+import { requestLogger, logger } from './utils/logger.js';
 import passport from 'passport';
 import blogRoutes from './routes/blogs.js';
 import blogApiRoutes from './routes/blogs-api.js';
@@ -50,28 +52,36 @@ app.use(helmet({
 // Enable response compression
 app.use(compression());
 
+// Request logging middleware
+app.use(requestLogger);
+
 // Passport init (used for Google OAuth)
 app.use(passport.initialize());
 
-// CORS configuration - restrict to allowed origins
+// CORS configuration - allow requests with no Origin header (for health checks, nginx, etc.)
 const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',')
   : ['http://localhost:5173'];
 
 app.use(cors({
   origin: function (origin, callback) {
-    // Allow requests with no origin (mobile apps, Postman, etc.)
-    if (!origin) return callback(null, true);
     const isDev = process.env.NODE_ENV !== 'production';
-    if (isDev) {
-      // Allow localhost/127.0.0.1 on any port during development
-      if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
-        return callback(null, true);
-      }
+
+    // Allow requests with no origin (health checks, nginx, curl, etc.)
+    if (!origin) {
+      return callback(null, true);
     }
+
+    // Allow localhost/127.0.0.1 on any port during development
+    if (isDev && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+      return callback(null, true);
+    }
+
+    // Check against allowed origins
     if (allowedOrigins.indexOf(origin) === -1) {
       return callback(new Error('CORS policy violation'), false);
     }
+
     return callback(null, true);
   },
   credentials: true
@@ -118,8 +128,10 @@ const reactionsLimiter = rateLimit({
 });
 
 // Apply rate limiters only where needed
-// Don't apply rate limiting to public read-only routes during development
-// app.use('/api/', apiLimiter); // Uncomment for production
+// Enable rate limiting in production
+if (process.env.NODE_ENV === 'production') {
+  app.use('/api/', apiLimiter);
+}
 
 app.use(express.json({ limit: '10mb' })); // Allow larger payloads for markdown files
 
@@ -143,17 +155,20 @@ const storage = multer.diskStorage({
   }
 });
 
+// Allowed image MIME types
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+
 const upload = multer({
   storage: storage,
   limits: {
     fileSize: 5 * 1024 * 1024, // 5MB limit
   },
   fileFilter: function (req, file, cb) {
-    // Check if file is an image
-    if (file.mimetype.startsWith('image/')) {
+    // Check if file is an allowed image type
+    if (ALLOWED_IMAGE_TYPES.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error('Only image files are allowed!'), false);
+      cb(new Error(`Only image files are allowed. Allowed types: ${ALLOWED_IMAGE_TYPES.join(', ')}`), false);
     }
   }
 });
@@ -175,10 +190,11 @@ const uploadImage = multer({
     fileSize: 5 * 1024 * 1024, // 5MB limit
   },
   fileFilter: function (req, file, cb) {
-    if (file.mimetype.startsWith('image/')) {
+    // Check if file is an allowed image type
+    if (ALLOWED_IMAGE_TYPES.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error('Only image files are allowed!'), false);
+      cb(new Error(`Only image files are allowed. Allowed types: ${ALLOWED_IMAGE_TYPES.join(', ')}`), false);
     }
   }
 });
@@ -208,10 +224,10 @@ app.post('/api/upload/image', authenticateApiKey, uploadImage.single('image'), (
 // Initialize PostgreSQL database
 initDatabase()
   .then(() => {
-    console.log('Database initialization completed');
+    logger.info('Database initialization completed');
   })
   .catch(err => {
-    console.error('Database initialization error:', err);
+    logger.error('Database initialization error', { error: err.message });
     process.exit(1);
   });
 
@@ -271,5 +287,23 @@ const rssHandler = async (req, res) => {
 app.get('/rss.xml', rssHandler);
 app.get('/api/rss.xml', rssHandler);
 
-const PORT = 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`)); 
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
+  });
+});
+
+
+// Error handling middleware (must be last)
+app.use(errorHandler);
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  logger.info(`Server running on port ${PORT}`, { 
+    env: process.env.NODE_ENV || 'development',
+    port: PORT 
+  });
+}); 

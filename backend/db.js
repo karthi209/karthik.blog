@@ -19,11 +19,17 @@ const pool = new Pool({
 
 // Test connection
 pool.on('connect', () => {
-  console.log('Connected to PostgreSQL database');
+  // Connection successful - will be logged on first query
 });
 
-pool.on('error', (err) => {
-  console.error('Unexpected error on idle client', err);
+pool.on('error', async (err) => {
+  // Use logger if available, otherwise console for critical errors
+  try {
+    const { logger } = await import('./utils/logger.js');
+    logger.error('Database connection error', { error: err.message });
+  } catch {
+    console.error('Unexpected error on idle client', err);
+  }
   process.exit(-1);
 });
 

@@ -190,8 +190,9 @@ export default function BlogsPage() {
       {showFilters && activeTab === 'timeline' && (
         <div className="blog-filters-dropdown">
           <div className="filter-group">
-            <label className="filter-label">Category</label>
+            <label className="filter-label" htmlFor="category-filter">Category</label>
             <select
+              id="category-filter"
               className="filter-select"
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
@@ -206,8 +207,9 @@ export default function BlogsPage() {
           </div>
 
           <div className="filter-group">
-            <label className="filter-label">Archive</label>
+            <label className="filter-label" htmlFor="archive-filter">Archive</label>
             <select
+              id="archive-filter"
               className="filter-select"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}

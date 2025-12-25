@@ -18,11 +18,18 @@ karthik.blog/
 ## Local Development
 
 ### Prerequisites
-- Node.js (v18+ for backend, v22+ for frontend)
+- Node.js v22+ (managed via nvm - see `.nvmrc` files)
 - PostgreSQL (for backend)
+- nvm (Node Version Manager) - recommended
 
 ### Setup
-1. Clone the repo and install dependencies:
+1. **Switch to Node 22** (if using nvm):
+	```bash
+	nvm use 22
+	# Or: nvm use (auto-detects .nvmrc)
+	```
+
+2. Clone the repo and install dependencies:
 	```bash
 	cd backend && npm install
 	cd ../frontend && npm install

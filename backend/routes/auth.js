@@ -3,6 +3,7 @@ import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import jwt from 'jsonwebtoken';
 import { requireUserJwt } from '../middleware/auth.js';
+import { logger } from '../utils/logger.js';
 
 const router = Router();
 
@@ -70,14 +71,14 @@ if (googleClientId && googleClientSecret) {
 }
 
 router.get('/google', (req, res, next) => {
-  console.log('[AUTH] Google OAuth initiated', { query: req.query, headers: req.headers });
+  logger.debug('Google OAuth initiated', { query: req.query });
   if (!googleClientId || !googleClientSecret) {
-    console.log('[AUTH] Google OAuth not configured - missing credentials');
+    logger.warn('Google OAuth not configured - missing credentials');
     return res.status(500).json({ error: 'Google OAuth is not configured' });
   }
 
   const redirectPath = safeRedirectPath(req.query.redirect);
-  console.log('[AUTH] Redirect path:', redirectPath);
+  logger.debug('OAuth redirect path', { redirectPath });
   return passport.authenticate('google', {
     scope: ['profile', 'email'],
     prompt: 'select_account',
@@ -89,9 +90,9 @@ router.get('/google', (req, res, next) => {
 router.get(
   '/google/callback',
   (req, res, next) => {
-    console.log('[AUTH] Google OAuth callback received', { query: req.query, headers: req.headers });
+    logger.debug('Google OAuth callback received', { query: req.query });
     if (!googleClientId || !googleClientSecret) {
-      console.log('[AUTH] Google OAuth not configured in callback');
+      logger.warn('Google OAuth not configured in callback');
       return res.redirect(`${frontendBase}/?error=oauth_not_configured`);
     }
 
@@ -104,15 +105,15 @@ router.get(
     } catch {
       redirectPath = '/';
     }
-    console.log('[AUTH] Callback redirect path:', redirectPath);
+    logger.debug('OAuth callback redirect path', { redirectPath });
 
     return passport.authenticate('google', { session: false }, (err, user, info) => {
       if (err) {
-        console.error('[AUTH] OAuth callback error:', err);
+        logger.error('OAuth callback error', { error: err.message });
         return res.redirect(`${frontendBase}${redirectPath}?error=oauth_failed`);
       }
       if (!user) {
-        console.log('[AUTH] OAuth callback - no user returned');
+        logger.warn('OAuth callback - no user returned');
         return res.redirect(`${frontendBase}${redirectPath}?error=not_authorized`);
       }
 
@@ -122,10 +123,10 @@ router.get(
           JWT_SECRET,
           { expiresIn: '12h' }
         );
-        console.log('[AUTH] Token generated successfully for:', user.email);
+        logger.info('Token generated successfully', { email: user.email });
         return res.redirect(`${frontendBase}${redirectPath}?token=${encodeURIComponent(token)}`);
       } catch (e) {
-        console.error('[AUTH] JWT sign error:', e);
+        logger.error('JWT sign error', { error: e.message });
         return res.redirect(`${frontendBase}${redirectPath}?error=token_failed`);
       }
     })(req, res, next);

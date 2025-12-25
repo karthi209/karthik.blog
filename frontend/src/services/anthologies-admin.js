@@ -22,7 +22,9 @@ export const adminListAnthologies = async (isPublic) => {
         headers: { ...authHeaders() },
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return res.json();
+    const result = await res.json();
+    // Backend may return array directly or {success: true, data: [...]}
+    return Array.isArray(result) ? result : (result.data || []);
 };
 
 // Get single anthology by Slug (Public/Private depending on token)
