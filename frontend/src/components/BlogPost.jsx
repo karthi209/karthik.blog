@@ -3,7 +3,7 @@ import { useParams, useLocation } from 'react-router-dom';
 import { fetchBlogs } from '../services/api';
 import { fetchViewCount } from '../services/views';
 import CommentsSection from './CommentsSection';
-import './BlogPost.css';
+import '../styles/components/BlogPost.css';
 import DOMPurify from 'dompurify';
 import { Heart } from 'lucide-react';
 import { getStoredAuthToken, hasSeenAuthDisclaimer, markAuthDisclaimerSeen, startGoogleLogin } from '../services/auth';

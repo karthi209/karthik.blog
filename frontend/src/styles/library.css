@@ -1,0 +1,382 @@
+/* ============================================
+   LIBRARY REVIEW PAGE - Fun & Editorial Style
+   ============================================ */
+.library-review {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0;
+}
+
+.library-review-layout {
+  display: grid;
+  grid-template-columns: 1fr 220px;
+  gap: 3rem;
+  align-items: start;
+}
+
+/* Library review poster - simple, no outer box */
+.library-review-poster {
+  position: sticky;
+  top: 5rem;
+  width: 100%;
+}
+
+.library-review-poster img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.library-review-main {
+  min-width: 0;
+}
+
+.library-review-main--full {
+  grid-column: 1 / -1;
+}
+
+.library-review-kicker {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+  margin-bottom: 0.75rem;
+  font-weight: 500;
+}
+
+.library-review-kicker span:not(:last-child)::after {
+  content: '→';
+  margin-left: 0.75rem;
+  opacity: 0.5;
+}
+
+.library-review-title {
+  font-family: var(--font-title);
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: 400;
+  line-height: 1.1;
+  font-style: normal;
+  color: var(--color-text);
+  margin: 0 0 1.25rem 0;
+  letter-spacing: -0.03em;
+}
+
+.library-review-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 2px solid var(--color-border);
+}
+
+.library-review-rating {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  font-family: var(--font-mono);
+  background: linear-gradient(135deg, var(--color-accent), color-mix(in srgb, var(--color-accent) 80%, black));
+  color: var(--color-background);
+  padding: 0.5rem 0.85rem;
+  font-weight: 700;
+  border-radius: 2px;
+  box-shadow: 2px 2px 0 rgba(0,0,0,0.1);
+}
+
+.library-review-rating .rating-value {
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+.library-review-rating .rating-max {
+  font-size: 0.85rem;
+  opacity: 0.7;
+}
+
+.library-review-detail {
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  color: var(--color-text-light);
+  position: relative;
+}
+
+.library-review-detail:not(:last-child)::after {
+  content: '·';
+  margin-left: 1rem;
+  color: var(--color-accent);
+  opacity: 0.6;
+}
+
+.library-review-body {
+  font-family: var(--font-body);
+  font-size: 1.05rem;
+  line-height: 1.75;
+  color: var(--color-text);
+}
+
+.library-review-body .review-content p:first-of-type::first-letter {
+  font-size: 3.5em;
+  float: left;
+  line-height: 0.8;
+  margin: 0.05em 0.15em 0 0;
+  font-weight: 700;
+  color: var(--color-accent);
+  font-family: var(--font-heading);
+}
+
+.library-review-body .review-content p {
+  margin: 0 0 0.3rem;
+}
+
+.library-review-body .review-content p:last-child {
+  margin-bottom: 0;
+}
+
+.library-review-empty {
+  color: var(--color-text-muted);
+  font-style: italic;
+  padding: 2rem;
+  text-align: center;
+  border: 2px dashed var(--color-border);
+}
+
+.library-review-footer {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin-top: 2.5rem;
+  padding-top: 1.25rem;
+  border-top: 2px solid var(--color-border);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+}
+
+.library-review-footer span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+/* Mobile poster - hidden on desktop, shown on mobile between meta and content */
+.library-review-poster-mobile {
+  display: none;
+}
+
+/* Mobile: stack poster above content */
+@media (max-width: 768px) {
+  .library-review-layout {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  /* Hide desktop poster on mobile */
+  .library-review-poster {
+    display: none;
+  }
+
+  /* Show mobile poster - simple, no outer box */
+  .library-review-poster-mobile {
+    display: block;
+    width: 100%;
+    margin: 0.75rem 0 1.5rem 0;
+  }
+
+  .library-review-poster-mobile img {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  .library-review-title {
+    font-size: 3rem;
+  }
+
+  .library-review-meta {
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+  }
+
+  .library-review-detail {
+    font-size: 0.85rem;
+  }
+
+  .library-review-body .review-content p:first-of-type::first-letter {
+    font-size: 2.5em;
+  }
+}
+
+.library-note-header {
+  display: grid;
+  grid-template-columns: 1fr 220px;
+  gap: 2rem;
+  align-items: start;
+  margin-bottom: 2rem;
+}
+
+.library-note-kicker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.library-note-kicker-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.library-note-title {
+  margin: 0.5rem 0 1rem 0;
+  font-family: var(--font-title);
+  font-weight: 400;
+  font-size: clamp(2rem, 4vw, 3rem);
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+  font-style: normal;
+}
+
+.library-note-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 1rem;
+}
+
+.library-note-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  letter-spacing: 0.03em;
+}
+
+.library-note-link {
+  cursor: pointer;
+  transition: none;
+}
+
+.library-note-link:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.library-note-intro {
+  margin: 0.9rem 0 0 0;
+  color: var(--color-text-light);
+  max-width: 68ch;
+}
+
+.library-note-thumb {
+  position: relative;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 2/3;
+  border-radius: 0;
+  overflow: hidden;
+  border: 2px solid var(--color-text);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-3d);
+}
+
+.library-note-thumb img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.library-tracks {
+  display: flex;
+  flex-direction: column;
+}
+
+.library-track {
+  display: grid;
+  grid-template-columns: 2.5rem 1fr;
+  gap: 0.75rem;
+  padding: 0.85rem 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.library-track:first-child {
+  border-top: 1px solid var(--color-border);
+}
+
+.library-track-no {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  padding-top: 0.15rem;
+}
+
+.library-track-title {
+  font-weight: 500;
+}
+
+.library-track-meta {
+  margin-top: 0.25rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.library-track-audio {
+  margin-top: 0.5rem;
+  width: 100%;
+  height: 28px;
+}
+
+@media (max-width: 768px) {
+  .library-note {
+    padding: 0;
+  }
+
+  .library-note-header {
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 1.5rem;
+    padding: 1.25rem;
+  }
+
+  .library-note-thumb {
+    width: 100%;
+    height: auto;
+    max-height: 400px;
+    aspect-ratio: 16/9;
+    margin: 0;
+    border: none;
+    border-bottom: 2px solid var(--color-text);
+    box-shadow: none;
+  }
+
+  .post-content {
+    padding: 0 1.25rem 1.25rem;
+  }
+}
+

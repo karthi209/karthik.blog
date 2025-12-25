@@ -1,0 +1,134 @@
+/* CRT Scanlines Overlay */
+body::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 9999;
+
+  /* Very subtle scanlines + faintest vignette */
+  background:
+    repeating-linear-gradient(0deg,
+      transparent 0px,
+      transparent 2px,
+      rgba(0, 0, 0, 0.02) 2px,
+      rgba(0, 0, 0, 0.02) 4px),
+    radial-gradient(circle at center,
+      transparent 70%,
+      rgba(0, 0, 0, 0.04) 100%);
+  opacity: 1;
+}
+
+/* Light theme specific adjustments */
+[data-theme="light"] body::after {
+  /* Even subtler on light mode to avoid dirty look */
+  background:
+    repeating-linear-gradient(0deg,
+      transparent 0px,
+      transparent 2px,
+      rgba(0, 0, 0, 0.01) 2px,
+      rgba(0, 0, 0, 0.01) 4px),
+    radial-gradient(circle at center,
+      transparent 80%,
+      rgba(0, 0, 0, 0.02) 100%);
+}
+
+/* Respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  body::after {
+    display: none;
+  }
+}
+
+/* ============================================
+   NEON GLOW EFFECTS
+   ============================================ */
+
+/* Neon glow on cards and boxes */
+.neon-glow {
+  box-shadow:
+    0 0 5px var(--color-accent),
+    0 0 20px rgba(180, 140, 255, 0.3),
+    0 0 40px rgba(180, 140, 255, 0.1);
+}
+
+/* Soft neon border glow for interactive elements */
+.neon-border {
+  border-color: var(--color-accent);
+  box-shadow:
+    0 0 8px var(--color-accent),
+    inset 0 0 8px rgba(180, 140, 255, 0.1);
+}
+
+/* Neon text glow */
+.neon-text {
+  text-shadow:
+    0 0 5px var(--color-accent),
+    0 0 20px rgba(180, 140, 255, 0.5);
+}
+
+/* Subtle glow effect for active states */
+.blog-tab.active,
+.library-filter.is-active {
+  box-shadow: 0 0 6px rgba(107, 206, 196, 0.15);
+}
+
+/* Glitch hover effect for links */
+.glitch-hover {
+  position: relative;
+}
+
+.glitch-hover:hover {
+  animation: none;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  opacity: 0;
+  transition: opacity 0.2s var(--ease-out-quart);
+  will-change: opacity;
+}
+
+img[src],
+img.loaded {
+  opacity: 1;
+}
+
+/* GPU-accelerated transforms for smooth animations */
+.home-list-row,
+.library-entry,
+.blog-card,
+.sidebar-link,
+.mobile-nav-item,
+.library-filter {
+  will-change: transform;
+  transform: translateZ(0);
+}
+
+/* Smooth image hover effects */
+.img-hover-lift {
+  transition: 
+    transform var(--transition-speed) var(--ease-out-expo),
+    box-shadow var(--transition-speed) var(--ease-out-expo);
+}
+
+.img-hover-lift:hover {
+  transform: translateY(-4px) scale(1.01);
+  box-shadow: var(--shadow-soft);
+}
+
+/* Ensure images in containers with aspect-ratio show properly */
+.library-review-poster img,
+.library-note-thumb img,
+.blog-card-image img,
+.log-detail-image,
+.avatar-placeholder img {
+  opacity: 1;
+}
+
+/* App Layout */

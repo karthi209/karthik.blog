@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
 import DOMPurify from 'dompurify';
 import { fetchViewCount } from '../services/views';
-import './BlogPost.css';
+import '../styles/components/BlogPost.css';
 
 export default function NoteDetail() {
   const { id: paramId } = useParams();

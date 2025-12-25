@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { fetchBlogs, fetchCategories, fetchBlogArchives, fetchAnthologies, fetchAnthology } from '../services/api';
-import './BlogsPage.css';
+import '../styles/components/BlogsPage.css';
 
 export default function BlogsPage() {
   const [searchParams, setSearchParams] = useSearchParams();

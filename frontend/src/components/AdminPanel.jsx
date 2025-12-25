@@ -5,7 +5,7 @@ import { adminCreatePlaylist, adminUpdatePlaylist, adminDeletePlaylist, adminAdd
 import { adminListAnthologies, adminCreateAnthology, adminUpdateAnthology, adminDeleteAnthology } from '../services/anthologies-admin';
 import ReactQuill from 'react-quill';
 import "quill/dist/quill.snow.css";
-import './AdminPanel.css';
+import '../styles/components/AdminPanel.css';
 import AuthRequiredModal from './AuthRequiredModal';
 import { hasSeenAuthDisclaimer, markAuthDisclaimerSeen } from '../services/auth';
 
