@@ -44,12 +44,22 @@ export const adminListBlogs = async () => {
 };
 
 export const adminUpdateBlog = async (id, { title, content, category, tags, is_draft }) => {
+  // Backend only accepts title, content, and category
+  // Validate required fields before sending
+  if (!title || !content || !category) {
+    throw new Error(`Missing required fields: ${!title ? 'title' : ''} ${!content ? 'content' : ''} ${!category ? 'category' : ''}`.trim());
+  }
+  
   const res = await fetch(`${API}/blogs/admin/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...authHeaders() },
-    body: JSON.stringify({ title, content, category, tags, is_draft }),
+    body: JSON.stringify({ title, content, category }),
   });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ message: `HTTP ${res.status}` }));
+    const errorMessage = error.errors?.length ? error.errors.join(', ') : (error.message || `HTTP ${res.status}`);
+    throw new Error(errorMessage);
+  }
   return res.json();
 };
 

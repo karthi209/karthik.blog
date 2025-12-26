@@ -1,176 +1,32 @@
-/* Mobile Menu */
+/* ============================================
+   MOBILE MENU - Hamburger Navigation
+   ============================================ */
+
 .mobile-menu-toggle {
   display: none;
   background: none;
   border: none;
   cursor: pointer;
   padding: 0.5rem;
+  min-height: 44px;
+  min-width: 44px;
 }
 
 .mobile-menu-toggle span {
   display: block;
-  width: 24px;
+  width: 20px;
   height: 2px;
-  background-color: var(--color-text);
-  margin-bottom: 5px;
-  transition: all 0.3s ease;
+  background: var(--color-text);
+  margin: 4px 0;
+  transition: all 0.2s ease;
 }
 
-/* Responsive */
-@media (max-width: 900px) {
-  .homepage-layout {
-    grid-template-columns: 1fr;
-  }
-
-  .homepage-sidebar {
-    position: static;
-    margin-top: 3rem;
-  }
-
-  .home-layout {
-    grid-template-columns: 1fr;
-  }
-
-  .home-sidebar {
-    display: none;
-  }
-
-  .home-main {
-    padding-left: 0;
-    border-left: none;
-  }
-
-}
-
+/* Mobile breakpoint */
 @media (max-width: 768px) {
-  .header-container {
-    padding: 0 1rem;
-  }
-
-  .header-content {
-    padding: 0 1rem;
-  }
-
-  .logo-subtitle {
-    display: none;
-  }
-
-  .logo-slash {
-    display: none;
-  }
-
   .mobile-menu-toggle {
-    display: block;
-  }
-
-  /* Hero section mobile adjustments */
-  .hero-section {
-    margin-bottom: 3rem;
-  }
-
-  .hero-banner {
-    border-radius: 0;
-    margin-bottom: 2rem;
-  }
-
-  .hero-intro {
-    font-size: 1.125rem;
-  }
-
-  .hero-intro .hero-greeting {
-    font-size: 1.25rem;
-  }
-
-  .hero-intro .hero-quote {
-    margin: 1.5rem 0;
-    padding-left: 1rem;
-  }
-
-  /* Home layout mobile */
-  .home-layout {
-    gap: 1.25rem;
-  }
-
-  .home-main {
-    gap: 0.75rem;
-  }
-
-  /* Sidebar mobile */
-  .sidebar-widget {
-    padding: 1rem;
-  }
-
-  .widget-title {
-    font-size: 1.125rem;
-  }
-
-  /* Section titles mobile */
-  .section-title {
-    font-size: 1.25rem;
-  }
-
-  .navigation {
-    position: fixed;
-    top: 60px;
-    left: 0;
-    width: 100%;
-    height: calc(100vh - 60px);
-    background: var(--color-background);
-    padding: 2rem;
-    transform: translateX(100%);
-    transition: transform calc(var(--transition-speed) * 1.5) ease;
-    z-index: 99;
+    display: flex;
     flex-direction: column;
-    align-items: flex-start !important;
-    justify-content: flex-start !important;
-  }
-
-  .navigation.mobile-open {
-    transform: translateX(0);
-  }
-
-  .nav-links {
-    flex-direction: column;
-    width: 100%;
-    gap: 1.5rem;
-  }
-
-  .nav-link {
-    font-size: 1.25rem;
-    display: block;
-    padding: 0.5rem 0;
-    border-bottom: 1px solid var(--color-border-light);
-  }
-
-  .hide-mobile {
-    display: none;
-  }
-
-  .footer-container {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-    padding: 0 1rem;
-  }
-
-  .hero-title {
-    font-size: 5 rem;
-    font-family: var(--font-title);
-    font-weight: 400;
-    line-height: 1.25;
-  }
-
-  .main-content {
-    padding: 1rem 1rem;
-  }
-
-  .hero-section {
-    margin-bottom: 1.5rem;
-  }
-
-  .hero-intro {
-    font-size: 1 rem;
-    line-height: 1.6;
+    align-items: center;
+    justify-content: center;
   }
 }
-
-/* Stats Grid - Warm personal style */

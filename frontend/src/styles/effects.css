@@ -1,46 +1,6 @@
-/* CRT Scanlines Overlay */
+/* Clean Material Design - No grain, no noise, pure smooth background */
 body::after {
-  content: '';
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  z-index: 9999;
-
-  /* Very subtle scanlines + faintest vignette */
-  background:
-    repeating-linear-gradient(0deg,
-      transparent 0px,
-      transparent 2px,
-      rgba(0, 0, 0, 0.02) 2px,
-      rgba(0, 0, 0, 0.02) 4px),
-    radial-gradient(circle at center,
-      transparent 70%,
-      rgba(0, 0, 0, 0.04) 100%);
-  opacity: 1;
-}
-
-/* Light theme specific adjustments */
-[data-theme="light"] body::after {
-  /* Even subtler on light mode to avoid dirty look */
-  background:
-    repeating-linear-gradient(0deg,
-      transparent 0px,
-      transparent 2px,
-      rgba(0, 0, 0, 0.01) 2px,
-      rgba(0, 0, 0, 0.01) 4px),
-    radial-gradient(circle at center,
-      transparent 80%,
-      rgba(0, 0, 0, 0.02) 100%);
-}
-
-/* Respect reduced motion preference */
-@media (prefers-reduced-motion: reduce) {
-  body::after {
-    display: none;
-  }
+  display: none; /* Removed all grain/noise effects */
 }
 
 /* ============================================
@@ -73,7 +33,7 @@ body::after {
 /* Subtle glow effect for active states */
 .blog-tab.active,
 .library-filter.is-active {
-  box-shadow: 0 0 6px rgba(107, 206, 196, 0.15);
+  box-shadow: none;
 }
 
 /* Glitch hover effect for links */

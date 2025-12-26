@@ -4,7 +4,6 @@ import { fetchBlogs, fetchHomepageData, fetchNotes, fetchProjects } from '../ser
 import { trackView } from '../services/views';
 import { clearStoredAuthToken, getStoredAuthToken, getUserAlias, hasSeenAuthDisclaimer, isAdminUser, markAuthDisclaimerSeen, setStoredAuthToken, startGoogleLogin } from '../services/auth';
 import '../styles/modern.css';
-import ThemeToggle from './ThemeToggle';
 import Sidebar from './Sidebar';
 import { Menu, X } from 'lucide-react';
 
@@ -154,7 +153,7 @@ export default function Home() {
   };
 
   const navItems = [
-    { id: 'blogs', label: 'Blogs', path: '/blogs' },
+    { id: 'blogs', label: 'Writings', path: '/blogs' },
     { id: 'notes', label: 'Notes', path: '/notes' },
     { id: 'projects', label: 'Projects', path: '/projects' },
     { id: 'library', label: 'Library', path: '/library' },
@@ -266,28 +265,43 @@ export default function Home() {
             <div className="hero-section">
               <div className="hero-header">
                 <div className="hero-content">
-                  <h1 className="hero-title">Hi.</h1>
-                  <p className="hero-intro-text">
-                    I'm Karthik. Systems engineer by day, ghoul by night.
-                  </p>
-                  <p className="hero-intro-text">
-                    I tend to pick up hobbies faster than I finish them. Programming, cartography, gaming, photography, rants on public transit and a few I’m still in denial about.
-                  </p>
-                  <p>
-                    This site documents my thoughts, projects, experiments, and whatever I’m currently obsessed with.
-                  </p>
-                  <p className="aside"><em>PS. Claims of ghoulhood remain unverified.</em></p>
+                <h1 className="hero-title">…hi, this is karthik</h1>
+                  <div className="hero-intro">
+                    <p>
+                      Systems engineer by day. Hobby collector by night. Monster hunter in my dreams.
+                      I tend to start hobbies faster than I finish them. Programming, cartography,
+                      gaming, photography, and long rants on public transit.
+                    </p>
+                    <p>
+                      I live in Chennai, India, and love my city enough to be slightly obsessed with it.
+                      Occasionally, I disappear on a motorcycle across the countryside.
+                      It usually helps.
+                    </p>
+                    <p>
+                      I like fantasy novels. I like classic rock.
+                      I like maps more than is socially normal.
+                    </p>
+                    <p className="hero-quote">
+                      “The world’s full of stories. There’s room for every one of them to be told."" - Blood of Elves
+                    </p>
+                    <p>
+                      Follow me on X/Twitter&nbsp;
+                      <a href="https://x.com/karthi9003" target="_blank" rel="noreferrer">@karthi9003</a> for more rants.
+                    </p>
+                  </div>
                   <div className="hero-avatar">
-                    <div className="avatar-placeholder">
-                      <img src="/banner.jpg" alt="Karthik" />
+                    <div className="hero-collage">
+                      <div className="collage-photo collage-photo-me">
+                        <img src="/me.jpg" alt="Karthik" loading="eager" decoding="sync" />
+                      </div>
+                      <div className="collage-photo collage-photo-bike">
+                        <img src="/bike.jpg" alt="Bike" loading="eager" decoding="sync" />
+                      </div>
+                      <div className="collage-photo collage-photo-coffee">
+                        <img src="/coffee.jpg" alt="Coffee" loading="eager" decoding="sync" />
+                      </div>
                     </div>
                   </div>
-                  <p className="hero-quote">
-                    "The world's full of stories. There's room for every one of them to be told." — <em>Blood of Elves</em>
-                  </p>
-                  <p className="hero-intro-text">
-                    Follow me on X/Twitter <a href="https://x.com/karthi9003" target="_blank" rel="noopener noreferrer">@karthi9003</a> if you're looking for more rants and updates.
-                  </p>
                 </div>
 
               </div>
@@ -295,13 +309,8 @@ export default function Home() {
           </div>
 
           <aside className="home-homepage-rail">
-            <div className="ascii-divider">
-              <span className="ascii-green">█</span><span className="ascii-yellow">▄</span><span className="ascii-orange">▀</span><span className="ascii-red">█</span><span className="ascii-purple">▄</span><span className="ascii-blue">▀</span><span className="ascii-green">█</span><span className="ascii-yellow">▄</span><span className="ascii-orange">▀</span><span className="ascii-red">█</span>
-            </div>
             <div className="latest-section">
-              <div className="section-header">
-                <h2 className="section-title">Recent</h2>
-              </div>
+              <h2 className="section-title">Recent</h2>
               <div className="home-list-rows">
                 {recentItems.map((item) => {
                   const dateLabel = item?.dateValue
@@ -310,15 +319,10 @@ export default function Home() {
 
                   return (
                     <div key={item.key} className="home-list-row" onClick={() => navigate(item.path)}>
-                      <div className="home-list-date-row">
-                        <span className="home-list-date">{dateLabel}</span>
-                        <span className="home-list-type" data-type={item.dataType}>{item.label}</span>
-                      </div>
-                      <div className="home-list-left">
-                        <Link to={item.path} className="home-list-link">
-                          {item.title}
-                        </Link>
-                      </div>
+                      <span className="home-list-date">{dateLabel}</span>
+                      <Link to={item.path} className="home-list-link">
+                        {item.title}
+                      </Link>
                     </div>
                   );
                 })}
@@ -337,7 +341,6 @@ export default function Home() {
         <div>
           <Link to="/" className="mobile-brand">KARTHIK.BLOG</Link>
           <div className="mobile-actions">
-            <ThemeToggle className="theme-toggle--mobile" iconOnly />
             <button
               className="mobile-menu-btn"
               aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}

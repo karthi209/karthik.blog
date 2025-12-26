@@ -1,9 +1,9 @@
 
-/* Unified Footer Styles */
+/* Footer - Compact & Minimal */
 .footer {
-  margin-top: auto;
-  border-top: 1px solid var(--color-border);
-  padding: 2rem 0;
+  margin-top: 2.5rem;
+  border-top: 2px solid var(--color-border);
+  padding: 1.25rem 0 1rem;
   background: transparent;
 }
 
@@ -13,136 +13,75 @@
   padding: 0 var(--content-gutter);
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 0.75rem;
+}
+
+@media (max-width: 768px) {
+  .footer-container {
+    padding: 0 1rem;
+  }
 }
 
 .footer-main {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 2rem;
+  gap: 1.5rem;
   flex-wrap: wrap;
 }
 
 .footer-brand {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.25rem;
 }
 
 .footer-title {
-  font-family: var(--font-brand);
-  font-weight: 700;
-  font-size: 1rem;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 0.9rem;
   color: var(--color-text);
-  letter-spacing: 0.02em;
+  letter-spacing: -0.01em;
 }
 
 .footer-subtitle {
   color: var(--color-text-muted);
-  font-size: 0.8rem;
+  font-size: 0.7rem;
   font-family: var(--font-mono);
-  letter-spacing: 0.02em;
+  letter-spacing: 0.03em;
 }
 
 .footer-nav {
   display: flex;
-  gap: 1.5rem;
+  gap: 1rem;
   flex-wrap: wrap;
 }
 
 .footer-nav a {
   color: var(--color-text-muted);
-  font-size: 0.8rem;
-  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-family: var(--font-body);
   text-decoration: none;
-  transition: color 0.15s ease;
 }
 
 .footer-nav a:hover {
-  color: var(--color-text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .footer-links-simple a:hover {
-  color: var(--color-accent);
   text-decoration: underline;
-  text-decoration-color: var(--underline-color);
-  text-decoration-thickness: 2px;
   text-underline-offset: 3px;
 }
 
 @media (max-width: 768px) {
   .footer-links-simple a {
-    font-size: 0.8rem;
+    font-size: 0.75rem;
   }
 
   .footer-simple p {
-    font-size: 0.8rem;
+    font-size: 0.75rem;
   }
-}
-
-/* Footer - Minimal & Elegant */
-.footer {
-  margin-top: 4rem;
-  border-top: 1px solid var(--color-border);
-  padding: 2.5rem 0 2rem;
-  background: transparent;
-}
-
-.footer-container {
-  max-width: var(--content-max);
-  margin: 0 auto;
-  padding: 0 var(--content-gutter);
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.footer-main {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 2rem;
-  flex-wrap: wrap;
-}
-
-.footer-brand {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-}
-
-.footer-title {
-  font-family: var(--font-brand);
-  font-weight: 700;
-  font-size: 1rem;
-  color: var(--color-text);
-  letter-spacing: 0.02em;
-}
-
-.footer-subtitle {
-  color: var(--color-text-muted);
-  font-size: 0.8rem;
-  font-family: var(--font-mono);
-  letter-spacing: 0.02em;
-}
-
-.footer-nav {
-  display: flex;
-  gap: 1.5rem;
-  flex-wrap: wrap;
-}
-
-.footer-nav a {
-  color: var(--color-text-muted);
-  font-size: 0.8rem;
-  font-family: var(--font-mono);
-  text-decoration: none;
-  transition: color 0.15s ease;
-}
-
-.footer-nav a:hover {
-  color: var(--color-text);
 }
 
 /* Footer extras - personality elements */
@@ -154,7 +93,7 @@
   gap: 1rem;
   padding: 0.75rem 0;
   border-top: 1px dashed var(--color-border);
-  border-bottom: 1px dashed var(--color-border);
+  margin-top: 0.5rem;
 }
 
 .visitor-counter {
@@ -165,7 +104,8 @@
   font-size: 0.75rem;
   padding: 0.35rem 0.6rem;
   background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  border: 2px solid var(--color-border);
+  border-radius: 0;
 }
 
 .counter-label {
@@ -200,14 +140,14 @@
 }
 
 .footer-bottom {
-  padding-top: 1rem;
+  padding-top: 0.75rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
-  gap: 1rem;
+  gap: 0.75rem;
   color: var(--color-text-muted);
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   font-family: var(--font-mono);
 }
 
@@ -261,7 +201,7 @@
 .ascii-purple { color: #963D97; }
 .ascii-blue { color: #009DDC; }
 
-/* Rainbow stripe decorators - reusable with glow */
+/* Rainbow stripe decorators - clean, no glow */
 .rainbow-stripe {
   height: 4px;
   width: 100%;
@@ -273,9 +213,6 @@
     #963D97 66.64%, #963D97 83.3%,
     #009DDC 83.3%, #009DDC 100%);
   border-radius: 0;
-  box-shadow: 
-    0 0 6px rgba(97, 187, 70, 0.4),
-    0 0 10px rgba(253, 184, 39, 0.3);
 }
 
 .rainbow-stripe--thin {
@@ -286,17 +223,9 @@
   width: 80px;
 }
 
-/* Retro phosphor glow on hover for links */
-.sidebar-link:hover,
-.footer-nav a:hover {
-  text-shadow: 0 0 8px rgba(107, 206, 196, 0.5);
-}
+/* Clean hover states - no glow */
 
-/* Retro button press effect */
-.retro-button:active {
-  transform: translate(2px, 2px);
-  box-shadow: 1px 1px 0 0 var(--color-text) !important;
-}
+/* Button styles now handled in homepage.css */
 
 /* CRT flicker animation for special elements */
 @keyframes crt-flicker {

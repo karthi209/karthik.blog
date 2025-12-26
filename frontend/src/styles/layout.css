@@ -6,72 +6,29 @@
   position: relative;
 }
 
-/* Subtle CRT scanline texture - retro computing aesthetic */
+/* Clean Material Design - No texture, no grain, pure smooth background */
 .app-container::before {
-  content: '';
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  z-index: 9999;
-  background: repeating-linear-gradient(
-    0deg,
-    transparent,
-    transparent 2px,
-    rgba(0, 0, 0, 0.015) 2px,
-    rgba(0, 0, 0, 0.015) 4px
-  );
-  opacity: 0.5;
+  display: none; /* Removed dot pattern texture */
 }
 
-/* Dark theme: lighter scanlines, more visible glow */
-[data-theme="dark"] .app-container::before {
-  background: repeating-linear-gradient(
-    0deg,
-    transparent,
-    transparent 2px,
-    rgba(255, 255, 255, 0.008) 2px,
-    rgba(255, 255, 255, 0.008) 4px
-  );
-  opacity: 0.4;
-}
+/* No glow effects - clean minimal */
 
-/* Dark theme: boost glow effects */
-[data-theme="dark"] .sidebar-color-stripe {
-  box-shadow: 
-    0 0 8px rgba(97, 187, 70, 0.35),
-    0 0 12px rgba(253, 184, 39, 0.25);
-}
-
-[data-theme="dark"] .blog-tab:hover,
-[data-theme="dark"] .library-filter:hover {
-  box-shadow: 0 0 10px rgba(107, 206, 196, 0.35);
-}
-
-[data-theme="dark"] .blog-toc-item:hover {
-  text-shadow: 0 0 8px rgba(107, 206, 196, 0.5);
-}
-
-[data-theme="dark"] .sidebar-link:hover,
-[data-theme="dark"] .footer-nav a:hover {
-  text-shadow: 0 0 10px rgba(107, 206, 196, 0.6);
-}
+/* Removed glow effects for minimalism */
 
 .main-content {
   flex: 1;
   max-width: var(--content-max);
   margin: 0 auto;
-  padding: 1.5rem var(--content-gutter);
+  padding: 1.25rem var(--content-gutter);
   width: 100%;
   min-height: 70vh;
+  position: relative;
+  z-index: 1;
 }
 
-@media (min-width: 1024px) {
+@media (max-width: 768px) {
   .main-content {
-    padding-top: 2rem;
-    padding-bottom: 2.25rem;
+    padding: 1rem;
   }
 }
 

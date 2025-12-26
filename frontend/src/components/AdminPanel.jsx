@@ -238,13 +238,30 @@ export default function AdminPanel() {
       const isDraftValue = saveAsDraft || blogIsDraft;
       const tagsArray = blogTags ? blogTags.split(',').map((t) => t.trim()).filter(Boolean) : null;
 
+      // Validate required fields
+      if (!blogTitle || !blogTitle.trim()) {
+        setStatus('Error: Title is required');
+        return;
+      }
+      if (!blogContent || !blogContent.trim() || blogContent.trim() === '<p><br></p>') {
+        setStatus('Error: Content is required');
+        return;
+      }
+      if (!blogCategory || !blogCategory.trim()) {
+        setStatus('Error: Category is required');
+        return;
+      }
+
+      // Normalize category - allow any value
+      const categoryNormalized = blogCategory.trim();
+
       let blogResult;
       if (editingBlog) {
         setStatus('Updating blog...');
         blogResult = await adminUpdateBlog(editingBlog.id, {
-          title: blogTitle,
-          content: blogContent,
-          category: blogCategory?.toUpperCase(),
+          title: blogTitle.trim(),
+          content: blogContent.trim(),
+          category: categoryNormalized,
           tags: tagsArray,
           is_draft: isDraftValue
         });
@@ -253,9 +270,9 @@ export default function AdminPanel() {
       } else {
         setStatus(isDraftValue ? 'Saving draft...' : 'Publishing blog...');
         blogResult = await adminCreateBlog({
-          title: blogTitle,
-          content: blogContent,
-          category: blogCategory?.toUpperCase(),
+          title: blogTitle.trim(),
+          content: blogContent.trim(),
+          category: categoryNormalized,
           tags: tagsArray,
           is_draft: isDraftValue
         });
@@ -290,7 +307,10 @@ export default function AdminPanel() {
       if (showManageBlogs) loadBlogs();
       setTimeout(() => setStatus(''), 2000);
     } catch (err) {
-      setStatus(`Error: ${err.message || 'Failed'}`);
+      console.error('Blog submission error:', err);
+      const errorMessage = err.message || 'Failed to save blog';
+      setStatus(`Error: ${errorMessage}`);
+      setTimeout(() => setStatus(''), 5000);
     }
   };
 
@@ -312,7 +332,8 @@ export default function AdminPanel() {
       // Backend returns {success: true, data: {...}}
       const fullBlog = result.data || result;
       setBlogTitle(fullBlog.title);
-      setBlogCategory(fullBlog.category);
+      // Keep category as-is when loading (no normalization needed)
+      setBlogCategory(fullBlog.category || '');
       setBlogTags(fullBlog.tags ? fullBlog.tags.join(', ') : '');
       setBlogContent(fullBlog.content);
       setBlogIsDraft(fullBlog.is_draft || false);

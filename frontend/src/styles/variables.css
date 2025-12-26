@@ -1,18 +1,16 @@
 :root {
-  /* Font families - Unique, Creative Open Source Fonts
+  /* Font families - Sharp & Contemporary
    * 
-   * Syne: Creative variable font designed for Synesthésie art center
-   * Instrument Serif: Elegant condensed display serif for large headings
-   * Literata: Highly readable serif designed for e-books, unique letterforms
-   * IBM Plex Mono: Classic monospace with personality
-   * Bricolage Grotesque: Variable font with French attitude for brand
+   * Outfit: Headings - geometric, sharp, modern
+   * Inter: Body - highly readable, structured
+   * JetBrains Mono: Code - developer favorite
    */
-  --font-brand: "Bricolage Grotesque", "Arial Black", sans-serif;  /* Unique variable font for site title */
-  --font-heading: "Syne", "Helvetica Neue", sans-serif;            /* Creative condensed for post titles */
-  --font-title: "Instrument Serif", "Georgia", serif;              /* Elegant serif for display */
-  --font-body: "Literata", "Georgia", serif;                       /* Highly readable serif for content */
-  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;    /* Classic mono with personality */
-  --font-ui: "Inter", system-ui, sans-serif;                       /* Clean UI elements */
+  --font-brand: "Outfit", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-heading: "Outfit", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-title: "Outfit", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-body: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", "Monaco", "Menlo", monospace;
+  --font-ui: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
 
   /* Font weights */
   --weight-normal: 400;
@@ -21,92 +19,99 @@
   --weight-bold: 700;
   --weight-extra-bold: 800;
 
-  /* Font sizes */
-  --size-title-large: clamp(2rem, 4vw, 2.5rem);
-  --size-title: clamp(1.75rem, 3.2vw, 2rem);
-  --size-body: 1.0625rem;
-  --size-small: 0.9375rem;
-  --size-caption: 0.875rem;
+  /* Font sizes - Readable & Organized */
+  --size-title-large: clamp(1.875rem, 4vw, 2.5rem);
+  --size-title: clamp(1.625rem, 3.2vw, 2rem);
+  --size-body: 0.9375rem;  /* 15px - optimal for readability */
+  --size-small: 0.875rem;
+  --size-caption: 0.8125rem;
 
-  /* Line heights */
-  --line-height-title: 1.25;
-  --line-height-body: 1.7;
-  --paragraph-spacing: 1.5rem;
+  /* Line heights - Excellent Readability */
+  --line-height-title: 1.3;
+  --line-height-body: 1.7;  /* Increased for better readability */
+  --paragraph-spacing: 0.875rem;  /* Space between paragraphs for clarity */
 
-  /* Letter spacing */
+  /* Letter spacing - Balanced for readability */
   --spacing-title: -0.01em;
   --spacing-heading: 0;
-  --spacing-body: 0;
+  --spacing-body: 0.01em;  /* Slight spacing for better readability */
 
   /* 
-   * COZY DARK THEME - Lighter background for better detail visibility
+   * DARK THEME - Minimalist, personal, artistic
+   * Cool-toned Material Design with unique personality
    */
-  --color-text: #F5F3F0;
-  /* Warm white */
-  --color-text-light: #d6d6e0;
-  /* Secondary text */
-  --color-text-muted: #9A958E;
-  /* Muted text */
-  --color-text-dark: #1A1816;
+  --color-text: #E8EAED;
+  /* Primary text - cool white */
+  --color-text-light: #BDC1C6;
+  /* Secondary text - cool gray */
+  --color-text-muted: #9AA0A6;
+  /* Muted text - subtle gray */
+  --color-text-dark: #1A1C1E;
 
-  --color-border: #44404a;
-  /* Lifted warm border - more visible */
-  --color-border-light: #5A554E;
+  --color-border: #3C4043;
+  /* Subtle border */
+  --color-border-light: #5F6368;
 
-  --color-background: #121213;
-  /* Lifted charcoal - better for details */
-  --color-surface: #121213;
-  /* More visible surface */
-  --color-surface-hover: #3D3A35;
+  --color-background: #1A1C1E;
+  /* Deep cool dark - personal touch */
+  --color-surface: #2A2D30;
+  /* Elevated surface */
+  --color-surface-hover: #35383B;
 
-  --color-hover: rgba(94, 190, 180, 0.12);
-  --color-accent: #80f4e8;
-  --color-accent-hover: #8EDED6;
-  --color-success: #8DC89C;
-  --color-warning: #E4B86A;
-  --color-error: #D48A8A;
-  --color-info: #8AAED4;
-  --color-secondary: #B0AAA2;
+  --color-hover: rgba(138, 180, 248, 0.1);
+  /* Subtle cool blue hover */
+  --color-accent: #8AB4F8;
+  /* Cool blue accent - personal favorite */
+  --color-accent-hover: #AECBFA;
+  --color-success: #81C995;
+  /* Cool green */
+  --color-warning: #FDD663;
+  /* Cool yellow */
+  --color-error: #F28B82;
+  /* Cool red */
+  --color-info: #8AB4F8;
+  /* Cool blue */
+  --color-secondary: #9AA0A6;
 
-  /* Category Colors - Brighter for dark theme visibility */
-  --color-blog: #FF5A5E;      /* Brighter red */
-  --color-blog-bg: rgba(255, 90, 94, 0.18);
-  --color-notes: #F5B82E;     /* Brighter amber */
-  --color-notes-bg: rgba(245, 184, 46, 0.18);
-  --color-library: #B85DBB;   /* Brighter purple */
-  --color-library-bg: rgba(184, 93, 187, 0.18);
-  --color-projects: #4FC868;  /* Brighter green */
-  --color-projects-bg: rgba(79, 200, 104, 0.18);
-  --color-music: #FF9A3E;     /* Brighter orange */
-  --color-music-bg: rgba(255, 154, 62, 0.18);
-  --color-games: #5A7AEE;     /* Brighter blue */
-  --color-games-bg: rgba(90, 122, 238, 0.18);
+  /* Category Colors - Cool-toned Material Design */
+  --color-blog: #F28B82;      /* Cool red */
+  --color-blog-bg: rgba(242, 139, 130, 0.15);
+  --color-notes: #FDD663;     /* Cool yellow */
+  --color-notes-bg: rgba(253, 214, 99, 0.15);
+  --color-library: #CE93D8;   /* Cool purple */
+  --color-library-bg: rgba(206, 147, 216, 0.15);
+  --color-projects: #81C995;  /* Cool green */
+  --color-projects-bg: rgba(129, 201, 149, 0.15);
+  --color-music: #FFB74D;     /* Cool orange */
+  --color-music-bg: rgba(255, 183, 77, 0.15);
+  --color-games: #8AB4F8;     /* Cool blue */
+  --color-games-bg: rgba(138, 180, 248, 0.15);
 
-  /* Spacing */
-  --space-3xs: 0.25rem;
-  --space-2xs: 0.5rem;
-  --space-xs: 0.75rem;
-  --space-sm: 1rem;
-  --space-md: 1.5rem;
-  --space-lg: 2rem;
-  --space-xl: 3rem;
-  --space-2xl: 4rem;
+  /* Spacing - Compact */
+  --space-3xs: 0.2rem;
+  --space-2xs: 0.4rem;
+  --space-xs: 0.5rem;
+  --space-sm: 0.75rem;
+  --space-md: 1rem;
+  --space-lg: 1.25rem;
+  --space-xl: 1.75rem;
+  --space-2xl: 2.5rem;
 
-  /* Layout */
-  --container-padding: var(--space-md);
-  --section-spacing: var(--space-2xl);
-  --item-spacing: var(--space-lg);
-  --page-margin: 1.5rem;
+  /* Layout - Compact */
+  --container-padding: var(--space-sm);
+  --section-spacing: var(--space-lg);
+  --item-spacing: var(--space-sm);
+  --page-margin: 1rem;
 
   --content-max: 1200px;
   --content-gutter: 1.5rem;
 
-  /* Borders - sharp edges for retro feel */
+  /* Borders - minimalist, clean */
   --border-thin: 1px;
   --border-regular: 2px;
   --border-thick: 3px;
   --border-radius: 0;
-  /* Sharp corners = retro */
+  /* Sharp corners - minimalist aesthetic */
   --border-radius-sm: 0;
   --border-radius-lg: 0;
 
@@ -132,61 +137,12 @@
   --shadow-soft: 0 10px 30px rgba(0, 0, 0, 0.45);
   --shadow-soft-sm: 0 6px 18px rgba(0, 0, 0, 0.35);
 
-  /* 3D offset shadows - retro hard edge */
-  --shadow-3d-sm: 2px 2px 0 0 var(--color-text-muted);
-  /* Softer 3D edge */
-  --shadow-3d: 3px 3px 0 0 var(--color-text-muted);
-  /* Softer 3D edge */
+  /* Minimal shadows - subtle depth */
+  --shadow-3d-sm: none;
+  --shadow-3d: none;
 
   --underline-color: color-mix(in srgb, var(--color-accent) 55%, transparent);
   --color-hover-soft: color-mix(in srgb, var(--color-accent) 14%, transparent);
 }
 
-/* 
- * COZY LIGHT THEME - Warm cream, teal accent
- */
-[data-theme="light"] {
-  --color-text: #2A2622;
-  /* Warm dark */
-  --color-text-light: #4A4540;
-  --color-text-muted: #7A756E;
-  --color-text-dark: #1A1816;
-
-  --color-border: #D5D0CA;
-  /* Warm neutral border */
-  --color-border-light: #E5E0DA;
-
-  --color-background: #FAF8F5;
-  /* Warm off-white */
-  --color-surface: #FFFFFF;
-  --color-surface-hover: #F5F2EE;
-
-  --color-hover: rgba(58, 140, 132, 0.08);
-  --color-accent: #264946;
-  /* Deeper teal for light mode */
-  --color-accent-hover: #2D6E68;
-  --color-success: #4A8A5A;
-  /* Forest green */
-  --color-warning: #B8923A;
-  --color-error: #B85A5A;
-  --color-info: #4A7AA8;
-  --color-secondary: #6A655E;
-
-  /* Softer corners for cozy feel */
-  --border-radius: 2px;
-  --border-radius-sm: 2px;
-  --border-radius-lg: 4px;
-
-  --shadow-sm: 0 2px 8px rgba(45, 36, 25, 0.06);
-  --shadow-md: 0 4px 16px rgba(45, 36, 25, 0.08);
-
-  --shadow-soft: 0 14px 34px rgba(45, 36, 25, 0.10);
-  --shadow-soft-sm: 0 8px 20px rgba(45, 36, 25, 0.08);
-
-  /* 3D shadows using warm color */
-  --shadow-3d-sm: 2px 2px 0 0 #5C4F3D;
-  --shadow-3d: 3px 3px 0 0 #5C4F3D;
-
-  --underline-color: color-mix(in srgb, var(--color-accent) 50%, transparent);
-  --color-hover-soft: color-mix(in srgb, var(--color-accent) 10%, transparent);
-}
+/* Light theme removed - minimalist dark theme only */

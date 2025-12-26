@@ -148,7 +148,7 @@ export default function LogDetail() {
               {log.hours_played ? <span className="library-review-detail">{log.hours_played}h played</span> : null}
             </div>
 
-            {/* Mobile poster - shows only on mobile, between meta and content */}
+            {/* Poster - shows above content on all screens */}
             {log.image ? (
               <div className="library-review-poster-mobile">
                 <img 
@@ -180,15 +180,6 @@ export default function LogDetail() {
             </div>
           </div>
 
-          {/* Right: Cover Image */}
-          {log.image ? (
-            <div className="library-review-poster">
-              <img 
-                src={log.image.startsWith('http') ? log.image : `${API_BASE}${log.image}`} 
-                alt={log.title} 
-              />
-            </div>
-          ) : null}
         </div>
       </article>
     </div>

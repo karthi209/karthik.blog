@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
+import { Search } from 'lucide-react';
 import { fetchBlogs, fetchCategories, fetchBlogArchives, fetchAnthologies, fetchAnthology } from '../services/api';
 import '../styles/components/BlogsPage.css';
 
@@ -19,7 +20,7 @@ export default function BlogsPage() {
   const [loading, setLoading] = useState(true);
   const [showLoader, setShowLoader] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [showFilters, setShowFilters] = useState(false);
+  const [showSearchPanel, setShowSearchPanel] = useState(false);
 
   // Fetch all necessary data
   useEffect(() => {
@@ -143,7 +144,8 @@ export default function BlogsPage() {
     <>
       <div className="page-header">
         <div>
-          <h1 className="page-title">Blogs</h1>
+          <h1 className="page-title">Writings</h1>
+          <p className="page-meta">Thoughts, rants, and things I've learned.</p>
           <div className="blog-tabs">
             <button
               className={`blog-tab ${activeTab === 'timeline' ? 'active' : ''}`}
@@ -157,38 +159,31 @@ export default function BlogsPage() {
             >
               Anthologies
             </button>
+            {activeTab === 'timeline' && (
+              <button
+                className="search-icon-btn"
+                onClick={() => setShowSearchPanel(!showSearchPanel)}
+                aria-label="Toggle search and filters"
+              >
+                <Search size={20} />
+              </button>
+            )}
           </div>
         </div>
       </div>
 
-      {(activeTab === 'timeline' || (activeTab === 'anthologies' && !selectedAnthology)) && (
-        <div className="blog-search-bar">
-          {activeTab === 'timeline' && (
-            <div className="search-input-wrapper">
-              <input
-                type="text"
-                placeholder="Search articles..."
-                className="search-input"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-          )}
-
-          {activeTab === 'timeline' && (
-            <button
-              className="filter-toggle-btn retro-button retro-button--icon"
-              onClick={() => setShowFilters(!showFilters)}
-              aria-label="Toggle filters"
-            >
-              Filters
-            </button>
-          )}
-        </div>
-      )}
-
-      {showFilters && activeTab === 'timeline' && (
-        <div className="blog-filters-dropdown">
+      {showSearchPanel && activeTab === 'timeline' && (
+        <div className="blog-search-panel">
+          <div className="search-input-wrapper">
+            <input
+              type="text"
+              placeholder="Search articles..."
+              className="search-input"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          <div className="blog-filters-dropdown">
           <div className="filter-group">
             <label className="filter-label" htmlFor="category-filter">Category</label>
             <select
@@ -222,6 +217,7 @@ export default function BlogsPage() {
               ))}
             </select>
           </div>
+        </div>
         </div>
       )}
 
@@ -294,11 +290,11 @@ const BlogRow = ({ blog, navigate }) => {
       <span className="library-entry-date">{dateLabel}</span>
       <span>
         <div className="library-entry-title">{blog.title}</div>
-        <div className="library-entry-meta">
+        <div className="blog-entry-meta">
           {blog.category ? (
-            <span className="library-entry-tag">{blog.category.toUpperCase()}</span>
+            <span className="blog-entry-category">{blog.category.toUpperCase()}</span>
           ) : null}
-          <span className="meta-detail">{readingTime} MIN READ</span>
+          <span className="blog-entry-readtime">{readingTime} MIN READ</span>
         </div>
       </span>
     </button>

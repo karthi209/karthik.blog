@@ -89,6 +89,10 @@ body {
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
   -moz-osx-font-smoothing: grayscale;
+  /* Clean Material Design - no texture, no grain, smooth */
+  background-image: none;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
 }
 
 ::selection {

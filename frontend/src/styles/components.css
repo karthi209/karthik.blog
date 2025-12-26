@@ -1,4 +1,4 @@
-/* Stats Grid - Warm personal style */
+/* Stats Grid - Personal artistic style */
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -474,4 +474,4 @@
   background: var(--color-surface-hover);
 }
 
-/* ===== FORM STYLES - RETRO THEME ===== */
+/* ===== FORM STYLES - Minimalist ===== */

@@ -73,7 +73,7 @@ router.post('/from-file', authenticateApiKey, validateRequestBody({
 router.post('/create', authenticateApiKey, validateRequestBody({
   title: { type: 'string', required: true, maxLength: FIELD_LIMITS.TITLE },
   content: { type: 'string', required: true, maxLength: FIELD_LIMITS.CONTENT },
-  category: { type: 'string', required: true, maxLength: FIELD_LIMITS.CATEGORY, enum: ['tech', 'life', 'music', 'games', 'movies', 'tv', 'books'] }
+  category: { type: 'string', required: true, maxLength: FIELD_LIMITS.CATEGORY }
 }), asyncHandler(async (req, res) => {
     const { title, content, category } = req.body;
 
@@ -147,7 +147,7 @@ router.get('/admin/list', authenticateApiKey, asyncHandler(async (req, res) => {
 router.put('/admin/:id', authenticateApiKey, validateRequestBody({
   title: { type: 'string', required: true, maxLength: FIELD_LIMITS.TITLE },
   content: { type: 'string', required: true, maxLength: FIELD_LIMITS.CONTENT },
-  category: { type: 'string', required: true, maxLength: FIELD_LIMITS.CATEGORY, enum: ['tech', 'life', 'music', 'games', 'movies', 'tv', 'books'] }
+  category: { type: 'string', required: true, maxLength: FIELD_LIMITS.CATEGORY }
 }), asyncHandler(async (req, res) => {
     const { id } = req.params;
     const { title, content, category } = req.body;

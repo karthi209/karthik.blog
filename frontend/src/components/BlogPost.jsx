@@ -8,7 +8,6 @@ import DOMPurify from 'dompurify';
 import { Heart } from 'lucide-react';
 import { getStoredAuthToken, hasSeenAuthDisclaimer, markAuthDisclaimerSeen, startGoogleLogin } from '../services/auth';
 import { fetchBlogLikes, toggleBlogLike } from '../services/comments';
-import BlogToc from './BlogToc';
 import AuthRequiredModal from './AuthRequiredModal';
 
 export default function BlogPost() {
@@ -22,32 +21,6 @@ export default function BlogPost() {
   const [likeCount, setLikeCount] = useState(0);
   const [liked, setLiked] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
-  const [readingProgress, setReadingProgress] = useState(0);
-
-  // Reading progress bar - tracks scroll position
-  useEffect(() => {
-    const updateProgress = () => {
-      const article = document.querySelector('.blog-post-body');
-      if (!article) return;
-
-      const articleTop = article.offsetTop;
-      const articleHeight = article.scrollHeight;
-      const windowHeight = window.innerHeight;
-      const scrollY = window.scrollY;
-
-      // Calculate progress based on how much of the article is scrolled
-      const start = articleTop - windowHeight * 0.2;
-      const end = articleTop + articleHeight - windowHeight * 0.8;
-      const progress = Math.min(100, Math.max(0, ((scrollY - start) / (end - start)) * 100));
-
-      setReadingProgress(progress);
-    };
-
-    window.addEventListener('scroll', updateProgress, { passive: true });
-    updateProgress(); // Initial call
-
-    return () => window.removeEventListener('scroll', updateProgress);
-  }, [post]); // Re-run when post loads
 
   // Extract ID from URL pathname if not in params (fallback for catch-all routes)
   const id = paramId || location.pathname.replace('/blog/', '').replace('/blogs/', '');
@@ -254,17 +227,6 @@ export default function BlogPost() {
 
   return (
     <div className="blog-post-container" style={{ minHeight: '60vh' }}>
-      {/* Reading Progress Bar */}
-      <div className="reading-progress-container">
-        <div
-          className="reading-progress-bar"
-          style={{ width: `${readingProgress}%` }}
-          role="progressbar"
-          aria-valuenow={Math.round(readingProgress)}
-          aria-valuemin="0"
-          aria-valuemax="100"
-        />
-      </div>
 
       <AuthRequiredModal
         open={authModalOpen}
@@ -346,9 +308,6 @@ export default function BlogPost() {
           </article>
         </div>
 
-        <div className="blog-post-aside">
-          <BlogToc />
-        </div>
       </div>
     </div>
   );

@@ -9,19 +9,12 @@ import Home from './components/Home.jsx';
 
 function App() {
   React.useEffect(() => {
-    const saved = (() => {
-      try {
-        return localStorage.getItem('theme');
-      } catch {
-        return null;
-      }
-    })();
-
-    const current = document.documentElement.getAttribute('data-theme');
-    const valid = (t) => t === 'dark' || t === 'light';
-    const next = (valid(saved) && saved) || (valid(current) && current) || 'dark';
-
-    document.documentElement.setAttribute('data-theme', next);
+    // Always use dark theme - minimalist, personal, artistic
+    document.documentElement.setAttribute('data-theme', 'dark');
+    // Clean up any old theme preferences
+    try {
+      localStorage.removeItem('theme');
+    } catch {}
   }, []);
   
   return (

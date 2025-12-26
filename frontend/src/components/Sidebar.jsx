@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import ThemeToggle from './ThemeToggle';
 import { clearStoredAuthToken, getStoredAuthToken, getUserAlias, isAdminUser, hasSeenAuthDisclaimer, markAuthDisclaimerSeen, startGoogleLogin } from '../services/auth';
 import AuthRequiredModal from './AuthRequiredModal';
 
@@ -59,7 +58,7 @@ export default function Sidebar() {
 
       <div className="sidebar-widget">
         <nav className="sidebar-nav">
-          <Link className="sidebar-link" to="/blogs">Blogs</Link>
+          <Link className="sidebar-link" to="/blogs">Writings</Link>
           <Link className="sidebar-link" to="/notes">Notes</Link>
           <Link className="sidebar-link" to="/projects">Projects</Link>
           <Link className="sidebar-link" to="/library">Library</Link>
@@ -114,8 +113,6 @@ export default function Sidebar() {
               </div>
             ) : null}
           </div>
-
-          <ThemeToggle iconOnly className="sidebar-link sidebar-icon-control" />
         </div>
       </div>
     </aside>

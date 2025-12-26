@@ -168,9 +168,11 @@ export default function LibraryPage() {
 
   return (
     <>
-      <div className="post hero-section">
-        <h2 className="page-title">Library</h2>
-        <p className="page-meta">A personal log of things I watched, played, listened to, and read — not recommendations, just what stayed with me.</p>
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Library</h1>
+          <p className="page-meta">A personal log of things I watched, played, listened to, and read — not recommendations, just what stayed with me.</p>
+        </div>
       </div>
 
       <div className="library-filters">
@@ -181,7 +183,7 @@ export default function LibraryPage() {
             onClick={() => handleFilterChange(key)}
             className={`library-filter ${filter === key ? 'is-active' : ''}`}
           >
-            {label}{counts[key] ? ` (${counts[key]})` : ''}
+            {label}
           </button>
         ))}
       </div>
@@ -196,7 +198,6 @@ export default function LibraryPage() {
             <section key={group.year} className="library-year">
               <div className="library-year-header">
                 <h3 className="library-year-title">{group.year}</h3>
-                <span className="library-year-count">{group.items.length} entries</span>
               </div>
 
               <div className="library-entries">
@@ -204,10 +205,9 @@ export default function LibraryPage() {
                   const dateLabel = item?.date
                     ? new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
                     : '—';
-                  const impact = item?.description
+                  const thoughts = item?.description
                     ? item.description.replace(/\s+/g, ' ').trim()
                     : '';
-                  const impactShort = impact.length > 140 ? `${impact.slice(0, 140)}…` : impact;
 
                   return (
                     <button
@@ -219,12 +219,9 @@ export default function LibraryPage() {
                       <span className="library-entry-date">{dateLabel}</span>
                       <span>
                         <div className="library-entry-title">{item.title}</div>
-                        <div className="library-entry-meta">
-                          <span className="library-entry-tag">{item.type}</span>
-                          {impactShort ? (
-                            <span className="library-entry-impact">{impactShort}</span>
-                          ) : null}
-                        </div>
+                        {thoughts ? (
+                          <div className="library-entry-thoughts">{thoughts}</div>
+                        ) : null}
                       </span>
                     </button>
                   );
