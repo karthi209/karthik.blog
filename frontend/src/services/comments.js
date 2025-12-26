@@ -58,3 +58,23 @@ export const toggleBlogLike = async (blogId) => {
   }
   return res.json();
 };
+
+export const fetchNoteLikes = async (noteId) => {
+  const res = await fetch(`${API}/notes/${noteId}/likes`, {
+    headers: { ...authHeaders() }
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+};
+
+export const toggleNoteLike = async (noteId) => {
+  const res = await fetch(`${API}/notes/${noteId}/likes/toggle`, {
+    method: 'POST',
+    headers: { ...authHeaders() }
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.error || err?.message || `HTTP ${res.status}`);
+  }
+  return res.json();
+};

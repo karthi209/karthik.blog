@@ -13,11 +13,6 @@ export default function Sidebar() {
   const menuRef = useRef(null);
 
   const onLogin = () => {
-    console.log('[SIDEBAR] Login button clicked', { 
-      currentPath: window.location.pathname,
-      currentUrl: window.location.href,
-      userAgent: navigator.userAgent
-    });
     startGoogleLogin(window.location.pathname || '/');
   };
 
@@ -59,7 +54,8 @@ export default function Sidebar() {
       <div className="sidebar-widget">
         <nav className="sidebar-nav">
           <Link className="sidebar-link" to="/blogs">Writings</Link>
-          <Link className="sidebar-link" to="/notes">Notes</Link>
+          <Link className="sidebar-link" to="/wander">Wander</Link>
+          <Link className="sidebar-link" to="/gallery">Gallery</Link>
           <Link className="sidebar-link" to="/projects">Projects</Link>
           <Link className="sidebar-link" to="/library">Library</Link>
         </nav>

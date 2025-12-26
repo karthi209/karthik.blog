@@ -5,6 +5,7 @@ const API = import.meta.env.VITE_API_URL || '/api';
 export default function LabPage() {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showLoader, setShowLoader] = useState(false);
 
   useEffect(() => {
     const loadProjects = async () => {
@@ -26,6 +27,16 @@ export default function LabPage() {
     loadProjects();
   }, []);
 
+  useEffect(() => {
+    if (!loading) {
+      setShowLoader(false);
+      return;
+    }
+    // Only show loader after 2.5 seconds - prevents distracting flash for fast loads
+    const t = setTimeout(() => setShowLoader(true), 2500);
+    return () => clearTimeout(t);
+  }, [loading]);
+
   return (
     <>
       <div className="page-header">
@@ -35,7 +46,7 @@ export default function LabPage() {
         </div>
       </div>
 
-      {loading ? (
+      {loading && showLoader ? (
         <div className="loading-state">
           <div className="loading-spinner">
             <span></span>
@@ -47,7 +58,7 @@ export default function LabPage() {
           </div>
           <p>Loading projects...</p>
         </div>
-      ) : projects.length === 0 ? (
+      ) : !loading && projects.length === 0 ? (
         <div className="blog-card-empty" style={{
           textAlign: 'center',
           padding: '3rem 1rem',

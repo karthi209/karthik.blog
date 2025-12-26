@@ -1,7 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
 import DOMPurify from 'dompurify';
 import { fetchViewCount } from '../services/views';
+import { Heart } from 'lucide-react';
+import { getStoredAuthToken, hasSeenAuthDisclaimer, markAuthDisclaimerSeen, startGoogleLogin } from '../services/auth';
+import CommentsSection from './CommentsSection';
+import AuthRequiredModal from './AuthRequiredModal';
 import '../styles/components/BlogPost.css';
 
 export default function NoteDetail() {
@@ -9,10 +13,14 @@ export default function NoteDetail() {
   const location = useLocation();
   const [note, setNote] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showLoader, setShowLoader] = useState(false);
   const [error, setError] = useState(null);
   const [views, setViews] = useState(null);
+  const [likeCount, setLikeCount] = useState(0);
+  const [liked, setLiked] = useState(false);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
 
-  const id = paramId || location.pathname.replace('/notes/', '');
+  const id = paramId || location.pathname.replace('/wander/', '').replace('/notes/', '');
 
   useEffect(() => {
     setLoading(true);
@@ -59,7 +67,72 @@ export default function NoteDetail() {
     loadViews();
   }, [location.pathname]);
 
-  if (loading) {
+  useEffect(() => {
+    if (!loading) {
+      setShowLoader(false);
+      return;
+    }
+    // Only show loader after 2.5 seconds - prevents distracting flash for fast loads
+    const t = setTimeout(() => setShowLoader(true), 2500);
+    return () => clearTimeout(t);
+  }, [loading]);
+
+  useEffect(() => {
+    const loadLikes = async () => {
+      try {
+        // Note: Using blog likes API for now - backend may need note-specific endpoint
+        // For now, we'll use the blog endpoint structure as a placeholder
+        const apiUrl = import.meta.env.VITE_API_URL || '/api';
+        const res = await fetch(`${apiUrl}/notes/${id}/likes`, {
+          headers: { ...(getStoredAuthToken() ? { Authorization: `Bearer ${getStoredAuthToken()}` } : {}) }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setLikeCount(Number(data?.count || 0));
+          setLiked(!!data?.liked);
+        }
+      } catch {
+        // Backend may not support note likes yet, so we'll just keep defaults
+      }
+    };
+
+    if (!id) return;
+    loadLikes();
+  }, [id]);
+
+  const onToggleLike = async () => {
+    const token = getStoredAuthToken();
+    if (!token) {
+      setAuthModalOpen(true);
+      return;
+    }
+    try {
+      // Note: Using blog likes API structure - backend may need note-specific endpoint
+      const apiUrl = import.meta.env.VITE_API_URL || '/api';
+      const res = await fetch(`${apiUrl}/notes/${id}/likes/toggle`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setLikeCount(Number(data?.count || 0));
+        setLiked(!!data?.liked);
+      } else {
+        // If endpoint doesn't exist yet, use local state as fallback
+        setLiked(!liked);
+        setLikeCount(prev => liked ? prev - 1 : prev + 1);
+      }
+    } catch {
+      // Fallback to local state if API not available
+      setLiked(!liked);
+      setLikeCount(prev => liked ? prev - 1 : prev + 1);
+    }
+  };
+
+  if (loading && showLoader) {
     return (
       <div className="blog-post-container">
         <div className="loading-state">
@@ -95,6 +168,17 @@ export default function NoteDetail() {
 
   return (
     <div className="blog-post-container" style={{ minHeight: '60vh' }}>
+      <AuthRequiredModal
+        open={authModalOpen}
+        title="Login required"
+        message="Please login to like or comment."
+        showFirstTimeDisclaimer={!hasSeenAuthDisclaimer()}
+        onClose={() => setAuthModalOpen(false)}
+        onLogin={() => {
+          if (!hasSeenAuthDisclaimer()) markAuthDisclaimerSeen();
+          startGoogleLogin(window.location.pathname || '/');
+        }}
+      />
       <article className="blog-post-content">
         <header className="blog-post-header">
           <h1 className="blog-post-title">{note?.title}</h1>
@@ -109,6 +193,16 @@ export default function NoteDetail() {
                 <span>{String(views).toUpperCase()} VIEWS</span>
               </div>
             ) : null}
+
+            <button
+              type="button"
+              className={`like-button like-button--inline ${liked ? 'liked' : ''}`}
+              onClick={onToggleLike}
+              aria-label="Like this post"
+            >
+              <Heart size={14} fill={liked ? '#ff2d55' : 'none'} color={liked ? '#ff2d55' : 'currentColor'} />
+              <span>{likeCount}</span>
+            </button>
           </div>
         </header>
 
@@ -119,6 +213,34 @@ export default function NoteDetail() {
           />
         ) : null}
 
+        <footer className="blog-post-footer">
+          <div className="share-section">
+            <span>Share this thought:</span>
+            <div className="share-buttons">
+              <button
+                className="share-button"
+                onClick={() => {
+                  const url = window.location.href;
+                  const text = note?.title || 'Check this out';
+                  window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank');
+                }}
+              >
+                Share on X
+              </button>
+              <button
+                className="share-button"
+                onClick={() => {
+                  navigator.clipboard.writeText(window.location.href);
+                  alert('Link copied to clipboard!');
+                }}
+              >
+                Copy Link
+              </button>
+            </div>
+          </div>
+        </footer>
+
+        <CommentsSection blogId={Number(id)} />
       </article>
     </div>
   );

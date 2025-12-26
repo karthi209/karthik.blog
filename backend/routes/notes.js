@@ -1,14 +1,23 @@
 import { Router } from 'express';
 import cache from '../cache.js';
-import { authenticateApiKey } from '../middleware/auth.js';
+import { authenticateApiKey, requireUserJwt } from '../middleware/auth.js';
 import { Note } from '../models/Note.js';
+import { NoteLike } from '../models/NoteLike.js';
 import { parsePagination, createPaginatedResponse } from '../utils/pagination.js';
 import { asyncHandler } from '../middleware/errorHandler.js';
 import { logger } from '../utils/logger.js';
 import { validateRequestBody, FIELD_LIMITS } from '../middleware/validation.js';
 import { createResponse, updateResponse, deleteResponse, successResponse, errorResponse } from '../utils/response.js';
+import rateLimit from 'express-rate-limit';
 
 const router = Router();
+
+// Rate limiter for likes
+const likesLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 30, // 30 requests per minute
+  message: 'Too many like requests, please try again later.'
+});
 
 /**
  * @swagger
@@ -108,6 +117,52 @@ router.get('/:id', asyncHandler(async (req, res) => {
 
   const { response } = successResponse({ ...note, _id: note.id });
   res.json(response);
+}));
+
+// Likes: get count + whether current user liked (public count, optional auth)
+router.get('/:id/likes', asyncHandler(async (req, res) => {
+  try {
+    const noteId = parseInt(req.params.id);
+    if (isNaN(noteId)) return res.status(400).json({ error: 'Invalid note ID' });
+
+    const count = await NoteLike.count(noteId);
+
+    // Best-effort decode if Authorization header is present
+    let liked = false;
+    try {
+      const authHeader = req.headers.authorization || '';
+      const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
+      if (token && process.env.JWT_SECRET) {
+        const jwt = await import('jsonwebtoken');
+        const decoded = jwt.default.verify(token, process.env.JWT_SECRET);
+        if (decoded?.email) {
+          liked = await NoteLike.isLiked({ noteId, userEmail: String(decoded.email).toLowerCase() });
+        }
+      }
+    } catch {
+      liked = false;
+    }
+
+    res.json({ count, liked });
+  } catch (err) {
+    logger.error('Error fetching note likes', { error: err.message, noteId: req.params.id });
+    res.status(500).json({ error: 'Failed to fetch likes' });
+  }
+}));
+
+// Likes: toggle (login required)
+router.post('/:id/likes/toggle', likesLimiter, requireUserJwt, asyncHandler(async (req, res) => {
+  try {
+    const noteId = parseInt(req.params.id);
+    if (isNaN(noteId)) return res.status(400).json({ error: 'Invalid note ID' });
+
+    const userEmail = String(req.user.email || '').toLowerCase();
+    const result = await NoteLike.toggle({ noteId, userEmail });
+    res.json({ liked: result.liked, count: result.count });
+  } catch (err) {
+    logger.error('Error toggling note like', { error: err.message, noteId: req.params.id });
+    res.status(500).json({ error: 'Failed to toggle like' });
+  }
 }));
 
 export default router;

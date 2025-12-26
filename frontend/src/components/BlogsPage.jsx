@@ -51,7 +51,8 @@ export default function BlogsPage() {
       setShowLoader(false);
       return;
     }
-    const t = setTimeout(() => setShowLoader(true), 1200);
+    // Only show loader after 2.5 seconds - prevents distracting flash for fast loads
+    const t = setTimeout(() => setShowLoader(true), 2500);
     return () => clearTimeout(t);
   }, [loading]);
 

@@ -7,6 +7,7 @@ import { fetchViewCount } from '../services/views';
 export default function PlaylistPage({ id }) {
   const [playlist, setPlaylist] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showLoader, setShowLoader] = useState(false);
   const [error, setError] = useState(null);
   const [views, setViews] = useState(null);
   const location = useLocation();
@@ -50,7 +51,17 @@ export default function PlaylistPage({ id }) {
     loadViews();
   }, [location.pathname]);
 
-  if (loading) {
+  useEffect(() => {
+    if (!loading) {
+      setShowLoader(false);
+      return;
+    }
+    // Only show loader after 2.5 seconds - prevents distracting flash for fast loads
+    const t = setTimeout(() => setShowLoader(true), 2500);
+    return () => clearTimeout(t);
+  }, [loading]);
+
+  if (loading && showLoader) {
     return (
       <div className="loading-state">
           <div className="loading-spinner">

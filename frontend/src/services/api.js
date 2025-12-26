@@ -79,6 +79,22 @@ export const fetchNote = async (id) => {
   return response.json();
 };
 
+export const fetchGalleryPhotos = async (filters = {}) => {
+  const queryParams = new URLSearchParams();
+  if (filters.sortBy) queryParams.append('sortBy', filters.sortBy);
+  if (filters.order) queryParams.append('order', filters.order);
+  if (filters.page) queryParams.append('page', filters.page);
+  if (filters.limit) queryParams.append('limit', filters.limit);
+  const qs = queryParams.toString();
+  const response = await fetch(`${API_URL}/gallery${qs ? `?${qs}` : ''}`);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch gallery photos: ${response.statusText}`);
+  }
+  const result = await response.json();
+  // Backend returns {success: true, data: [...], pagination: {...}}
+  return result.data || result;
+};
+
 export const addBlog = async (blog) => {
   try {
     const response = await fetch(`${API_URL}/blogs`, {

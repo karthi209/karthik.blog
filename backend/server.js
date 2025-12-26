@@ -18,6 +18,7 @@ import blogApiRoutes from './routes/blogs-api.js';
 import logRoutes from './routes/logs.js';
 import uploadRoutes from './routes/upload.js';
 import noteRoutes from './routes/notes.js';
+import galleryRoutes from './routes/gallery.js';
 import viewRoutes from './routes/views.js';
 import reactionRoutes from './routes/reactions.js';
 import authRoutes from './routes/auth.js';
@@ -237,6 +238,7 @@ app.use('/api/blogs', blogRoutes);
 app.use('/api/blogs', adminLimiter, blogApiRoutes); // API routes with authentication and rate limiting
 app.use('/api/logs', logRoutes);
 app.use('/api/notes', noteRoutes);
+app.use('/api/gallery', galleryRoutes);
 app.use('/api/views', viewRoutes);
 app.use('/api/reactions', reactionsLimiter, reactionRoutes);
 app.use('/api/anthologies', anthologyRoutes);

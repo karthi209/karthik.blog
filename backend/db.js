@@ -43,7 +43,9 @@ export const initDatabase = async () => {
     const { Reaction } = await import('./models/Reaction.js');
     const { BlogComment } = await import('./models/BlogComment.js');
     const { BlogLike } = await import('./models/BlogLike.js');
+    const { NoteLike } = await import('./models/NoteLike.js');
     const { Anthology } = await import('./models/Anthology.js');
+    const { Gallery } = await import('./models/Gallery.js');
     // New simplified library models
     const { LogMetadata } = await import('./models/LogMetadata.js');
     const { LogContent } = await import('./models/LogContent.js');
@@ -58,10 +60,12 @@ export const initDatabase = async () => {
 
     // Other features
     await Note.init();
+    await Gallery.init();
     await View.init();
     await Reaction.init();
     await BlogComment.init();
     await BlogLike.init();
+    await NoteLike.init();
 
     // Run migrations for any missing columns/indexes
     await runMigrations();

@@ -2,13 +2,13 @@
 /* Footer - Compact & Minimal */
 .footer {
   margin-top: 2.5rem;
-  border-top: 2px solid var(--color-border);
+  border-top: none;
   padding: 1.25rem 0 1rem;
   background: transparent;
 }
 
 .footer-container {
-  max-width: var(--content-max);
+  max-width: 1000px;
   margin: 0 auto;
   padding: 0 var(--content-gutter);
   display: flex;
@@ -16,8 +16,24 @@
   gap: 0.75rem;
 }
 
+/* Desktop: Match full layout width including right sidebar area */
+@media (min-width: 1100px) {
+  .footer-container {
+    max-width: calc(180px + 1.25rem + 740px + 3rem + 260px - 100px); /* sidebar + gap + main + gap + rail - 100px */
+  }
+}
+
+/* Tablet: Match home-layout responsive behavior */
+@media (max-width: 1024px) {
+  .footer-container {
+    max-width: 680px; /* Match .home-layout max-width on tablet */
+    padding: 0 2rem;
+  }
+}
+
 @media (max-width: 768px) {
   .footer-container {
+    max-width: 100%;
     padding: 0 1rem;
   }
 }

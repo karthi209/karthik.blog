@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { adminCreateBlog, getStoredAdminToken, clearStoredAdminToken, adminListBlogs, adminUpdateBlog, adminDeleteBlog } from '../services/admin';
 import { adminListNotes, adminCreateNote, adminUpdateNote, adminDeleteNote } from '../services/notes-admin';
+import { adminListGallery, adminCreateGallery, adminUpdateGallery, adminDeleteGallery } from '../services/gallery-admin';
 import { adminCreatePlaylist, adminUpdatePlaylist, adminDeletePlaylist, adminAddSong, adminAddSongsBulk, adminDeleteSong, fetchPlaylists } from '../services/playlists-admin';
 import { adminListAnthologies, adminCreateAnthology, adminUpdateAnthology, adminDeleteAnthology } from '../services/anthologies-admin';
 import ReactQuill from 'react-quill';
@@ -60,6 +61,14 @@ export default function AdminPanel() {
   const [notes, setNotes] = useState([]);
   const [editingNote, setEditingNote] = useState(null);
   const [showManageNotes, setShowManageNotes] = useState(false);
+
+  // === GALLERY STATE ===
+  const [galleryTitle, setGalleryTitle] = useState('');
+  const [galleryCaption, setGalleryCaption] = useState('');
+  const [galleryImageUrl, setGalleryImageUrl] = useState('');
+  const [galleryPhotos, setGalleryPhotos] = useState([]);
+  const [editingGallery, setEditingGallery] = useState(null);
+  const [showManageGallery, setShowManageGallery] = useState(false);
 
   // === LIBRARY STATE (UNIFIED) ===
   const [libraryCategory, setLibraryCategory] = useState('games');
@@ -524,6 +533,82 @@ export default function AdminPanel() {
     setNoteTags('');
   };
 
+  // === GALLERY FUNCTIONS ===
+  const submitGallery = async (e) => {
+    e.preventDefault();
+    try {
+      if (!galleryImageUrl.trim()) {
+        setStatus('Error: Image URL is required');
+        return;
+      }
+
+      if (editingGallery) {
+        setStatus('Updating gallery photo...');
+        await adminUpdateGallery(editingGallery.id, {
+          title: galleryTitle.trim() || null,
+          caption: galleryCaption.trim() || null,
+          image_url: galleryImageUrl.trim()
+        });
+        setStatus('Gallery photo updated!');
+        setEditingGallery(null);
+      } else {
+        setStatus('Creating gallery photo...');
+        await adminCreateGallery({
+          title: galleryTitle.trim() || null,
+          caption: galleryCaption.trim() || null,
+          image_url: galleryImageUrl.trim()
+        });
+        setStatus('Gallery photo created!');
+      }
+
+      setGalleryTitle('');
+      setGalleryCaption('');
+      setGalleryImageUrl('');
+      if (showManageGallery) loadGallery();
+      setTimeout(() => setStatus(''), 2000);
+    } catch (err) {
+      setStatus(`Error: ${err.message || 'Failed'}`);
+    }
+  };
+
+  const loadGallery = async () => {
+    try {
+      const result = await adminListGallery();
+      setGalleryPhotos(Array.isArray(result) ? result : []);
+    } catch (error) {
+      setStatus('Failed to load gallery photos');
+    }
+  };
+
+  const handleEditGallery = (photo) => {
+    setEditingGallery(photo);
+    setGalleryTitle(photo.title || '');
+    setGalleryCaption(photo.caption || '');
+    setGalleryImageUrl(photo.image_url || '');
+    setShowManageGallery(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleDeleteGallery = async (id) => {
+    if (!confirm('Delete this gallery photo?')) return;
+    try {
+      setStatus('Deleting gallery photo...');
+      await adminDeleteGallery(id);
+      setStatus('Gallery photo deleted!');
+      loadGallery();
+      setTimeout(() => setStatus(''), 2000);
+    } catch (error) {
+      setStatus(`Error: ${error.message}`);
+    }
+  };
+
+  const cancelEditGallery = () => {
+    setEditingGallery(null);
+    setGalleryTitle('');
+    setGalleryCaption('');
+    setGalleryImageUrl('');
+  };
+
   // === LIBRARY FUNCTIONS ===
   const handleLibraryCoverChange = (e) => {
     const file = e.target.files?.[0];
@@ -884,7 +969,7 @@ export default function AdminPanel() {
 
       {/* Tabs */}
       <div className="admin-tabs">
-        {['blogs', 'notes', 'projects', 'library'].map(tab => (
+        {['blogs', 'notes', 'gallery', 'projects', 'library'].map(tab => (
           <button
             key={tab}
             onClick={() => {
@@ -1247,6 +1332,114 @@ export default function AdminPanel() {
             <div className="admin-btn-group">
               <button type="submit" className="admin-btn admin-btn-primary">
                 {editingNote ? 'Update Note' : 'Create Note'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* GALLERY TAB */}
+      {activeTab === 'gallery' && (
+        <div>
+          {editingGallery && (
+            <div style={{ marginBottom: '1rem', padding: '0.75rem', background: 'var(--color-accent-bg)', borderRadius: '4px', fontSize: '0.9rem' }}>
+              Editing: <strong>{editingGallery.title || 'Untitled Photo'}</strong>
+              <button onClick={cancelEditGallery} className="admin-link-btn" style={{ marginLeft: '1rem' }}>Cancel</button>
+            </div>
+          )}
+
+          {showManageGallery && (
+            <div className="admin-manage">
+              <div className="admin-manage-header">
+                <h3 className="admin-manage-title">Manage Gallery Photos</h3>
+                <button onClick={() => setShowManageGallery(false)} className="admin-btn">Hide</button>
+              </div>
+
+              {galleryPhotos.length === 0 ? (
+                <p style={{ textAlign: 'center', color: 'var(--color-text-muted)', padding: '2rem' }}>
+                  No gallery photos yet. Create your first one!
+                </p>
+              ) : (
+                <div className="admin-item-list">
+                  {galleryPhotos.map(photo => (
+                    <div key={photo.id} className="admin-item">
+                      <div className="admin-item-info">
+                        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                          {photo.image_url && (
+                            <img 
+                              src={photo.image_url} 
+                              alt={photo.title || 'Gallery photo'} 
+                              style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '4px' }}
+                            />
+                          )}
+                          <div>
+                            <div className="admin-item-title">{photo.title || 'Untitled Photo'}</div>
+                            <div className="admin-item-meta">
+                              {new Date(photo.created_at).toLocaleDateString()}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="admin-item-actions">
+                        <button onClick={() => handleEditGallery(photo)} className="admin-link-btn">Edit</button>
+                        <button onClick={() => handleDeleteGallery(photo.id)} className="admin-link-btn danger">Delete</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <button onClick={loadGallery} className="admin-btn" style={{ marginTop: '1rem' }}>Refresh List</button>
+            </div>
+          )}
+
+          {!showManageGallery && (
+            <button onClick={() => { setShowManageGallery(true); loadGallery(); }} className="admin-btn" style={{ marginBottom: '2rem' }}>
+              Manage Gallery ({galleryPhotos.length})
+            </button>
+          )}
+
+          <form onSubmit={submitGallery} className="admin-form">
+            <div className="admin-form-group">
+              <label className="admin-label">Image URL *</label>
+              <input
+                type="url"
+                value={galleryImageUrl}
+                onChange={(e) => setGalleryImageUrl(e.target.value)}
+                required
+                className="admin-input"
+                placeholder="https://example.com/image.jpg"
+              />
+              <small style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem', marginTop: '0.25rem', display: 'block' }}>
+                Enter the full URL to the image. You can upload images using the upload endpoint first.
+              </small>
+            </div>
+
+            <div className="admin-form-group">
+              <label className="admin-label">Title</label>
+              <input
+                type="text"
+                value={galleryTitle}
+                onChange={(e) => setGalleryTitle(e.target.value)}
+                className="admin-input"
+                placeholder="Photo title (optional)"
+              />
+            </div>
+
+            <div className="admin-form-group">
+              <label className="admin-label">Caption</label>
+              <textarea
+                value={galleryCaption}
+                onChange={(e) => setGalleryCaption(e.target.value)}
+                className="admin-input"
+                rows={3}
+                placeholder="Photo caption or description (optional)"
+              />
+            </div>
+
+            <div className="admin-btn-group">
+              <button type="submit" className="admin-btn admin-btn-primary">
+                {editingGallery ? 'Update Photo' : 'Create Photo'}
               </button>
             </div>
           </form>

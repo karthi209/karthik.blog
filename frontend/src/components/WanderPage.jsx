@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import '../styles/modern.css';
 import { fetchNotes } from '../services/api';
 
-export default function NotesPage() {
+export default function WanderPage() {
   const navigate = useNavigate();
   const [notes, setNotes] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -62,8 +62,8 @@ export default function NotesPage() {
     <>
       <div className="page-header">
         <div>
-          <h1 className="page-title">Notes</h1>
-          <p className="page-meta">A place for thoughts to land.</p>
+          <h1 className="page-title">Wander</h1>
+          <p className="page-meta">Places, journeys, and moments captured.</p>
         </div>
       </div>
 
@@ -77,7 +77,7 @@ export default function NotesPage() {
             <span></span>
             <span></span>
           </div>
-          <p className="loading-text">loading notes...</p>
+          <p className="loading-text">loading wander...</p>
         </div>
       ) : !loading ? (
         <div className="list-stack">
@@ -85,7 +85,7 @@ export default function NotesPage() {
             <section key={g.year} className="list-section">
               <div className="list-section-header">
                 <h3 className="list-section-title">{g.year}</h3>
-                <span className="meta-small">{g.items.length} {g.items.length === 1 ? 'note' : 'notes'}</span>
+                <span className="meta-small">{g.items.length} {g.items.length === 1 ? 'entry' : 'entries'}</span>
               </div>
 
               <div className="library-entries">
@@ -98,7 +98,7 @@ export default function NotesPage() {
                       key={id || n.title}
                       type="button"
                       className="library-entry blog-entry"
-                      onClick={() => navigate(`/notes/${id}`)}
+                      onClick={() => navigate(`/wander/${id}`)}
                     >
                       <span className="library-entry-date">{dateLabel}</span>
                       <span>
@@ -111,7 +111,8 @@ export default function NotesPage() {
             </section>
           ))}
         </div>
-      )}
+      ) : null}
     </>
   );
 }
+

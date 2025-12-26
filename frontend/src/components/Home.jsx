@@ -9,7 +9,8 @@ import { Menu, X } from 'lucide-react';
 
 // Lazy load components
 const BlogsPage = lazy(() => import('./BlogsPage'));
-const NotesPage = lazy(() => import('./NotesPage'));
+const WanderPage = lazy(() => import('./WanderPage'));
+const GalleryPage = lazy(() => import('./GalleryPage'));
 const LibraryPage = lazy(() => import('./LibraryPage'));
 const PlaylistPage = lazy(() => import('./PlaylistPage'));
 const LabPage = lazy(() => import('./LabPage'));
@@ -38,7 +39,7 @@ export default function Home() {
 
   // Route detection
   const isBlogPostPage = location.pathname.startsWith('/blog/') || location.pathname.startsWith('/blogs/');
-  const isNotePostPage = location.pathname.startsWith('/notes/') && location.pathname.split('/').length > 2;
+  const isNotePostPage = location.pathname.startsWith('/wander/') && location.pathname.split('/').length > 2;
   const isAdminPage = location.pathname.startsWith('/admin');
   const isPlaylistPage = location.pathname.match(/^\/library\/music\/\d+$/);
   const isLogDetailPage = !isPlaylistPage && location.pathname.startsWith('/library/') && location.pathname.split('/').length > 3;
@@ -86,6 +87,29 @@ export default function Home() {
     trackView(rawPath).catch(() => { });
   }, [location.pathname]);
 
+  // Close mobile menu on Escape key
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape' && mobileMenuOpen) {
+        setMobileMenuOpen(false);
+      }
+    };
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [mobileMenuOpen]);
+
+  // Prevent body scroll when menu is open
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [mobileMenuOpen]);
+
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
 
@@ -94,7 +118,8 @@ export default function Home() {
     const path = location.pathname;
     if (path === '/' || path === '') setActivePage('home');
     else if (path.startsWith('/blogs')) setActivePage('blogs');
-    else if (path.startsWith('/notes')) setActivePage('notes');
+    else if (path.startsWith('/wander')) setActivePage('wander');
+    else if (path.startsWith('/gallery')) setActivePage('gallery');
     else if (path.startsWith('/library')) setActivePage('library');
     else if (path.startsWith('/projects')) setActivePage('projects');
     else if (path.startsWith('/whoami')) setActivePage('whoami');
@@ -154,7 +179,8 @@ export default function Home() {
 
   const navItems = [
     { id: 'blogs', label: 'Writings', path: '/blogs' },
-    { id: 'notes', label: 'Notes', path: '/notes' },
+    { id: 'wander', label: 'Wander', path: '/wander' },
+    { id: 'gallery', label: 'Gallery', path: '/gallery' },
     { id: 'projects', label: 'Projects', path: '/projects' },
     { id: 'library', label: 'Library', path: '/library' },
   ];
@@ -176,7 +202,7 @@ export default function Home() {
 
   const renderHomePage = () => {
     const latestBlogs = (entries.blogs || []).slice(0, 5);
-    const latestNotes = (entries.notes || []).slice(0, 5);
+    const latestWander = (entries.notes || []).slice(0, 5);
     const latestProjects = (entries.projects || []).slice(0, 5);
 
     const allLibrary = [
@@ -207,16 +233,16 @@ export default function Home() {
           path
         };
       }),
-      ...latestNotes.map((note) => {
+      ...latestWander.map((note) => {
         const dateValue = note?.created_at || note?.date;
         const id = note?._id || note?.id;
-        const path = id ? `/notes/${id}` : '/notes';
+        const path = id ? `/wander/${id}` : '/wander';
         return {
-          key: `note-${id || note?.title || ''}`,
+          key: `wander-${id || note?.title || ''}`,
           title: note?.title,
           dateValue,
-          label: 'Note',
-          dataType: 'note',
+          label: 'Wander',
+          dataType: 'wander',
           path
         };
       }),
@@ -268,7 +294,7 @@ export default function Home() {
                 <h1 className="hero-title">…hi, this is karthik</h1>
                   <div className="hero-intro">
                     <p>
-                      Systems engineer by day. Hobby collector by night. Monster hunter in my dreams.
+                      Systems engineer by day, hobby collector by night and monster hunter in my dreams.
                       I tend to start hobbies faster than I finish them. Programming, cartography,
                       gaming, photography, and long rants on public transit.
                     </p>
@@ -319,8 +345,11 @@ export default function Home() {
 
                   return (
                     <div key={item.key} className="home-list-row" onClick={() => navigate(item.path)}>
-                      <span className="home-list-date">{dateLabel}</span>
-                      <Link to={item.path} className="home-list-link">
+                      <div className="home-list-row-header">
+                        <span className="home-list-date">{dateLabel}</span>
+                        <span className="home-list-badge">{item.label}</span>
+                      </div>
+                      <Link to={item.path} className="home-list-link" onClick={(e) => e.stopPropagation()}>
                         {item.title}
                       </Link>
                     </div>
@@ -355,18 +384,32 @@ export default function Home() {
       {mobileMenuOpen && (
         <div className="mobile-menu-overlay" onClick={() => setMobileMenuOpen(false)}>
           <div className="mobile-menu" onClick={(e) => e.stopPropagation()}>
-            {navItems.map((item) => (
+            <div className="mobile-menu-header">
+              <div className="mobile-menu-title">MENU</div>
               <button
-                key={item.id}
-                className={`mobile-nav-item ${activePage === item.id ? 'active' : ''}`}
-                onClick={() => { setMobileMenuOpen(false); navigate(item.path); }}
+                className="mobile-menu-close"
+                onClick={() => setMobileMenuOpen(false)}
+                aria-label="Close menu"
               >
-                <span>{item.label}</span>
+                <X size={20} />
               </button>
-            ))}
+            </div>
+
+            <nav className="mobile-menu-nav">
+              {navItems.map((item) => (
+                <button
+                  key={item.id}
+                  className={`mobile-nav-item ${activePage === item.id ? 'active' : ''}`}
+                  onClick={() => { setMobileMenuOpen(false); navigate(item.path); }}
+                >
+                  <span>{item.label}</span>
+                </button>
+              ))}
+            </nav>
 
             {/* System controls - less prominent */}
             <div className="mobile-nav-system">
+              <div className="mobile-menu-color-stripe" aria-hidden="true"></div>
               {token ? (
                 <button type="button" className="mobile-nav-system-item" onClick={onMobileLogout}>
                   <span>Logout ({alias})</span>
@@ -418,10 +461,11 @@ export default function Home() {
                     ) : (
                       activePage === 'home' ? renderHomePage() :
                         activePage === 'blogs' ? <BlogsPage /> :
-                          activePage === 'notes' ? <NotesPage /> :
-                            activePage === 'library' ? renderLibraryPage() :
-                              activePage === 'projects' ? <LabPage /> :
-                                <LabPage />
+                          activePage === 'wander' ? <WanderPage /> :
+                            activePage === 'gallery' ? <GalleryPage /> :
+                              activePage === 'library' ? renderLibraryPage() :
+                                activePage === 'projects' ? <LabPage /> :
+                                  <LabPage />
                     )}
             </div>
           </div>

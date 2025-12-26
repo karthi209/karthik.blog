@@ -102,7 +102,7 @@ export default function CommentsSection({ blogId }) {
             rows={3}
           />
           <div className="comment-form-actions">
-            <button type="button" className="retro-button retro-button--sm" onClick={onSubmit} disabled={!canPost}>
+            <button type="button" onClick={onSubmit} disabled={!canPost}>
               Post
             </button>
           </div>
@@ -120,7 +120,7 @@ export default function CommentsSection({ blogId }) {
             onFocus={() => setAuthModalOpen(true)}
           />
           <div className="comment-form-actions">
-            <button type="button" className="retro-button retro-button--sm" onClick={() => setAuthModalOpen(true)}>
+            <button type="button" onClick={() => setAuthModalOpen(true)}>
               Login to comment
             </button>
           </div>

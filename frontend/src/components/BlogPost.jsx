@@ -78,7 +78,8 @@ export default function BlogPost() {
       setShowLoader(false);
       return;
     }
-    const t = setTimeout(() => setShowLoader(true), 1200);
+    // Only show loader after 2.5 seconds - prevents distracting flash for fast loads
+    const t = setTimeout(() => setShowLoader(true), 2500);
     return () => clearTimeout(t);
   }, [loading]);
 
@@ -235,10 +236,6 @@ export default function BlogPost() {
         showFirstTimeDisclaimer={!hasSeenAuthDisclaimer()}
         onClose={() => setAuthModalOpen(false)}
         onLogin={() => {
-          console.log('[BLOGPOST] Login button clicked', {
-            currentPath: window.location.pathname,
-            currentUrl: window.location.href
-          });
           if (!hasSeenAuthDisclaimer()) markAuthDisclaimerSeen();
           startGoogleLogin(window.location.pathname || '/');
         }}
@@ -292,15 +289,27 @@ export default function BlogPost() {
             <footer className="blog-post-footer">
               <div className="share-section">
                 <span>Share this thought:</span>
-                <button
-                  className="share-button"
-                  onClick={() => {
-                    navigator.clipboard.writeText(window.location.href);
-                    alert('Link copied to clipboard!');
-                  }}
-                >
-                  Copy Link
-                </button>
+                <div className="share-buttons">
+                  <button
+                    className="share-button"
+                    onClick={() => {
+                      const url = window.location.href;
+                      const text = post.title || 'Check this out';
+                      window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank');
+                    }}
+                  >
+                    Share on X
+                  </button>
+                  <button
+                    className="share-button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(window.location.href);
+                      alert('Link copied to clipboard!');
+                    }}
+                  >
+                    Copy Link
+                  </button>
+                </div>
               </div>
             </footer>
 

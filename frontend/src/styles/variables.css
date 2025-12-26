@@ -52,7 +52,7 @@
   /* Subtle border */
   --color-border-light: #5F6368;
 
-  --color-background: #1A1C1E;
+  --color-background: #131414;
   /* Deep cool dark - personal touch */
   --color-surface: #2A2D30;
   /* Elevated surface */
@@ -76,7 +76,9 @@
   /* Category Colors - Cool-toned Material Design */
   --color-blog: #F28B82;      /* Cool red */
   --color-blog-bg: rgba(242, 139, 130, 0.15);
-  --color-notes: #FDD663;     /* Cool yellow */
+  --color-wander: #FDD663;     /* Cool yellow */
+  --color-wander-bg: rgba(253, 214, 99, 0.15);
+  --color-notes: #FDD663;     /* Keep for backward compatibility */
   --color-notes-bg: rgba(253, 214, 99, 0.15);
   --color-library: #CE93D8;   /* Cool purple */
   --color-library-bg: rgba(206, 147, 216, 0.15);
