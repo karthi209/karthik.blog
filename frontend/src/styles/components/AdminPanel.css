@@ -93,6 +93,40 @@
 }
 
 /* Quill editor styling */
+/* Code Editor for Special Editions */
+.admin-code-editor-wrapper {
+  width: 100%;
+}
+
+.admin-code-editor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.admin-code-editor-label {
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.admin-btn-sm {
+  padding: 0.5rem 1rem;
+  font-size: 0.85rem;
+}
+
+.admin-code-editor {
+  width: 100%;
+  position: relative;
+}
+
+.admin-code-editor textarea {
+  font-family: 'Courier New', 'Monaco', 'Menlo', monospace;
+  tab-size: 2;
+  -moz-tab-size: 2;
+}
+
 .admin-editor {
     border: 1px solid var(--color-border);
     border-radius: 4px;

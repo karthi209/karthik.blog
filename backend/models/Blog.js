@@ -9,9 +9,23 @@ export const Blog = {
         title VARCHAR(255) NOT NULL,
         content TEXT NOT NULL,
         category VARCHAR(100) NOT NULL,
+        edition VARCHAR(50),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
+    `);
+
+    // Add edition column if it doesn't exist (migration)
+    await pool.query(`
+      DO $$ 
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'blogs' AND column_name = 'edition'
+        ) THEN
+          ALTER TABLE blogs ADD COLUMN edition VARCHAR(50);
+        END IF;
+      END $$;
     `);
 
     await pool.query(`
@@ -23,12 +37,12 @@ export const Blog = {
 
   // Create a new blog
   async create(blogData) {
-    const { title, content, category } = blogData;
+    const { title, content, category, edition } = blogData;
     const result = await pool.query(
-      `INSERT INTO blogs (title, content, category) 
-       VALUES ($1, $2, $3) 
+      `INSERT INTO blogs (title, content, category, edition) 
+       VALUES ($1, $2, $3, $4) 
        RETURNING *`,
-      [title, content, category]
+      [title, content, category, edition || null]
     );
     return result.rows[0];
   },
@@ -89,14 +103,14 @@ export const Blog = {
 
   // Update blog
   async update(id, blogData) {
-    const { title, content, category } = blogData;
+    const { title, content, category, edition } = blogData;
     const result = await pool.query(
       `UPDATE blogs 
-       SET title = $1, content = $2, category = $3,
+       SET title = $1, content = $2, category = $3, edition = $4,
            updated_at = CURRENT_TIMESTAMP 
-       WHERE id = $4 
+       WHERE id = $5 
        RETURNING *`,
-      [title, content, category, id]
+      [title, content, category, edition || null, id]
     );
     return result.rows[0];
   },  // Delete blog

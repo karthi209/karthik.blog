@@ -71,10 +71,11 @@ router.get('/admin/list', authenticateApiKey, asyncHandler(async (req, res) => {
 
 router.post('/admin/create', authenticateApiKey, validateRequestBody({
   title: { type: 'string', required: true, maxLength: FIELD_LIMITS.TITLE },
-  content: { type: 'string', required: false, maxLength: FIELD_LIMITS.CONTENT }
+  content: { type: 'string', required: false, maxLength: FIELD_LIMITS.CONTENT },
+  edition: { type: 'string', required: false, maxLength: 50 }
 }), asyncHandler(async (req, res) => {
-  const { title, content } = req.body;
-  const note = await Note.create({ title, content: content || null });
+  const { title, content, edition } = req.body;
+  const note = await Note.create({ title, content: content || null, edition: edition || null });
   cache.del('notes-created_at-desc-1-20'); // Invalidate cache instead of flushAll
   const { response, statusCode } = createResponse({ ...note, _id: note.id }, 'Note created successfully');
   res.status(statusCode).json(response);
@@ -82,13 +83,14 @@ router.post('/admin/create', authenticateApiKey, validateRequestBody({
 
 router.put('/admin/:id', authenticateApiKey, validateRequestBody({
   title: { type: 'string', required: true, maxLength: FIELD_LIMITS.TITLE },
-  content: { type: 'string', required: false, maxLength: FIELD_LIMITS.CONTENT }
+  content: { type: 'string', required: false, maxLength: FIELD_LIMITS.CONTENT },
+  edition: { type: 'string', required: false, maxLength: 50 }
 }), asyncHandler(async (req, res) => {
   const id = parseInt(req.params.id);
   if (isNaN(id)) return res.status(400).json({ success: false, message: 'Invalid note ID format' });
 
-  const { title, content } = req.body;
-  const note = await Note.update(id, { title, content: content || null });
+  const { title, content, edition } = req.body;
+  const note = await Note.update(id, { title, content: content || null, edition: edition || null });
   if (!note) return res.status(404).json({ success: false, message: 'Note not found' });
 
   cache.del('notes-created_at-desc-1-20'); // Invalidate cache

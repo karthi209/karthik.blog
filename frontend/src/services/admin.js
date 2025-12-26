@@ -43,8 +43,8 @@ export const adminListBlogs = async () => {
   return result.data || result;
 };
 
-export const adminUpdateBlog = async (id, { title, content, category, tags, is_draft }) => {
-  // Backend only accepts title, content, and category
+export const adminUpdateBlog = async (id, { title, content, category, edition, tags, is_draft }) => {
+  // Backend accepts title, content, category, and edition
   // Validate required fields before sending
   if (!title || !content || !category) {
     throw new Error(`Missing required fields: ${!title ? 'title' : ''} ${!content ? 'content' : ''} ${!category ? 'category' : ''}`.trim());
@@ -53,7 +53,7 @@ export const adminUpdateBlog = async (id, { title, content, category, tags, is_d
   const res = await fetch(`${API}/blogs/admin/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...authHeaders() },
-    body: JSON.stringify({ title, content, category }),
+    body: JSON.stringify({ title, content, category, edition: edition || null }),
   });
   if (!res.ok) {
     const error = await res.json().catch(() => ({ message: `HTTP ${res.status}` }));
@@ -72,11 +72,11 @@ export const adminDeleteBlog = async (id) => {
   return res.json();
 };
 
-export const adminCreateBlog = async ({ title, content, category, tags }) => {
+export const adminCreateBlog = async ({ title, content, category, edition, tags }) => {
   const res = await fetch(`${API}/blogs/create`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...authHeaders() },
-    body: JSON.stringify({ title, content, category, tags }),
+    body: JSON.stringify({ title, content, category, edition: edition || null, tags }),
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();

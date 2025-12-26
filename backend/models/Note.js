@@ -7,9 +7,23 @@ export const Note = {
         id SERIAL PRIMARY KEY,
         title VARCHAR(255) NOT NULL,
         content TEXT,
+        edition VARCHAR(50),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
+    `);
+
+    // Add edition column if it doesn't exist (migration)
+    await pool.query(`
+      DO $$ 
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'notes' AND column_name = 'edition'
+        ) THEN
+          ALTER TABLE notes ADD COLUMN edition VARCHAR(50);
+        END IF;
+      END $$;
     `);
 
     await pool.query(`
@@ -17,12 +31,12 @@ export const Note = {
     `);
   },
 
-  async create({ title, content = null }) {
+  async create({ title, content = null, edition = null }) {
     const result = await pool.query(
-      `INSERT INTO notes (title, content)
-       VALUES ($1, $2)
+      `INSERT INTO notes (title, content, edition)
+       VALUES ($1, $2, $3)
        RETURNING *`,
-      [title, content]
+      [title, content, edition]
     );
     return result.rows[0];
   },
@@ -57,13 +71,13 @@ export const Note = {
     return result.rows[0];
   },
 
-  async update(id, { title, content = null }) {
+  async update(id, { title, content = null, edition = null }) {
     const result = await pool.query(
       `UPDATE notes
-       SET title = $1, content = $2, updated_at = CURRENT_TIMESTAMP
-       WHERE id = $3
+       SET title = $1, content = $2, edition = $3, updated_at = CURRENT_TIMESTAMP
+       WHERE id = $4
        RETURNING *`,
-      [title, content, id]
+      [title, content, edition, id]
     );
     return result.rows[0];
   },

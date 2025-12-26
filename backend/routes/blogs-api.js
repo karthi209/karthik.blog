@@ -16,15 +16,16 @@ const router = Router();
 router.post('/from-file', authenticateApiKey, validateRequestBody({
   title: { type: 'string', required: true, maxLength: FIELD_LIMITS.TITLE },
   category: { type: 'string', required: true, maxLength: FIELD_LIMITS.CATEGORY, enum: ['tech', 'life', 'music', 'games', 'movies', 'tv', 'books'] },
-  markdownContent: { type: 'string', required: true, maxLength: FIELD_LIMITS.CONTENT }
+  markdownContent: { type: 'string', required: true, maxLength: FIELD_LIMITS.CONTENT },
+  edition: { type: 'string', required: false, maxLength: 50 }
 }), asyncHandler(async (req, res) => {
-  const { title, category, markdownContent } = req.body;
+  const { title, category, markdownContent, edition } = req.body;
 
     const result = await pool.query(
-      `INSERT INTO blogs (title, content, category)
-       VALUES ($1, $2, $3)
+      `INSERT INTO blogs (title, content, category, edition)
+       VALUES ($1, $2, $3, $4)
        RETURNING *`,
-      [title, markdownContent, category]
+      [title, markdownContent, category, edition || null]
     );
 
     const blog = { ...result.rows[0], _id: result.rows[0].id };
@@ -73,15 +74,16 @@ router.post('/from-file', authenticateApiKey, validateRequestBody({
 router.post('/create', authenticateApiKey, validateRequestBody({
   title: { type: 'string', required: true, maxLength: FIELD_LIMITS.TITLE },
   content: { type: 'string', required: true, maxLength: FIELD_LIMITS.CONTENT },
-  category: { type: 'string', required: true, maxLength: FIELD_LIMITS.CATEGORY }
+  category: { type: 'string', required: true, maxLength: FIELD_LIMITS.CATEGORY },
+  edition: { type: 'string', required: false, maxLength: 50 }
 }), asyncHandler(async (req, res) => {
-    const { title, content, category } = req.body;
+    const { title, content, category, edition } = req.body;
 
     const result = await pool.query(
-      `INSERT INTO blogs (title, content, category)
-       VALUES ($1, $2, $3)
+      `INSERT INTO blogs (title, content, category, edition)
+       VALUES ($1, $2, $3, $4)
        RETURNING *`,
-      [title, content, category]
+      [title, content, category, edition || null]
     );
 
     const blog = { ...result.rows[0], _id: result.rows[0].id };
@@ -107,17 +109,17 @@ router.post('/bulk-create', authenticateApiKey, validateRequestBody({
 
     const results = [];
     for (const blog of blogs) {
-      const { title, content, category } = blog;
+      const { title, content, category, edition } = blog;
 
       if (!title || !content || !category) {
         continue; // Skip invalid entries
       }
 
       const result = await pool.query(
-        `INSERT INTO blogs (title, content, category)
-         VALUES ($1, $2, $3)
+        `INSERT INTO blogs (title, content, category, edition)
+         VALUES ($1, $2, $3, $4)
          RETURNING *`,
-        [title, content, category]
+        [title, content, category, edition || null]
       );
 
       results.push({ ...result.rows[0], _id: result.rows[0].id });
@@ -147,17 +149,18 @@ router.get('/admin/list', authenticateApiKey, asyncHandler(async (req, res) => {
 router.put('/admin/:id', authenticateApiKey, validateRequestBody({
   title: { type: 'string', required: true, maxLength: FIELD_LIMITS.TITLE },
   content: { type: 'string', required: true, maxLength: FIELD_LIMITS.CONTENT },
-  category: { type: 'string', required: true, maxLength: FIELD_LIMITS.CATEGORY }
+  category: { type: 'string', required: true, maxLength: FIELD_LIMITS.CATEGORY },
+  edition: { type: 'string', required: false, maxLength: 50 }
 }), asyncHandler(async (req, res) => {
     const { id } = req.params;
-    const { title, content, category } = req.body;
+    const { title, content, category, edition } = req.body;
 
     const result = await pool.query(
       `UPDATE blogs 
-       SET title = $1, content = $2, category = $3, updated_at = CURRENT_TIMESTAMP 
-       WHERE id = $4
+       SET title = $1, content = $2, category = $3, edition = $4, updated_at = CURRENT_TIMESTAMP 
+       WHERE id = $5
        RETURNING *`,
-      [title, content, category, id]
+      [title, content, category, edition || null, id]
     );
 
     if (result.rows.length === 0) {

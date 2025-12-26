@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Search } from 'lucide-react';
 import { fetchBlogs, fetchCategories, fetchBlogArchives, fetchAnthologies, fetchAnthology } from '../services/api';
+import SpecialEditionModal from './SpecialEditionModal';
 import '../styles/components/BlogsPage.css';
 
 export default function BlogsPage() {
@@ -21,6 +22,7 @@ export default function BlogsPage() {
   const [showLoader, setShowLoader] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearchPanel, setShowSearchPanel] = useState(false);
+  const [specialEditionModal, setSpecialEditionModal] = useState({ open: false, blog: null });
 
   // Fetch all necessary data
   useEffect(() => {
@@ -134,15 +136,43 @@ export default function BlogsPage() {
 
         <div className="library-entries">
           {blogs.map((blog) => (
-            <BlogRow key={blog.id || blog._id} blog={blog} navigate={navigate} />
+            <BlogRow 
+              key={blog.id || blog._id} 
+              blog={blog} 
+              navigate={navigate}
+              onSpecialEditionClick={(blog) => setSpecialEditionModal({ open: true, blog })}
+            />
           ))}
         </div>
       </div>
     );
   };
 
+  const handleProceedToSpecialEdition = () => {
+    if (specialEditionModal.blog) {
+      const blogId = specialEditionModal.blog._id || specialEditionModal.blog.id;
+      navigate(`/blogs/${blogId}?special-edition=true`);
+      setSpecialEditionModal({ open: false, blog: null });
+    }
+  };
+
+  const getEditionName = (edition) => {
+    const names = {
+      'victorian': 'Victorian Gothic',
+      'gothic': 'Gothic',
+      'medieval': 'Medieval'
+    };
+    return names[edition?.toLowerCase()] || edition || 'Special';
+  };
+
   return (
     <>
+      <SpecialEditionModal
+        open={specialEditionModal.open}
+        onClose={() => setSpecialEditionModal({ open: false, blog: null })}
+        onProceed={handleProceedToSpecialEdition}
+        editionName={getEditionName(specialEditionModal.blog?.edition)}
+      />
       <div className="page-header">
         <div>
           <h1 className="page-title">Writings</h1>
@@ -267,7 +297,12 @@ export default function BlogsPage() {
               </div>
               <div className="library-entries">
                 {groupedBlogs[year].map((blog) => (
-                  <BlogRow key={blog._id || blog.id} blog={blog} navigate={navigate} />
+                  <BlogRow 
+                    key={blog._id || blog.id} 
+                    blog={blog} 
+                    navigate={navigate}
+                    onSpecialEditionClick={(blog) => setSpecialEditionModal({ open: true, blog })}
+                  />
                 ))}
               </div>
             </section>
@@ -278,19 +313,34 @@ export default function BlogsPage() {
   );
 }
 
-const BlogRow = ({ blog, navigate }) => {
+const BlogRow = ({ blog, navigate, onSpecialEditionClick }) => {
   const dateLabel = blog?.created_at ? new Date(blog.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '—';
   const readingTime = blog?.content ? Math.ceil(blog.content.replace(/<[^>]*>/g, '').split(/\s+/).length / 200) : 1;
+  const hasEdition = blog?.edition;
+
+  const handleClick = (e) => {
+    e.preventDefault();
+    if (hasEdition && onSpecialEditionClick) {
+      onSpecialEditionClick(blog);
+    } else {
+      navigate(`/blogs/${blog._id || blog.id}`);
+    }
+  };
 
   return (
     <button
       type="button"
-      className="library-entry blog-entry"
-      onClick={() => navigate(`/blogs/${blog._id || blog.id}`)}
+      className={`library-entry blog-entry ${hasEdition ? 'blog-entry--special-edition' : ''}`}
+      onClick={handleClick}
     >
       <span className="library-entry-date">{dateLabel}</span>
       <span>
-        <div className="library-entry-title">{blog.title}</div>
+        <div className="library-entry-title">
+          {blog.title}
+          {hasEdition && (
+            <span className="special-edition-tag">SPECIAL EDITION</span>
+          )}
+        </div>
         <div className="blog-entry-meta">
           {blog.category ? (
             <span className="blog-entry-category">{blog.category.toUpperCase()}</span>

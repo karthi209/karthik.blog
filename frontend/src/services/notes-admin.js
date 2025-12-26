@@ -18,11 +18,11 @@ export const adminListNotes = async () => {
   return result.data || result;
 };
 
-export const adminCreateNote = async ({ title, content, tags }) => {
+export const adminCreateNote = async ({ title, content, tags, edition }) => {
   const res = await fetch(`${API_URL}/notes/admin/create`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...authHeaders() },
-    body: JSON.stringify({ title, content, tags })
+    body: JSON.stringify({ title, content, tags, edition: edition || null })
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
@@ -31,11 +31,11 @@ export const adminCreateNote = async ({ title, content, tags }) => {
   return res.json();
 };
 
-export const adminUpdateNote = async (id, { title, content, tags }) => {
+export const adminUpdateNote = async (id, { title, content, tags, edition }) => {
   const res = await fetch(`${API_URL}/notes/admin/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...authHeaders() },
-    body: JSON.stringify({ title, content, tags })
+    body: JSON.stringify({ title, content, tags, edition: edition || null })
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));

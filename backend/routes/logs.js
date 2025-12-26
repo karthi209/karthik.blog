@@ -22,7 +22,8 @@ const formatLog = (log, content = null) => {
     status: log.status,
     favorite: log.favorite,
     date: log.logged_date || log.created_at,
-    type: log.category === 'tv' ? 'series' : log.category // maintain frontend 'series' type
+    type: log.category === 'tv' ? 'series' : log.category, // maintain frontend 'series' type
+    edition: log.edition || null
   };
 
   if (content) {
@@ -275,7 +276,8 @@ router.post('/', requireAdminJwt, async (req, res) => {
       status: status || 'completed',
       favorite: false,
       logged_date: req.body.logged_date || req.body.played_on || req.body.watched_on || req.body.read_on || new Date(),
-      metadata: finalMetadata
+      metadata: finalMetadata,
+      edition: req.body.edition || null
     });
 
     await LogContent.create({
@@ -341,7 +343,8 @@ router.put('/:id', requireAdminJwt, async (req, res) => {
       status,
       favorite,
       logged_date: req.body.logged_date || new Date(), // Ideally preserve original date if not passed, but update likely sends it
-      metadata: finalMetadata
+      metadata: finalMetadata,
+      edition: req.body.edition || null
     });
 
     if (!metadataRecord) {

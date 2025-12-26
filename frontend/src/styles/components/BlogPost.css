@@ -124,14 +124,84 @@
   }
 }
 
-.blog-post-body > p:first-of-type::first-letter {
-  font-size: 3.5em;
-  float: left;
-  line-height: 0.8;
-  margin: 0.05em 0.12em 0 0;
-  font-weight: 700;
-  color: var(--color-accent);
-  font-family: var(--font-heading);
+/* Drop cap removed - no special styling for first letter */
+
+/* Reset default styles for special edition content */
+/* This allows inline styles in special editions to work properly */
+.blog-post-body--special-edition {
+  /* Remove all default styling to let special edition CSS take over */
+  font-family: unset !important;
+  font-size: unset !important;
+  line-height: unset !important;
+  font-weight: unset !important;
+  color: unset !important;
+  letter-spacing: unset !important;
+  max-width: unset !important;
+  width: 100% !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  /* Allow article to break out */
+  position: relative !important;
+  overflow: visible !important;
+}
+
+/* Reset all child elements too - but preserve position if set to fixed */
+.blog-post-body--special-edition > * {
+  font-family: unset !important;
+  font-size: unset !important;
+  line-height: unset !important;
+  font-weight: unset !important;
+  color: unset !important;
+  letter-spacing: unset !important;
+  /* Don't reset margin/padding if position is fixed - let user control it */
+}
+
+/* If article has position fixed, don't reset its positioning */
+.blog-post-body--special-edition article.special-edition[style*="position: fixed"],
+.blog-post-body--special-edition article.special-edition {
+  /* Allow position fixed to work */
+}
+
+/* Reset specific elements that have default styles */
+/* These need to override the more specific .blog-post-body p, .blog-post-body h2 selectors */
+.blog-post-body--special-edition p,
+.blog-post-body--special-edition h1,
+.blog-post-body--special-edition h2,
+.blog-post-body--special-edition h3,
+.blog-post-body--special-edition h4,
+.blog-post-body--special-edition h5,
+.blog-post-body--special-edition h6,
+.blog-post-body--special-edition blockquote,
+.blog-post-body--special-edition ul,
+.blog-post-body--special-edition ol,
+.blog-post-body--special-edition li,
+.blog-post-body--special-edition article,
+.blog-post-body--special-edition header,
+.blog-post-body--special-edition footer,
+.blog-post-body--special-edition section {
+  font-family: unset !important;
+  font-size: unset !important;
+  line-height: unset !important;
+  font-weight: unset !important;
+  color: unset !important;
+  margin: unset !important;
+  padding: unset !important;
+  letter-spacing: unset !important;
+}
+
+/* Ensure nested elements also reset */
+.blog-post-body--special-edition article *,
+.blog-post-body--special-edition article p,
+.blog-post-body--special-edition article h1,
+.blog-post-body--special-edition article h2,
+.blog-post-body--special-edition article h3 {
+  font-family: unset !important;
+  font-size: unset !important;
+  line-height: unset !important;
+  font-weight: unset !important;
+  color: unset !important;
+  margin: unset !important;
+  padding: unset !important;
 }
 
 .blog-post-body p:last-child {

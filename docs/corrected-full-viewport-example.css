@@ -1,0 +1,351 @@
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=IM+Fell+English:ital@0;1&display=swap');
+
+/* ================================
+   Root Variables (Light Mode)
+================================ */
+:root {
+  --parchment-top: #f7f3ea;
+  --parchment-bottom: #ede4d3;
+  --ink: #2b241c;
+  --muted: #7a7165;
+  --gold: #b89b5e;
+
+  --world-1: #2b261f;
+  --world-2: #1b1712;
+  --world-3: #0e0c09;
+}
+
+/* ================================
+   Dark Mode Overrides
+================================ */
+article.special-edition[data-theme="dark"] {
+  --parchment-top: #1e1a14;
+  --parchment-bottom: #15120e;
+  --ink: #e6dfd2;
+  --muted: #a89f92;
+
+  --world-1: #0f1114;
+  --world-2: #090b0e;
+  --world-3: #000000;
+}
+
+/* ================================
+   Full Viewport World
+================================ */
+/* Now you can write clean CSS without !important everywhere */
+article.special-edition {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+
+  background:
+    radial-gradient(
+      circle at center,
+      var(--world-1) 0%,
+      var(--world-2) 55%,
+      var(--world-3) 100%
+    );
+
+  overflow-y: auto;
+  overflow-x: hidden;
+  font-family: "IM Fell English", serif;
+  box-sizing: border-box;
+  z-index: 1;
+
+  transition: background 1.4s ease;
+}
+
+/* Vignette */
+article.special-edition::before {
+  content: "" !important;
+  position: fixed !important;
+  inset: 0 !important;
+  background:
+    radial-gradient(
+      circle at center,
+      rgba(255,255,255,0.03),
+      rgba(0,0,0,0.7)
+    ) !important;
+  pointer-events: none !important;
+  z-index: 0 !important;
+}
+
+/* ================================
+   The Book
+================================ */
+article.special-edition .book {
+  position: relative !important;
+  z-index: 2 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding: 6rem 4rem !important;
+  min-height: 100vh !important;
+
+  background:
+    linear-gradient(
+      180deg,
+      var(--parchment-top),
+      var(--parchment-bottom)
+    ) !important;
+
+  color: var(--ink) !important;
+
+  box-shadow: none !important;
+
+  border-radius: 0 !important;
+  animation: bookFade 1.5s ease forwards;
+
+  transition:
+    background 1.2s ease,
+    color 0.8s ease !important;
+}
+
+/* ================================
+   Title
+================================ */
+article.special-edition header {
+  text-align: center;
+  margin-bottom: 4.5rem;
+}
+
+article.special-edition h1 {
+  font-family: "Cinzel", serif;
+  font-size: 3.2rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  margin-bottom: 0.8rem;
+  color: var(--ink);
+}
+
+article.special-edition .subtitle {
+  font-style: italic;
+  color: var(--muted);
+  font-size: 1.05rem;
+}
+
+article.special-edition .sigil {
+  width: 140px;
+  height: 1px;
+  margin: 2.5rem auto;
+  background:
+    linear-gradient(
+      to right,
+      transparent,
+      var(--gold),
+      transparent
+    );
+}
+
+/* ================================
+   Body Typography
+================================ */
+article.special-edition p {
+  font-size: 1.05rem;
+  line-height: 1.85;
+  margin: 1.8rem 0;
+  color: var(--ink);
+}
+
+/* Drop cap */
+article.special-edition p:first-of-type::first-letter {
+  float: left;
+  font-family: "Cinzel", serif;
+  font-size: 4.6rem;
+  line-height: 1;
+  padding-right: 0.6rem;
+  padding-top: 0.2rem;
+  color: var(--gold);
+}
+
+/* ================================
+   Chapter Headings
+================================ */
+article.special-edition h2 {
+  margin-top: 4.5rem;
+  margin-bottom: 1.6rem;
+  text-align: center;
+  font-family: "Cinzel", serif;
+  font-size: 1.45rem;
+  letter-spacing: 0.14em;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+article.special-edition h2::after {
+  content: "✧ ✦ ✧";
+  display: block;
+  margin-top: 0.9rem;
+  color: var(--gold);
+}
+
+/* ================================
+   Lore Toggle
+================================ */
+.lore-toggle {
+  text-align: center !important;
+  margin: 4rem 0 !important;
+  cursor: pointer !important;
+  color: var(--gold) !important;
+  font-family: "Cinzel", serif !important;
+  letter-spacing: 0.15em !important;
+}
+
+.lore {
+  max-height: 0 !important;
+  overflow: hidden !important;
+  opacity: 0 !important;
+  transition: max-height 1.2s ease, opacity 0.8s ease !important;
+}
+
+.lore.open {
+  max-height: 400px !important;
+  opacity: 1 !important;
+}
+
+/* ================================
+   Quote
+================================ */
+article.special-edition blockquote {
+  margin: 3rem 2.5rem !important;
+  padding-left: 2rem !important;
+  border-left: 3px solid var(--gold) !important;
+  font-style: italic !important;
+  color: var(--ink) !important;
+}
+
+article.special-edition blockquote footer {
+  margin-top: 1rem !important;
+  color: var(--muted) !important;
+}
+
+/* ================================
+   Footer
+================================ */
+article.special-edition footer {
+  margin-top: 5rem !important;
+  text-align: center !important;
+  font-size: 0.9rem !important;
+  color: var(--muted) !important;
+}
+
+/* ================================
+   Theme Toggle (Diegetic)
+================================ */
+.theme-toggle {
+  position: fixed !important;
+  bottom: 2rem !important;
+  right: 2rem !important;
+  font-family: "Cinzel", serif !important;
+  letter-spacing: 0.12em !important;
+  font-size: 0.85rem !important;
+  color: var(--gold) !important;
+  cursor: pointer !important;
+  opacity: 0.6 !important;
+  z-index: 3 !important;
+}
+
+.theme-toggle:hover {
+  opacity: 1 !important;
+}
+
+/* ================================
+   Animations
+================================ */
+@keyframes bookFade {
+   from { opacity: 0; transform: translateY(30px); }
+   to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ================================
+   Responsive
+================================ */
+@media (max-width: 768px) {
+  article.special-edition .book {
+    padding: 4rem 2rem;
+  }
+
+  article.special-edition h1 {
+    font-size: 2.4rem;
+  }
+}
+
+@media (max-width: 480px) {
+  article.special-edition .book {
+    padding: 3rem 1.5rem;
+  }
+
+  article.special-edition p {
+    font-size: 0.95rem;
+  }
+  
+  .theme-toggle {
+    bottom: 1rem;
+    right: 1rem;
+    font-size: 0.75rem;
+    padding: 0.4rem 0.8rem;
+  }
+}
+</style>
+
+<article class="special-edition" data-theme="light">
+  <div class="book">
+
+    <header>
+      <h1>Of Roads Unending</h1>
+      <div class="subtitle">
+        Being a short account of journeys begun, and never truly finished
+      </div>
+      <div class="sigil"></div>
+    </header>
+
+    <p>
+      There are roads that begin at the threshold of one’s home and wind onward
+      into lands unnamed.
+    </p>
+
+    <p>
+      In elder tales, the world was wide and only partially known. Beyond the
+      edges of maps lay silence.
+    </p>
+
+    <div class="lore-toggle" onclick="toggleLore()">✧ Reveal a Fragment of Lore ✧</div>
+
+    <div class="lore" id="lore">
+      <p>
+        In some tellings, it is said that the road remembers every footstep,
+        every doubt, and every turning back — though it never speaks of them.
+      </p>
+    </div>
+
+    <blockquote>
+      “Even the smallest person may change the course of the future.”
+      <footer>— a saying often repeated by firesides</footer>
+    </blockquote>
+
+    <footer>
+      <div>
+        Set down in the Fourth Age of this website.
+      </div>
+    </footer>
+
+  </div>
+
+  <div class="theme-toggle" onclick="toggleTheme()">✧ Shift the Light ✧</div>
+</article>
+
+<script>
+function toggleLore() {
+  document.getElementById("lore").classList.toggle("open");
+}
+
+function toggleTheme() {
+  const article = document.querySelector("article.special-edition");
+  article.dataset.theme =
+    article.dataset.theme === "dark" ? "light" : "dark";
+}
+</script>

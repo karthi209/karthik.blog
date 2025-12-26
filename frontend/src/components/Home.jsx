@@ -44,6 +44,12 @@ export default function Home() {
   const isPlaylistPage = location.pathname.match(/^\/library\/music\/\d+$/);
   const isLogDetailPage = !isPlaylistPage && location.pathname.startsWith('/library/') && location.pathname.split('/').length > 3;
   const isLegalPage = ['/terms', '/privacy', '/disclaimer'].includes(location.pathname);
+  
+  // Check if any content type is in special edition full-page mode
+  const searchParams = new URLSearchParams(location.search);
+  const isSpecialEditionFullPage = 
+    (isBlogPostPage || isNotePostPage || isLogDetailPage) && 
+    searchParams.get('special-edition') === 'true';
 
   // Capture auth token returned from OAuth redirect (works for all routes)
   useEffect(() => {
@@ -366,22 +372,24 @@ export default function Home() {
   return (
     <div className="app-container" data-page={activePage}>
       {/* Mobile Topbar inspired by tania.dev */}
-      <div className="mobile-topbar">
-        <div>
-          <Link to="/" className="mobile-brand">KARTHIK.BLOG</Link>
-          <div className="mobile-actions">
-            <button
-              className="mobile-menu-btn"
-              aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            >
-              {mobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
-            </button>
+      {!isSpecialEditionFullPage && (
+        <div className="mobile-topbar">
+          <div>
+            <Link to="/" className="mobile-brand">KARTHIK.BLOG</Link>
+            <div className="mobile-actions">
+              <button
+                className="mobile-menu-btn"
+                aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              >
+                {mobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
-      {mobileMenuOpen && (
+      {mobileMenuOpen && !isSpecialEditionFullPage && (
         <div className="mobile-menu-overlay" onClick={() => setMobileMenuOpen(false)}>
           <div className="mobile-menu" onClick={(e) => e.stopPropagation()}>
             <div className="mobile-menu-header">
@@ -447,9 +455,9 @@ export default function Home() {
             </div>
           </div>
         }>
-          <div className="home-layout">
-            <Sidebar />
-            <div className="home-main">
+          <div className={`home-layout ${isSpecialEditionFullPage ? 'home-layout--fullpage' : ''}`}>
+            {!isSpecialEditionFullPage && <Sidebar />}
+            <div className={`home-main ${isSpecialEditionFullPage ? 'home-main--fullpage' : ''}`}>
               {isAdminPage ? (
                 <AdminPanel />
               ) : isBlogPostPage ? <BlogPost /> :
@@ -472,6 +480,7 @@ export default function Home() {
         </Suspense>
       </main>
 
+      {!isSpecialEditionFullPage && (
       <footer className="footer">
         <div className="footer-container">
           <div className="footer-main">
@@ -493,6 +502,7 @@ export default function Home() {
           </div>
         </div>
       </footer>
+      )}
     </div>
   );
 }

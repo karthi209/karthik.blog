@@ -9,6 +9,7 @@ import "quill/dist/quill.snow.css";
 import '../styles/components/AdminPanel.css';
 import AuthRequiredModal from './AuthRequiredModal';
 import { hasSeenAuthDisclaimer, markAuthDisclaimerSeen } from '../services/auth';
+import SpecialEditionCodeEditor from './SpecialEditionCodeEditor';
 
 const API = import.meta.env.VITE_API_URL || '/api';
 
@@ -35,6 +36,7 @@ export default function AdminPanel() {
   // === BLOG STATE ===
   const [blogTitle, setBlogTitle] = useState('');
   const [blogCategory, setBlogCategory] = useState('');
+  const [blogEdition, setBlogEdition] = useState('');
   const [blogTags, setBlogTags] = useState('');
   const [blogContent, setBlogContent] = useState('');
   const [blogIsDraft, setBlogIsDraft] = useState(false);
@@ -57,6 +59,7 @@ export default function AdminPanel() {
   // === NOTE STATE ===
   const [noteTitle, setNoteTitle] = useState('');
   const [noteContent, setNoteContent] = useState('');
+  const [noteEdition, setNoteEdition] = useState('');
   const [noteTags, setNoteTags] = useState('');
   const [notes, setNotes] = useState([]);
   const [editingNote, setEditingNote] = useState(null);
@@ -74,6 +77,7 @@ export default function AdminPanel() {
   const [libraryCategory, setLibraryCategory] = useState('games');
   const [libraryTitle, setLibraryTitle] = useState('');
   const [libraryContent, setLibraryContent] = useState('');
+  const [libraryEdition, setLibraryEdition] = useState('');
   const [libraryRating, setLibraryRating] = useState(10);
   const [libraryCoverFile, setLibraryCoverFile] = useState(null);
   const [libraryCoverPreview, setLibraryCoverPreview] = useState(null);
@@ -271,6 +275,7 @@ export default function AdminPanel() {
           title: blogTitle.trim(),
           content: blogContent.trim(),
           category: categoryNormalized,
+          edition: blogEdition.trim() || null,
           tags: tagsArray,
           is_draft: isDraftValue
         });
@@ -282,6 +287,7 @@ export default function AdminPanel() {
           title: blogTitle.trim(),
           content: blogContent.trim(),
           category: categoryNormalized,
+          edition: blogEdition.trim() || null,
           tags: tagsArray,
           is_draft: isDraftValue
         });
@@ -343,6 +349,7 @@ export default function AdminPanel() {
       setBlogTitle(fullBlog.title);
       // Keep category as-is when loading (no normalization needed)
       setBlogCategory(fullBlog.category || '');
+      setBlogEdition(fullBlog.edition || '');
       setBlogTags(fullBlog.tags ? fullBlog.tags.join(', ') : '');
       setBlogContent(fullBlog.content);
       setBlogIsDraft(fullBlog.is_draft || false);
@@ -371,6 +378,7 @@ export default function AdminPanel() {
     setEditingBlog(null);
     setBlogTitle('');
     setBlogCategory('');
+    setBlogEdition('');
     setBlogTags('');
     setBlogContent('');
     setBlogIsDraft(false);
@@ -470,7 +478,8 @@ export default function AdminPanel() {
         await adminUpdateNote(editingNote.id, {
           title: noteTitle.trim(),
           content: noteContent || null,
-          tags: tagsArray
+          tags: tagsArray,
+          edition: noteEdition || null
         });
         setStatus('Note updated!');
         setEditingNote(null);
@@ -479,13 +488,15 @@ export default function AdminPanel() {
         await adminCreateNote({
           title: noteTitle.trim(),
           content: noteContent || null,
-          tags: tagsArray
+          tags: tagsArray,
+          edition: noteEdition || null
         });
         setStatus('Note created!');
       }
 
       setNoteTitle('');
       setNoteContent('');
+      setNoteEdition('');
       setNoteTags('');
       if (showManageNotes) loadNotes();
       setTimeout(() => setStatus(''), 2000);
@@ -508,6 +519,7 @@ export default function AdminPanel() {
     setEditingNote(note);
     setNoteTitle(note.title || '');
     setNoteContent(note.content || '');
+    setNoteEdition(note.edition || '');
     setNoteTags(Array.isArray(note.tags) ? note.tags.join(', ') : '');
     setShowManageNotes(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -530,6 +542,7 @@ export default function AdminPanel() {
     setEditingNote(null);
     setNoteTitle('');
     setNoteContent('');
+    setNoteEdition('');
     setNoteTags('');
   };
 
@@ -655,6 +668,7 @@ export default function AdminPanel() {
         // Common fields
         rating: libraryRating ? String(libraryRating) : null,
         content: libraryContent, // mapped to Review/Thoughts
+        edition: libraryEdition || null,
         cover_image_url: coverImageUrl,
 
         // Category specific (will be merged into metadata by backend)
@@ -732,6 +746,7 @@ export default function AdminPanel() {
   const resetLibraryForm = () => {
     setLibraryTitle('');
     setLibraryContent('');
+    setLibraryEdition('');
     setLibraryRating(10);
     setLibraryCoverFile(null);
     setLibraryCoverPreview(null);
@@ -773,6 +788,7 @@ export default function AdminPanel() {
 
     const details = item.details || {}; // Fallback if fields are inside details
     setLibraryContent(item.content || item.description || details.review || '');
+    setLibraryEdition(item.edition || '');
     setLibraryPlatform(item.platform || details.platform || '');
     setLibraryGenre(item.genre || details.genre || '');
     setLibraryReleaseYear(item.release_year || details.release_year || '');
@@ -1213,6 +1229,21 @@ export default function AdminPanel() {
                 </div>
 
                 <div className="admin-form-group">
+                  <label className="admin-label" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={!!blogEdition}
+                      onChange={(e) => setBlogEdition(e.target.checked ? 'special' : '')}
+                      style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                    />
+                    <span>Special Edition</span>
+                  </label>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', marginTop: '0.25rem', marginLeft: '1.75rem' }}>
+                    Enable HTML/CSS editor for custom interactive posts. Use sparingly.
+                  </p>
+                </div>
+
+                <div className="admin-form-group">
                   <label className="admin-label">Add to Anthology (Optional)</label>
                   <select
                     value={selectedAnthologyForBlog}
@@ -1231,15 +1262,95 @@ export default function AdminPanel() {
 
                 <div className="admin-form-group">
                   <label className="admin-label">Content *</label>
-                  <div className="admin-editor">
-                    <ReactQuill
-                      ref={quillRef}
-                      theme="snow"
-                      value={blogContent}
-                      onChange={setBlogContent}
-                      modules={quillModules}
-                    />
-                  </div>
+                  {blogEdition ? (
+                    <div className="admin-code-editor-wrapper">
+                      <div className="admin-code-editor-header">
+                        <span className="admin-code-editor-label">HTML/CSS Editor (Special Edition Mode)</span>
+                        <button
+                          type="button"
+                          className="admin-btn admin-btn-sm"
+                          onClick={() => {
+                            const input = document.createElement('input');
+                            input.setAttribute('type', 'file');
+                            input.setAttribute('accept', 'image/*');
+                            input.onchange = async () => {
+                              const file = input.files && input.files[0];
+                              if (!file) return;
+                              try {
+                                setStatus('Uploading image...');
+                                const formData = new FormData();
+                                formData.append('image', file);
+                                const token = getStoredAdminToken();
+                                const response = await fetch(`${API}/upload/image`, {
+                                  method: 'POST',
+                                  headers: { Authorization: `Bearer ${token}` },
+                                  body: formData
+                                });
+                                if (!response.ok) throw new Error('Upload failed');
+                                const data = await response.json();
+                                const imageUrl = data.filePath;
+                                // Insert image tag at cursor position
+                                const textarea = document.querySelector('.admin-code-editor textarea');
+                                if (textarea) {
+                                  const start = textarea.selectionStart;
+                                  const end = textarea.selectionEnd;
+                                  const imageTag = `<img src="${imageUrl}" alt="" />`;
+                                  const newContent = blogContent.substring(0, start) + imageTag + blogContent.substring(end);
+                                  setBlogContent(newContent);
+                                  // Set cursor after inserted image tag
+                                  setTimeout(() => {
+                                    textarea.focus();
+                                    textarea.setSelectionRange(start + imageTag.length, start + imageTag.length);
+                                  }, 0);
+                                }
+                                setStatus('Image uploaded! Inserted at cursor position.');
+                                setTimeout(() => setStatus(''), 2000);
+                              } catch (err) {
+                                setStatus(`Upload error: ${err.message}`);
+                              }
+                            };
+                            input.click();
+                          }}
+                        >
+                          📷 Upload Image
+                        </button>
+                      </div>
+                      <div className="admin-code-editor">
+                        <textarea
+                          value={blogContent}
+                          onChange={(e) => setBlogContent(e.target.value)}
+                          placeholder="Write your HTML/CSS here. Include &lt;style&gt; tags for CSS. Example:&#10;&#10;&lt;style&gt;&#10;  body { background: #000; color: #fff; }&#10;&lt;/style&gt;&#10;&#10;&lt;article&gt;&#10;  &lt;h1&gt;My Special Post&lt;/h1&gt;&#10;  &lt;p&gt;Content here...&lt;/p&gt;&#10;&lt;/article&gt;"
+                          spellCheck={false}
+                          style={{
+                            width: '100%',
+                            minHeight: '500px',
+                            fontFamily: 'monospace',
+                            fontSize: '14px',
+                            padding: '1rem',
+                            background: 'var(--color-background)',
+                            color: 'var(--color-text)',
+                            border: '1px solid var(--color-border)',
+                            borderRadius: '4px',
+                            lineHeight: '1.6',
+                            resize: 'vertical'
+                          }}
+                        />
+                      </div>
+                      <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', marginTop: '0.5rem' }}>
+                        💡 Tip: Write complete HTML with embedded CSS. Use &lt;style&gt; tags for styling. Images uploaded will be inserted as &lt;img&gt; tags.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="admin-editor">
+                      <ReactQuill
+                        ref={quillRef}
+                        theme="snow"
+                        value={blogContent}
+                        onChange={setBlogContent}
+                        modules={quillModules}
+                      />
+                    </div>
+                  )}
                 </div>
 
                 <div className="admin-btn-group">
@@ -1317,16 +1428,39 @@ export default function AdminPanel() {
             </div>
 
             <div className="admin-form-group">
+              <label className="admin-label" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={!!noteEdition}
+                  onChange={(e) => setNoteEdition(e.target.checked ? 'special' : '')}
+                  style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                />
+                <span>Special Edition</span>
+              </label>
+              <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', marginTop: '0.25rem', marginLeft: '1.75rem' }}>
+                Enable HTML/CSS editor for custom interactive posts. Use sparingly.
+              </p>
+            </div>
+
+            <div className="admin-form-group">
               <label className="admin-label">Content</label>
-              <div className="admin-editor">
-                <ReactQuill
-                  ref={quillRef}
-                  theme="snow"
+              {noteEdition ? (
+                <SpecialEditionCodeEditor
                   value={noteContent}
                   onChange={setNoteContent}
-                  modules={quillModules}
+                  onStatusChange={setStatus}
                 />
-              </div>
+              ) : (
+                <div className="admin-editor">
+                  <ReactQuill
+                    ref={quillRef}
+                    theme="snow"
+                    value={noteContent}
+                    onChange={setNoteContent}
+                    modules={quillModules}
+                  />
+                </div>
+              )}
             </div>
 
             <div className="admin-btn-group">
@@ -1833,16 +1967,39 @@ export default function AdminPanel() {
             </div>
 
             <div className="admin-form-group">
+              <label className="admin-label" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={!!libraryEdition}
+                  onChange={(e) => setLibraryEdition(e.target.checked ? 'special' : '')}
+                  style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                />
+                <span>Special Edition</span>
+              </label>
+              <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', marginTop: '0.25rem', marginLeft: '1.75rem' }}>
+                Enable HTML/CSS editor for custom interactive reviews. Use sparingly.
+              </p>
+            </div>
+
+            <div className="admin-form-group">
               <label className="admin-label">Review / Thoughts</label>
-              <div className="admin-editor">
-                <ReactQuill
-                  ref={quillRef}
-                  theme="snow"
+              {libraryEdition ? (
+                <SpecialEditionCodeEditor
                   value={libraryContent}
                   onChange={setLibraryContent}
-                  modules={quillModules}
+                  onStatusChange={setStatus}
                 />
-              </div>
+              ) : (
+                <div className="admin-editor">
+                  <ReactQuill
+                    ref={quillRef}
+                    theme="snow"
+                    value={libraryContent}
+                    onChange={setLibraryContent}
+                    modules={quillModules}
+                  />
+                </div>
+              )}
             </div>
 
             <div className="admin-form-group">

@@ -162,12 +162,80 @@ export default function NoteDetail() {
   }
 
   const created = note?.created_at ? new Date(note.created_at) : null;
-  const html = note?.content
-    ? DOMPurify.sanitize(note.content)
-    : '';
+  const edition = note?.edition;
+  const editionClass = edition ? `edition-${edition}` : '';
+
+  // Extract and inject style tags and execute script tags from special edition content
+  useEffect(() => {
+    if (!edition || !note?.content) {
+      const existingStyle = document.getElementById('special-edition-styles');
+      if (existingStyle) {
+        existingStyle.remove();
+      }
+      return;
+    }
+
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(note.content, 'text/html');
+    const styleTags = doc.querySelectorAll('style');
+    const scriptTags = doc.querySelectorAll('script');
+    
+    if (styleTags.length > 0) {
+      const existingStyle = document.getElementById('special-edition-styles');
+      if (existingStyle) {
+        existingStyle.remove();
+      }
+
+      const styleElement = document.createElement('style');
+      styleElement.id = 'special-edition-styles';
+      
+      let combinedStyles = '';
+      styleTags.forEach(tag => {
+        combinedStyles += tag.textContent || tag.innerHTML;
+      });
+      
+      styleElement.textContent = combinedStyles;
+      document.head.appendChild(styleElement);
+    }
+
+    // Execute script tags (React doesn't execute scripts in dangerouslySetInnerHTML)
+    // Execute after a small delay to ensure DOM elements are rendered
+    if (scriptTags.length > 0) {
+      setTimeout(() => {
+        scriptTags.forEach(scriptTag => {
+          const script = document.createElement('script');
+          script.textContent = scriptTag.textContent || scriptTag.innerHTML;
+          document.body.appendChild(script);
+          setTimeout(() => script.remove(), 100);
+        });
+      }, 100);
+    }
+
+    return () => {
+      const existingStyle = document.getElementById('special-edition-styles');
+      if (existingStyle) {
+        existingStyle.remove();
+      }
+    };
+  }, [edition, note?.content]);
+
+  // Apply edition class for special edition full-page mode
+  useEffect(() => {
+    if (!edition) {
+      document.documentElement.className = document.documentElement.className.replace(/\bedition-\w+/g, '').trim();
+      document.body.className = document.body.className.replace(/\bedition-\w+/g, '').trim();
+      return;
+    }
+    document.documentElement.classList.add(`edition-${edition}`);
+    document.body.classList.add(`edition-${edition}`);
+    return () => {
+      document.documentElement.classList.remove(`edition-${edition}`);
+      document.body.classList.remove(`edition-${edition}`);
+    };
+  }, [edition]);
 
   return (
-    <div className="blog-post-container" style={{ minHeight: '60vh' }}>
+    <div className={`blog-post-container ${editionClass}`} style={{ minHeight: '60vh' }}>
       <AuthRequiredModal
         open={authModalOpen}
         title="Login required"
@@ -206,10 +274,21 @@ export default function NoteDetail() {
           </div>
         </header>
 
-        {html ? (
+        {note?.content ? (
           <div
-            className="blog-post-body"
-            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(note.content || '') }}
+            className={`blog-post-body ${edition ? 'blog-post-body--special-edition' : ''}`}
+            dangerouslySetInnerHTML={{
+              __html: edition
+                ? DOMPurify.sanitize(note.content || '', {
+                    ADD_TAGS: ['style', 'script', 'article', 'header', 'footer', 'section', 'div'],
+                    ADD_ATTR: ['style', 'class', 'onclick', 'id'],
+                    ALLOW_DATA_ATTR: true,
+                    KEEP_CONTENT: true,
+                    FORBID_TAGS: [],
+                    FORBID_ATTR: []
+                  })
+                : DOMPurify.sanitize(note.content || '')
+            }}
           />
         ) : null}
 

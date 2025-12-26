@@ -29,12 +29,12 @@ export const LogMetadata = {
     },
 
     async create(data) {
-        const { category, title, cover_image, rating, status, favorite, logged_date, metadata } = data;
+        const { category, title, cover_image, rating, status, favorite, logged_date, metadata, edition } = data;
         const result = await pool.query(
-            `INSERT INTO log_metadata (category, title, cover_image, rating, status, favorite, logged_date, metadata) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
+            `INSERT INTO log_metadata (category, title, cover_image, rating, status, favorite, logged_date, metadata, edition) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) 
        RETURNING *`,
-            [category, title, cover_image, rating, status, favorite || false, logged_date, metadata || {}]
+            [category, title, cover_image, rating, status, favorite || false, logged_date, metadata || {}, edition || null]
         );
         return result.rows[0];
     },
@@ -65,14 +65,14 @@ export const LogMetadata = {
     },
 
     async update(id, data) {
-        const { category, title, cover_image, rating, status, favorite, logged_date, metadata } = data;
+        const { category, title, cover_image, rating, status, favorite, logged_date, metadata, edition } = data;
         const result = await pool.query(
             `UPDATE log_metadata 
        SET category = $1, title = $2, cover_image = $3, rating = $4, 
-           status = $5, favorite = $6, logged_date = $7, metadata = $8, updated_at = CURRENT_TIMESTAMP 
-       WHERE id = $9 
+           status = $5, favorite = $6, logged_date = $7, metadata = $8, edition = $9, updated_at = CURRENT_TIMESTAMP 
+       WHERE id = $10 
        RETURNING *`,
-            [category, title, cover_image, rating, status, favorite, logged_date, metadata || {}, id]
+            [category, title, cover_image, rating, status, favorite, logged_date, metadata || {}, edition || null, id]
         );
         return result.rows[0];
     },

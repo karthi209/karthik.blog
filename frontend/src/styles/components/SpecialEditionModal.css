@@ -1,0 +1,290 @@
+/* Special Edition Modal */
+.special-edition-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(8px);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.special-edition-modal {
+  background: var(--color-background);
+  border: 2px solid var(--color-border);
+  max-width: 500px;
+  width: 100%;
+  position: relative;
+  animation: slideUp 0.3s ease-out;
+}
+
+.special-edition-modal-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: transparent;
+  border: none;
+  color: var(--color-text);
+  cursor: pointer;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s ease;
+  z-index: 1;
+}
+
+.special-edition-modal-close:hover {
+  color: var(--color-accent);
+}
+
+.special-edition-modal-content {
+  padding: 3rem 2.5rem 2.5rem;
+}
+
+.special-edition-modal-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.special-edition-modal-title {
+  font-family: var(--font-heading);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 0.5rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.special-edition-modal-subtitle {
+  font-family: var(--font-body);
+  font-size: 1rem;
+  color: var(--color-accent);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+.special-edition-modal-body {
+  margin-bottom: 2rem;
+  line-height: 1.7;
+}
+
+.special-edition-modal-body p {
+  color: var(--color-text-light);
+  margin-bottom: 1rem;
+  font-size: 0.95rem;
+}
+
+.special-edition-modal-body p:last-child {
+  margin-bottom: 0;
+}
+
+.special-edition-modal-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+}
+
+.special-edition-btn {
+  padding: 0.75rem 1.5rem;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.special-edition-btn:hover {
+  background: var(--color-surface);
+  border-color: var(--color-accent);
+}
+
+.special-edition-btn--primary {
+  background: var(--color-accent);
+  color: var(--color-background);
+  border-color: var(--color-accent);
+}
+
+.special-edition-btn--primary:hover {
+  background: var(--color-accent);
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.special-edition-btn--secondary:hover {
+  color: var(--color-accent);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Special Edition Tag in Blog List */
+.special-edition-tag {
+  display: inline-block;
+  margin-left: 0.75rem;
+  padding: 0.15rem 0.5rem;
+  background: var(--color-accent);
+  color: var(--color-background);
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  border-radius: 2px;
+  vertical-align: middle;
+}
+
+.blog-entry--special-edition {
+  /* No special styling - just the tag is enough */
+}
+
+/* Full Page Mode */
+body.special-edition-fullpage {
+  overflow: hidden;
+}
+
+.home-layout--fullpage {
+  grid-template-columns: 1fr !important;
+  max-width: 100% !important;
+  padding: 0 !important;
+}
+
+.home-main--fullpage {
+  max-width: 100% !important;
+  margin: 0 !important;
+}
+
+.blog-post-container--fullpage {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow-y: auto;
+  z-index: 9999;
+  background: var(--color-background);
+  width: 100vw !important;
+  max-width: 100vw !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* ============================================
+   FULL-PAGE MODE: Complete Container Reset
+   Get all parent containers out of the way
+   ============================================ */
+
+/* Remove ALL constraints from parent containers */
+.blog-post-container--fullpage .blog-post-layout,
+.blog-post-container--fullpage .blog-post-main,
+.blog-post-container--fullpage .blog-post-content {
+  all: unset !important;
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  transform: none !important;
+  perspective: none !important;
+  filter: none !important;
+  will-change: auto !important;
+  overflow: visible !important;
+  position: static !important;
+}
+
+/* Special edition body - complete freedom */
+.blog-post-container--fullpage .blog-post-body--special-edition {
+  all: unset !important;
+  display: block !important;
+  width: 100vw !important;
+  max-width: 100vw !important;
+  min-height: 100vh !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  position: relative !important;
+  overflow: visible !important;
+}
+
+/* Article gets complete control - no interference */
+.blog-post-container--fullpage .blog-post-body--special-edition article.special-edition {
+  /* User's CSS has full control - no system CSS interference */
+}
+
+.special-edition-close-btn {
+  position: fixed;
+  top: 1.5rem;
+  right: 1.5rem;
+  z-index: 10000;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  padding: 0.75rem 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.special-edition-close-btn:hover {
+  background: var(--color-accent);
+  color: var(--color-background);
+  border-color: var(--color-accent);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+@media (max-width: 768px) {
+  .special-edition-modal {
+    max-width: 100%;
+  }
+  
+  .special-edition-modal-content {
+    padding: 2rem 1.5rem 1.5rem;
+  }
+  
+  .special-edition-close-btn {
+    top: 1rem;
+    right: 1rem;
+    padding: 0.5rem 1rem;
+    font-size: 0.8rem;
+  }
+  
+  .special-edition-close-btn span {
+    display: none;
+  }
+}
+
